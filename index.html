@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Zing! - Mobiele Zangtrainer & Partituren</title>
+  <meta name="description" content="5 Pijlers voor elke zanger: ademhaling, opwarmen, zuiverheid (A3), ritme en partituren met Spotify.">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Zing!">
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
+  <link rel="apple-touch-icon" href="assets/icons/icon.svg">
+
+  <!-- Modern Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css?v=10">
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <a href="#" class="brand" id="brand-home">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>Zing!</h1>
+      </div>
+    </a>
+
+    <div class="header-actions">
+      <button id="btn-install-app" class="btn-install" title="Zing! op je telefoon installeren">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <span>Installeer App</span>
+      </button>
+      <button id="btn-quick-sound" class="btn-icon" title="Test audio (A3)" aria-label="Audio Test">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-wrapper">
+
+    <!-- ======================================================================
+         VIEW 1: HOOFDSCHERM (De 5 Pijlers Compact Zichtbaar)
+         ====================================================================== -->
+    <section id="view-home" class="view-active">
+      <div class="home-main">
+        <div class="home-hero-compact">
+          <span class="section-tag">JOUW ZANGTOOLS</span>
+        </div>
+
+        <!-- The 5 Expandable Pillars with Sortable Tools -->
+        <div class="pillars-container" id="pillars-container">
+          <!-- Rendered dynamically by app.js from ContentData.pillars -->
+        </div>
+      </div>
+
+      <!-- Desktop-only studio console -->
+      <aside class="studio-console" aria-label="Oefenconsole">
+        <div>
+          <div class="console-title">Oefenconsole</div>
+          <div class="console-subtitle">Tik een toets aan voor een referentietoon en zing hem na.</div>
+        </div>
+        <div>
+          <div class="console-label">Referentieklavier C3 – C5</div>
+          <div class="piano-wrapper">
+            <div class="piano-keyboard" id="console-piano-keys"></div>
+          </div>
+        </div>
+        <div>
+          <div class="console-label">Snel starten</div>
+          <div class="console-quick-grid">
+            <button class="console-quick-btn" data-tool-id="builtin-breathing"><span class="qi">🌬️</span>Ademcirkel</button>
+            <button class="console-quick-btn" data-tool-id="builtin-warmup"><span class="qi">🔥</span>Inzingen</button>
+            <button class="console-quick-btn" data-tool-id="builtin-tuner"><span class="qi">🎯</span>Stemtrainer</button>
+            <button class="console-quick-btn" data-tool-id="builtin-metronome"><span class="qi">⏱️</span>Metronoom</button>
+            <button class="console-quick-btn" data-tool-id="builtin-scores" style="grid-column: 1 / -1;"><span class="qi">🎼</span>Partituren &amp; Spotify</button>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ======================================================================
+         VIEW 2: UNIFORM FULLSCREEN TOOL SCHERM
+         (Elke tool opent als volledig nieuw scherm met vaste Terug-knoppen)
+         ====================================================================== -->
+    <section id="view-screen" class="view-hidden">
+      <!-- Top Sticky Navigation Bar -->
+      <div class="screen-top-bar">
+        <button id="btn-back-top" class="btn-back" title="Terug naar de 5 pijlers">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <span>Terug naar Zing!</span>
+        </button>
+        <div class="screen-current-title" id="screen-active-title">Gereedschap</div>
+      </div>
+
+      <div class="screen-content-area">
+
+        <!-- 1. Screen: Live Pitch Detector / Stemtrainer (A3) -->
+        <div id="screen-tuner" class="tool-content-block">
+          <div class="card-glass tuner-container">
+            <span class="badge badge-green" style="margin-bottom: 0.5rem;">Live Toonhoogte & Zuiverheid</span>
+            <h2 style="font-family: var(--font-heading); font-size: 1.6rem; margin-bottom: 0.25rem;">Stemtrainer & A3 Detector</h2>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); max-width: 480px; margin-bottom: 1.5rem;">
+              Zing een toon in de microfoon. De meter toont exact welke noot je zingt (bijv. <strong>A3</strong> of <strong>C4</strong>) en of je zuiver zit.
+            </p>
+
+            <div class="current-note-box" id="tuner-note-box">
+              <div class="note-name" id="tuner-note-name">--</div>
+              <div class="solfege-name" id="tuner-solfege">Zing een noot...</div>
+            </div>
+
+            <div class="tuner-stats">
+              <div class="stat-item">
+                <div class="stat-label">Frequentie</div>
+                <div class="stat-value" id="tuner-freq">0.0 Hz</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Afwijking</div>
+                <div class="stat-value" id="tuner-cents">0 ¢</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Status</div>
+                <div class="stat-value" id="tuner-status">Wachtend</div>
+              </div>
+            </div>
+
+            <div class="pitch-gauge">
+              <div class="gauge-labels">
+                <span>-50¢ (Te Laag)</span>
+                <span class="center-label">0¢ (Zuiver!)</span>
+                <span>+50¢ (Te Hoog)</span>
+              </div>
+              <div class="gauge-track">
+                <div class="gauge-center-line"></div>
+                <div class="gauge-needle" id="gauge-needle"></div>
+              </div>
+            </div>
+
+            <div class="tuner-controls">
+              <button id="btn-toggle-mic" class="btn-primary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>
+                <span id="mic-btn-label">Start Microfoon</span>
+              </button>
+              <button id="btn-play-detected-note" class="btn-secondary" title="Laat de gedetecteerde toon zuiver horen">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                <span>Hoor Zuivere Toon</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Screen: Virtueel Piano Klavier -->
+        <div id="screen-piano" class="tool-content-block">
+          <div class="card-glass">
+            <span class="badge badge-purple" style="margin-bottom: 0.5rem;">Toongenerator</span>
+            <h2 style="font-family: var(--font-heading); font-size: 1.6rem; margin-bottom: 0.25rem;">Virtueel Referentieklavier</h2>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+              Sla een noot aan om de toonhoogte in te prenten. Zing de noot vervolgens na!
+            </p>
+            <div class="piano-wrapper">
+              <div class="piano-keyboard" id="piano-keys"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Screen: Ademhalingstrainer -->
+        <div id="screen-breathing" class="tool-content-block">
+          <div class="card-glass breathing-box">
+            <span class="badge badge-gold" style="margin-bottom: 0.5rem;">Ademsteun & Ontspanning</span>
+            <h2 style="font-family: var(--font-heading); font-size: 1.6rem;">De 4-4-8 S-Klank Ademcirkel</h2>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); max-width: 480px; margin-top: 0.3rem;">
+              Lage buikadem: 4 tellen in, 4 vasthouden, 8 tellen gelijkmatig uitblazen op een lange 'sssss'-klank.
+            </p>
+
+            <div class="breathing-circle-outer">
+              <div class="breathing-circle-inner" id="breathing-bubble">
+                <span class="breath-timer-count" id="breath-count">4</span>
+              </div>
+            </div>
+
+            <div class="breath-action-text" id="breath-action">Klaar om te beginnen?</div>
+
+            <div style="margin-top: 1.25rem; display: flex; gap: 0.75rem;">
+              <button id="btn-toggle-breathing" class="btn-primary">
+                <span id="breath-btn-label">Start Ademtraining</span>
+              </button>
+              <button id="btn-sound-chime" class="btn-secondary" title="Zachte begeleidende klank aan/uit">
+                🔔 Geluid Aan
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Screen: Automatische Piano Inzingroutine -->
+        <div id="screen-warmup" class="tool-content-block">
+          <div class="card-glass warmup-player-card">
+            <span class="badge badge-purple">Inzingroutine</span>
+            <h2 style="font-family: var(--font-heading); font-size: 1.6rem; margin-top: 0.2rem;">Piano Vocalises</h2>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 0.5rem;">
+              Kies je stemsoort. De piano speelt 5-toonsladder opwarmers omhoog en omlaag. Zing mee op <em>“brrr”</em> (lip trill), <em>“moo”</em> of <em>“la”</em>!
+            </p>
+
+            <div class="voice-type-selector" id="voice-selector">
+              <div class="voice-chip active" data-voice="laag">Bas / Alt (Laag)</div>
+              <div class="voice-chip" data-voice="midden">Bariton / Mezzo (Midden)</div>
+              <div class="voice-chip" data-voice="hoog">Tenor / Sopraan (Hoog)</div>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 1.25rem;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Huidige Toonsoort:</div>
+                <div style="font-family: var(--font-heading); font-size: 1.2rem; font-weight: 700;" id="warmup-current-key">C-groot (C - D - E - F - G)</div>
+              </div>
+
+              <button id="btn-start-warmup" class="btn-primary">
+                <span id="warmup-btn-label">Start Inzingroutine</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Screen: Interactieve Metronoom -->
+        <div id="screen-metronome" class="tool-content-block">
+          <div class="card-glass metronome-card">
+            <span class="badge badge-green">Ritmetrainer</span>
+            <h2 style="font-family: var(--font-heading); font-size: 1.6rem; margin-top: 0.2rem;">Interactieve Metronoom</h2>
+
+            <div class="bpm-display"><span id="bpm-val">80</span> <span style="font-size: 1.2rem; color: var(--text-muted); font-weight: 500;">BPM</span></div>
+            <div style="font-size: 0.85rem; color: var(--accent-indigo); font-weight: 600;" id="tempo-name">Andante (Rustig wandeltempo)</div>
+
+            <input type="range" id="bpm-slider" class="bpm-slider" min="40" max="200" value="80">
+
+            <div class="beat-indicators" id="metronome-dots">
+              <div class="beat-dot accent"></div>
+              <div class="beat-dot"></div>
+              <div class="beat-dot"></div>
+              <div class="beat-dot"></div>
+            </div>
+
+            <button id="btn-toggle-metronome" class="btn-primary" style="margin-top: 0.5rem;">
+              <span id="metro-btn-label">Start Metronoom</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 6. Screen: Partituren Viewer met Spotify Integratie -->
+        <div id="screen-scores" class="tool-content-block">
+          <div class="score-viewer-container">
+            
+            <!-- Score Selector & Upload Toolbar -->
+            <div class="score-toolbar">
+              <div class="score-picker">
+                <label for="score-select" style="font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">Partituur:</label>
+                <select id="score-select" class="select-custom">
+                  <option value="vader-jacob">Vader Jacob (Koor Canon - 4 stemmig)</option>
+                  <option value="dona-nobis">Dona Nobis Pacem (Klassieke Canon)</option>
+                  <option value="toonladder-oefening">Toonladder & Inzing-oefening</option>
+                  <option value="custom">Eigen PDF uploaden...</option>
+                </select>
+              </div>
+
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="file" id="pdf-file-input" accept="application/pdf" style="display: none;">
+                <button id="btn-upload-pdf" class="btn-secondary" style="padding: 0.45rem 0.9rem; font-size: 0.8rem;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span>Upload PDF</span>
+                </button>
+                <button id="btn-fullscreen-pdf" class="btn-icon" title="Schermvullend">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- SPOTIFY PLAYER VOOR HET WIJSJE -->
+            <div class="spotify-card">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#1db954"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.508 17.308a.75.75 0 0 1-1.033.249c-2.825-1.727-6.38-2.118-10.569-1.162a.75.75 0 1 1-.334-1.462c4.585-1.047 8.528-.601 11.687 1.342a.75.75 0 0 1 .249 1.033zm1.47-3.268a.938.938 0 0 1-1.291.309c-3.234-1.988-8.163-2.563-11.988-1.402a.938.938 0 1 1-.548-1.794c4.372-1.328 9.799-.687 13.518 1.596a.937.937 0 0 1 .309 1.291zm.126-3.41c-3.878-2.303-10.279-2.515-13.985-1.39a1.125 1.125 0 1 1-.65-2.155c4.256-1.292 11.324-1.044 15.789 1.607a1.125 1.125 0 0 1-1.154 1.938z"/></svg>
+                  <span style="font-weight: 700; font-size: 0.95rem; color: #f8fafc;">Spotify: Beluister het Wijsje</span>
+                </div>
+                <span class="badge badge-green" style="font-size: 0.7rem;">Originele Melodie</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                Luister direct naar het originele nummer om de melodie in je hoofd te krijgen:
+              </p>
+
+              <!-- Spotify Embed iFrame -->
+              <div style="border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                <iframe id="spotify-embed-frame" style="border-radius:12px" src="https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT?utm_source=generator&theme=0" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+              </div>
+
+              <!-- Input for custom Spotify link -->
+              <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                <input type="text" id="spotify-custom-url" placeholder="Plak een Spotify link van jouw eigen liedje..." class="select-custom" style="flex: 1; font-size: 0.8rem;">
+                <button id="btn-set-spotify" class="btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; white-space: nowrap;">Stel In</button>
+              </div>
+            </div>
+
+            <!-- Tempo Rehearsal Companion Player -->
+            <div class="audio-companion-bar">
+              <div class="companion-info">
+                <div class="companion-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                </div>
+                <div>
+                  <div style="font-weight: 700; font-size: 0.9rem;" id="track-title">Pianobegeleiding: Vader Jacob</div>
+                  <div style="font-size: 0.75rem; color: var(--text-secondary);" id="track-subtitle">Melodie & Begeleiding</div>
+                </div>
+              </div>
+
+              <div class="companion-controls">
+                <button id="btn-play-companion" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                  <span id="play-companion-text">Speel Begeleiding</span>
+                </button>
+
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Tempo:</span>
+                  <button class="btn-secondary tempo-btn" data-tempo="0.8" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">80%</button>
+                  <button class="btn-secondary tempo-btn active" data-tempo="1.0" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; background: var(--accent-indigo); color: white;">100%</button>
+                  <button class="btn-secondary tempo-btn" data-tempo="1.15" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">115%</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- PDF Score Rendering Viewport -->
+            <div class="score-display-frame" id="score-container">
+              <iframe id="pdf-viewer-frame" class="score-frame-content" title="Partituur Weergave"></iframe>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 7. Screen: Dedicated External Web Tool Viewer -->
+        <div id="screen-external" class="tool-content-block">
+          <div class="card-glass" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h3 id="ext-tool-title" style="font-family: var(--font-heading); font-size: 1.25rem;">Externe Zang-Tool</h3>
+              <p id="ext-tool-desc" style="font-size: 0.85rem; color: var(--text-secondary);">Directe interactieve webweergave</p>
+            </div>
+            <a id="ext-tool-direct-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+              <span>Open in Nieuw Tabblad ↗</span>
+            </a>
+          </div>
+          <div class="score-display-frame" style="height: 65vh; min-height: 480px;">
+            <iframe id="ext-viewer-frame" class="score-frame-content" style="height: 100%;" title="Externe Tool" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Floating / Sticky Back Bar on Mobile -->
+      <div class="screen-bottom-bar">
+        <button id="btn-back-bottom" class="btn-back-floating">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <span>Terug naar Zing!</span>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/content-data.js?v=10"></script>
+  <script src="js/audio-engine.js?v=10"></script>
+  <script src="js/pitch-detector.js?v=10"></script>
+  <script src="js/breathing-trainer.js?v=10"></script>
+  <script src="js/score-viewer.js?v=10"></script>
+  <script src="js/app.js?v=10"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js?v=10')
+          .then(reg => {
+            reg.update();
+            console.log('ServiceWorker registered & updated:', reg.scope);
+          })
+          .catch(err => console.log('ServiceWorker registration failed:', err));
+      });
+    }
+  </script>
+
+</body>
+</html>

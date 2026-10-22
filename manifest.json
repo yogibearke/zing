@@ -1,0 +1,31 @@
+{
+  "name": "Zing! - Mobiele Zangtrainer & Partituren",
+  "short_name": "Zing!",
+  "description": "5 Pijlers voor elke zanger: ademhaling, opwarmen, zuiverheid (A3), ritme en partituren met Spotify.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "zing-pwa",
+  "display": "standalone",
+  "background_color": "#0a0d14",
+  "theme_color": "#6366f1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="assets/icons/icon.svg">
 
   <!-- Modern Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=10">
+  <link rel="stylesheet" href="css/styles.css?v=11">
 </head>
 <body>
 
@@ -260,6 +260,7 @@
               <div class="score-picker">
                 <label for="score-select" style="font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">Partituur:</label>
                 <select id="score-select" class="select-custom">
+                  <option value="komt-vrienden" selected>1. Komt vrienden in het ronde (SATB Koor)</option>
                   <option value="vader-jacob">Vader Jacob (Koor Canon - 4 stemmig)</option>
                   <option value="dona-nobis">Dona Nobis Pacem (Klassieke Canon)</option>
                   <option value="toonladder-oefening">Toonladder & Inzing-oefening</option>
@@ -368,18 +369,18 @@
   </main>
 
   <!-- Scripts -->
-  <script src="js/content-data.js?v=10"></script>
-  <script src="js/audio-engine.js?v=10"></script>
-  <script src="js/pitch-detector.js?v=10"></script>
-  <script src="js/breathing-trainer.js?v=10"></script>
-  <script src="js/score-viewer.js?v=10"></script>
-  <script src="js/app.js?v=10"></script>
+  <script src="js/content-data.js?v=11"></script>
+  <script src="js/audio-engine.js?v=11"></script>
+  <script src="js/pitch-detector.js?v=11"></script>
+  <script src="js/breathing-trainer.js?v=11"></script>
+  <script src="js/score-viewer.js?v=11"></script>
+  <script src="js/app.js?v=11"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=10')
+        navigator.serviceWorker.register('./sw.js?v=11')
           .then(reg => {
             reg.update();
             console.log('ServiceWorker registered & updated:', reg.scope);

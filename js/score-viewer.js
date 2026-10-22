@@ -12,6 +12,67 @@ const ScoreViewer = (() => {
 
   // Sample Repertoire with musical notes for accompaniment & Spotify links for the tune ('het wijsje')
   const SCORES = {
+    'komt-vrienden': {
+      title: '1. Komt vrienden in het ronde (SATB Koor)',
+      subtitle: 'Toonsoort: G-groot / e-klein | 6/8 Maat | 4-stemmig koor (S, A, T, B)',
+      spotifyUri: 'https://open.spotify.com/embed/track/6LyLH4g5uBmsfGOBNgMiux?utm_source=generator&theme=0',
+      pdfUrl: './assets/sample-scores/komt-vrienden-in-het-ronde.pdf',
+      notes: [
+        { note: 'D4', dur: 1 }, { note: 'G4', dur: 1 }, { note: 'G4', dur: 1 }, { note: 'A4', dur: 1 }, { note: 'B4', dur: 2 },
+        { note: 'G4', dur: 1 }, { note: 'B4', dur: 1 }, { note: 'C5', dur: 1 }, { note: 'D5', dur: 3 },
+        { note: 'D5', dur: 1 }, { note: 'E5', dur: 1 }, { note: 'D5', dur: 1 }, { note: 'C5', dur: 1 }, { note: 'B4', dur: 2 },
+        { note: 'A4', dur: 1 }, { note: 'B4', dur: 1 }, { note: 'A4', dur: 1 }, { note: 'G4', dur: 3 }
+      ],
+      htmlScore: `
+        <div style="font-family: serif; padding: 15px; color: #1e293b; max-width: 850px; margin: 0 auto; background: #fff;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <span style="display: inline-block; background: #4f46e5; color: #fff; font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 99px; text-transform: uppercase;">Originele Koorpartituur (SATB)</span>
+              <h2 style="margin: 4px 0 0 0; font-size: 20px;">1. Komt vrienden in het ronde</h2>
+              <p style="color: #64748b; font-size: 13px; margin: 2px 0 0 0;">4-stemmig Koor (Sopranen, Alten, Tenoren, Bassen) • 6/8 Maat</p>
+            </div>
+            <a href="./assets/sample-scores/komt-vrienden-in-het-ronde.pdf" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; color: #334155; text-decoration: none; font-size: 13px; font-family: sans-serif; font-weight: 600;">
+              <span>Open PDF in nieuw venster ↗</span>
+            </a>
+          </div>
+
+          <!-- Embedded PDF Viewer direct binnen het partiturenkader -->
+          <div style="border: 2px solid #cbd5e1; border-radius: 8px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); background: #525659;">
+            <object data="./assets/sample-scores/komt-vrienden-in-het-ronde.pdf#toolbar=1&navpanes=0&view=FitH" type="application/pdf" style="width: 100%; height: 600px; display: block;">
+              <div style="padding: 20px; background: #fff; text-align: center;">
+                <p style="margin-bottom: 10px;">PDF weergave:</p>
+                <a href="./assets/sample-scores/komt-vrienden-in-het-ronde.pdf" target="_blank" style="display: inline-block; background: #4f46e5; color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none;">Klik hier om de partituur te openen</a>
+              </div>
+            </object>
+          </div>
+
+          <!-- Liedtekst en strofen overzicht -->
+          <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 18px; background: #f8fafc; margin-bottom: 15px;">
+            <div style="font-weight: bold; margin-bottom: 8px; color: #4338ca; font-size: 15px;">Liedtekst per Strofe:</div>
+            <p style="line-height: 1.8; font-size: 14px; margin-bottom: 12px;">
+              <strong>1.</strong> Komt vrienden in het ronde, minnaars van enen stiel.<br>
+              Ik zal u gaan verkonden hoe ik door 't slijperswiel<br>
+              den kost verdien voor vrouw en kind,<br>
+              schoon blootgesteld aan weer en wind!
+            </p>
+            <p style="line-height: 1.8; font-size: 14px; margin-bottom: 12px; background: #e0e7ff; padding: 10px 14px; border-radius: 6px; font-style: italic; color: #312e81;">
+              <strong>Refrein (Koor):</strong><br>
+              Ter lieren om ter la, van linksom rechtsom<br>
+              draait mijne steen door het roeren van mijn been.<br>
+              Ju, ju, ju, ju, ju, ju, ju, ju!
+            </p>
+            <p style="line-height: 1.8; font-size: 14px; margin-bottom: 8px;">
+              <strong>2.</strong> De schoenmaker gezeten op een pikkelstoel...<br>
+              <strong>3.</strong> Sa vrienden, voor het leste, alle ambachten zijn goed...
+            </p>
+          </div>
+
+          <div style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px 16px; border-radius: 6px; font-size: 13px; color: #065f46;">
+            💡 <strong>Koor-Oefentip:</strong> Beluister hierboven de originele opname van <em>Joska De Langen</em> via Spotify om de melodie en het 6/8 ritme in je hoofd te krijgen. Gebruik daarna de pianobegeleiding om jouw partij (S, A, T of B) in te studeren!
+          </div>
+        </div>
+      `
+    },
     'vader-jacob': {
       title: 'Vader Jacob (Koor Canon - 4 stemmig)',
       subtitle: 'Toonsoort: F-groot | 4/4 maat | Eenvoudige canon',
@@ -141,6 +202,7 @@ const ScoreViewer = (() => {
         <html>
         <head>
           <meta charset="utf-8">
+          <base href="${window.location.origin}${window.location.pathname}">
           <style>
             body { margin: 0; padding: 12px; background: #ffffff; color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
           </style>
@@ -306,7 +368,7 @@ const ScoreViewer = (() => {
 
   function init() {
     setupEventListeners();
-    displayScore('vader-jacob');
+    displayScore('komt-vrienden');
   }
 
   return {

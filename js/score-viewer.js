@@ -24,119 +24,117 @@ const ScoreViewer = (() => {
     });
   }
 
-  // Exact SATB Transcription for "1. Komt vrienden in het ronde" (2/4 maat met 1/4 opmaat, d-mineur)
+  // Exact SATB Transcription for "1. Komt vrienden in het ronde" (2/4 maat met 1/8 opmaat, d-mineur)
   // dur: 1.0 = kwartnoot, dur: 0.5 = achtste noot, dur: 2.0 = halve noot
   const komtVriendenSoprano = [
-    // Opmaat: "Komt" (1/4 tel)
-    { note: 'D4', dur: 1.0 },
-    // M1: "vrien-den in het"
-    { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
-    // M2: "ron-de, min-"
-    { note: 'A4', dur: 1.0 }, { note: 'A4', dur: 0.5 }, { note: 'A4', dur: 0.5 },
-    // M3: "naars van e-nen"
-    { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
-    // M4: "stiel. - Ik"
-    { note: 'D4', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'D4', dur: 0.5 },
-    // M5: "zal u gaan ver-"
-    { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'F4', dur: 0.5 },
-    // M6: "kon-den (ver-"
-    { note: 'G4', dur: 1.0 }, { note: 'G4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
-    // M7: "kon-den) hoe"
-    { note: 'A4', dur: 1.0 }, { note: 'A4', dur: 0.5 }, { note: 'C5', dur: 0.5 },
-    // M8: "ik door 't slij-pers-"
-    { note: 'B4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
-    // M9: "wiel den"
-    { note: 'F4', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'A4', dur: 0.5 },
-    // M10: "kost ver-dien voor"
-    { note: 'A4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'A4', dur: 0.5 },
-    // M11: "vrouw en kind, schoon"
-    { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
-    // M12: "bloot-ge-steld aan"
-    { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'B4', dur: 0.5 },
-    // M13: "weer en wind!"
-    { note: 'A4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'D4', dur: 1.0 },
-
-    // Refrein Opmaat: "Ter" (1/4 tel)
+    // Opmaat
+    { note: 'A4', dur: 0.5 },
+    // M1
+    { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'C5', dur: 0.5 }, { note: 'D5', dur: 0.5 },
+    // M2
+    { note: 'E5', dur: 0.5 }, { note: 'C#5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 },
+    // M3
+    { note: 'A4', dur: 0.5 }, { note: 'B4', dur: 0.5 }, { note: 'C5', dur: 0.5 }, { note: 'D5', dur: 0.5 },
+    // M4
+    { note: 'D5', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'D5', dur: 0.5 },
+    // M5
+    { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'E5', dur: 0.5 }, { note: 'F5', dur: 0.5 },
+    // M6
+    { note: 'G5', dur: 0.5 }, { note: 'F#5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 },
+    // M7
+    { note: 'F5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 },
+    // M8
+    { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'E5', dur: 0.5 }, { note: 'F5', dur: 0.5 },
+    // M9
+    { note: 'G5', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'G5', dur: 0.5 },
+    // M10
+    { note: 'F5', dur: 0.5 }, { note: 'E5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'C#5', dur: 0.5 },
+    // M11
+    { note: 'D5', dur: 0.5 }, { note: 'F5', dur: 0.5 }, { note: 'E5', dur: 0.5 }, { note: 'A4', dur: 0.5 },
+    // M12
+    { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'C#5', dur: 0.5 },
+    // M13
+    { note: 'D5', dur: 0.5 }, { note: 'E5', dur: 0.5 }, { note: 'D5', dur: 1.0 },
+    // Refrein Opmaat
     { note: 'A4', dur: 1.0 },
-    // M14: "lie-re om ter"
+    // M14
     { note: 'D5', dur: 0.5 }, { note: 'C#5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'E5', dur: 0.5 },
-    // M15: "la, van"
+    // M15
     { note: 'F5', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'A4', dur: 0.5 },
-    // M16: "links-om rechts-om"
-    { note: 'A4', dur: 0.5 }, { note: 'B4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
-    // M17: "draait mij-ne steen door het"
-    { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'A4', dur: 0.5 },
-    // M18: "roe-ren van mijn"
-    { note: 'B4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 0.5 },
-    // M19: "been. Ju,"
-    { note: 'E4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'A4', dur: 0.5 },
-    // M20: "ju, ju, ju, ju,"
-    { note: 'A4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'A4', dur: 0.5 },
-    // M21: "ju, ju, ju!"
-    { note: 'A4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'D5', dur: 1.0 }
+    // M16
+    { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'C#5', dur: 0.5 }, { note: 'C#5', dur: 0.5 },
+    // M17
+    { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'E5', dur: 0.5 }, { note: 'F5', dur: 0.5 },
+    // M18
+    { note: 'F5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'E5', dur: 0.5 }, { note: 'C#5', dur: 0.5 },
+    // M19
+    { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 },
+    // M20
+    { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 },
+    // M21
+    { note: 'D5', dur: 2.0 }
   ];
 
   const komtVriendenAlto = [
-    // Opmaat: "Komt"
-    { note: 'D4', dur: 1.0 },
+    // Opmaat
+    { note: 'A4', dur: 0.5 },
     // M1
-    { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'C#4', dur: 0.5 },
+    { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 0.5 },
     // M2
-    { note: 'D4', dur: 1.0 }, { note: 'E4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
+    { note: 'A4', dur: 1.0 }, { note: 'A4', dur: 0.5 }, { note: 'A4', dur: 0.5 },
     // M3
-    { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'C#4', dur: 0.5 },
+    { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'C#5', dur: 0.5 },
     // M4
     { note: 'D4', dur: 1.0 }, { note: 'REST', dur: 1.0 },
     // M5
-    { note: 'REST', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
+    { note: 'REST', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'D4', dur: 0.5 },
     // M6
-    { note: 'D4', dur: 1.0 }, { note: 'E4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
+    { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'F4', dur: 0.5 },
     // M7
-    { note: 'F4', dur: 1.0 }, { note: 'F4', dur: 0.5 }, { note: 'A4', dur: 0.5 },
+    { note: 'G4', dur: 0.5 }, { note: 'F#4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
     // M8
-    { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
+    { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'A4', dur: 0.5 },
     // M9
-    { note: 'D4', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'F4', dur: 0.5 },
+    { note: 'Bb4', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'Bb4', dur: 0.5 },
     // M10
-    { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 },
+    { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
     // M11
-    { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'C#4', dur: 0.5 },
+    { note: 'F4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 0.5 },
     // M12
-    { note: 'D4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
+    { note: 'Bb4', dur: 0.5 }, { note: 'Bb4', dur: 0.5 }, { note: 'Bb4', dur: 0.5 }, { note: 'A4', dur: 0.5 },
     // M13
-    { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'D4', dur: 1.0 },
-
+    { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 1.0 },
     // Refrein Opmaat
     { note: 'F4', dur: 1.0 },
     // M14
     { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
     // M15
-    { note: 'A4', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'F4', dur: 0.5 },
+    { note: 'D5', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'F4', dur: 0.5 },
     // M16
-    { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
+    { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
     // M17
     { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'F4', dur: 0.5 },
     // M18
-    { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
+    { note: 'D4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'C#4', dur: 0.5 },
     // M19
-    { note: 'C#4', dur: 0.5 }, { note: 'C#4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'F4', dur: 0.5 },
+    { note: 'D4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'C#4', dur: 0.5 },
     // M20
-    { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 },
+    { note: 'D4', dur: 0.5 }, { note: 'C#4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
     // M21
-    { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 1.0 }
+    { note: 'F4', dur: 2.0 }
   ];
 
   const komtVriendenTenor = [
-    // Opmaat: "Komt"
-    { note: 'D4', dur: 1.0 },
+    // Opmaat
+    { note: 'A3', dur: 0.5 },
     // M1
-    { note: 'F3', dur: 0.5 }, { note: 'F3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 },
+    { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
     // M2
-    { note: 'F3', dur: 1.0 }, { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 },
+    { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'D4', dur: 1.0 },
     // M3
-    { note: 'REST', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 },
+    { note: 'REST', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
     // M4
-    { note: 'A3', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'D4', dur: 0.5 },
+    { note: 'D4', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'A3', dur: 0.5 },
     // M5
     { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'C4', dur: 0.5 },
     // M6
@@ -144,47 +142,46 @@ const ScoreViewer = (() => {
     // M7
     { note: 'C4', dur: 1.0 }, { note: 'C4', dur: 0.5 }, { note: 'F3', dur: 0.5 },
     // M8
-    { note: 'D4', dur: 0.5 }, { note: 'C4', dur: 0.5 }, { note: 'B3', dur: 0.5 }, { note: 'B3', dur: 0.5 },
+    { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'B3', dur: 0.5 }, { note: 'C4', dur: 0.5 },
     // M9
-    { note: 'A3', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'D4', dur: 0.5 },
+    { note: 'D4', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'D4', dur: 0.5 },
     // M10
-    { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
+    { note: 'D4', dur: 0.5 }, { note: 'B3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 },
     // M11
-    { note: 'D4', dur: 0.5 }, { note: 'C#4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'G3', dur: 0.5 },
+    { note: 'A3', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'C#4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
     // M12
-    { note: 'A3', dur: 0.5 }, { note: 'C4', dur: 0.5 }, { note: 'C4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
+    { note: 'G4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
     // M13
-    { note: 'D4', dur: 0.5 }, { note: 'C#4', dur: 0.5 }, { note: 'D4', dur: 1.0 },
-
+    { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'D4', dur: 1.0 },
     // Refrein Opmaat
     { note: 'D4', dur: 1.0 },
     // M14
     { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 },
     // M15
-    { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
+    { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'D4', dur: 0.5 },
     // M16
-    { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'C#4', dur: 0.5 },
+    { note: 'B3', dur: 0.5 }, { note: 'B3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 },
     // M17
     { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'B3', dur: 0.5 }, { note: 'C4', dur: 0.5 },
     // M18
-    { note: 'D4', dur: 0.5 }, { note: 'C4', dur: 0.5 }, { note: 'B3', dur: 0.5 }, { note: 'A3', dur: 0.5 },
+    { note: 'A3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'B3', dur: 0.5 }, { note: 'A3', dur: 0.5 },
     // M19
-    { note: 'G3', dur: 0.5 }, { note: 'G3', dur: 0.5 }, { note: 'F3', dur: 0.5 }, { note: 'D4', dur: 0.5 },
+    { note: 'F3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'F3', dur: 0.5 }, { note: 'A3', dur: 0.5 },
     // M20
-    { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
+    { note: 'F3', dur: 0.5 }, { note: 'A3', dur: 0.5 }, { note: 'F3', dur: 0.5 }, { note: 'A3', dur: 0.5 },
     // M21
-    { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'A3', dur: 1.0 }
+    { note: 'A3', dur: 2.0 }
   ];
 
   const komtVriendenBass = [
-    // Opmaat: "Komt"
-    { note: 'D3', dur: 1.0 },
+    // Opmaat
+    { note: 'D3', dur: 0.5 },
     // M1
-    { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'E3', dur: 0.5 },
+    { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 },
     // M2
-    { note: 'F3', dur: 1.0 }, { note: 'C#3', dur: 0.5 }, { note: 'C#3', dur: 0.5 },
+    { note: 'D3', dur: 1.0 }, { note: 'A2', dur: 0.5 }, { note: 'REST', dur: 0.5 },
     // M3
-    { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'A2', dur: 0.5 },
+    { note: 'REST', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 },
     // M4
     { note: 'D3', dur: 1.0 }, { note: 'REST', dur: 1.0 },
     // M5
@@ -194,18 +191,17 @@ const ScoreViewer = (() => {
     // M7
     { note: 'F2', dur: 1.0 }, { note: 'F3', dur: 0.5 }, { note: 'A2', dur: 0.5 },
     // M8
-    { note: 'G2', dur: 0.5 }, { note: 'A2', dur: 0.5 }, { note: 'E2', dur: 0.5 }, { note: 'E2', dur: 0.5 },
+    { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'C3', dur: 0.5 }, { note: 'F2', dur: 0.5 },
     // M9
-    { note: 'D2', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'D3', dur: 0.5 },
+    { note: 'G2', dur: 1.0 }, { note: 'REST', dur: 0.5 }, { note: 'G2', dur: 0.5 },
     // M10
-    { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 },
+    { note: 'D3', dur: 0.5 }, { note: 'G2', dur: 0.5 }, { note: 'A2', dur: 0.5 }, { note: 'A2', dur: 0.5 },
     // M11
-    { note: 'D3', dur: 0.5 }, { note: 'A2', dur: 0.5 }, { note: 'B2', dur: 0.5 }, { note: 'A2', dur: 0.5 },
+    { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'A2', dur: 0.5 }, { note: 'D3', dur: 0.5 },
     // M12
-    { note: 'D3', dur: 0.5 }, { note: 'C3', dur: 0.5 }, { note: 'F2', dur: 0.5 }, { note: 'G2', dur: 0.5 },
+    { note: 'G3', dur: 0.5 }, { note: 'F3', dur: 0.5 }, { note: 'E3', dur: 0.5 }, { note: 'A2', dur: 0.5 },
     // M13
     { note: 'A2', dur: 0.5 }, { note: 'A2', dur: 0.5 }, { note: 'D3', dur: 1.0 },
-
     // Refrein Opmaat
     { note: 'D3', dur: 1.0 },
     // M14
@@ -213,17 +209,17 @@ const ScoreViewer = (() => {
     // M15
     { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 },
     // M16
-    { note: 'D3', dur: 0.5 }, { note: 'G3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'A2', dur: 0.5 },
+    { note: 'G2', dur: 0.5 }, { note: 'G2', dur: 0.5 }, { note: 'A2', dur: 0.5 }, { note: 'A2', dur: 0.5 },
     // M17
     { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 },
     // M18
-    { note: 'G2', dur: 0.5 }, { note: 'A2', dur: 0.5 }, { note: 'B2', dur: 0.5 }, { note: 'B2', dur: 0.5 },
+    { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'G2', dur: 0.5 }, { note: 'A2', dur: 0.5 },
     // M19
-    { note: 'A2', dur: 0.5 }, { note: 'A2', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 },
-    // M20
     { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 },
+    // M20
+    { note: 'D3', dur: 0.5 }, { note: 'A2', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'C#3', dur: 0.5 },
     // M21
-    { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 0.5 }, { note: 'D3', dur: 1.0 }
+    { note: 'D3', dur: 2.0 }
   ];
 
   const komtVriendenTutti = buildTutti(komtVriendenSoprano, komtVriendenAlto, komtVriendenTenor, komtVriendenBass);
@@ -232,7 +228,7 @@ const ScoreViewer = (() => {
   const SCORES = {
     'komt-vrienden': {
       title: '1. Komt vrienden in het ronde (Het Slijperslied)',
-      subtitle: 'Originele Partituur: d-mineur (1 mol) • 2/4 Maat (1/4 Opmaat) • SATB Koor',
+      subtitle: 'Originele Partituur: d-mineur (1 mol) • 2/4 Maat (1/8 Opmaat) • SATB Koor',
       spotifyUri: 'https://open.spotify.com/embed/track/6LyLH4g5uBmsfGOBNgMiux?utm_source=generator&theme=0',
       pdfUrl: './assets/sample-scores/komt-vrienden-in-het-ronde.pdf',
       voices: {
@@ -253,7 +249,7 @@ const ScoreViewer = (() => {
                 <span style="background: #4f46e5; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.5px;">Originele Koorpartituur</span>
                 <span style="background: #ecfdf5; color: #059669; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px;">SATB Koor</span>
                 <span style="background: #eff6ff; color: #2563eb; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 99px;">2/4 Maat</span>
-                <span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px;">1/4 Opmaat ("Komt")</span>
+                <span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px;">1/8 Opmaat ("Komt")</span>
               </div>
               <h1 style="margin: 0; font-size: 22px; color: #1e1b4b; font-weight: 800;">1. Komt vrienden in het ronde</h1>
               <p style="margin: 4px 0 0 0; color: #64748b; font-size: 13px;">Het Slijperslied • Toonsoort: <strong>d-mineur (1 mol: B♭)</strong> • Allegretto vivace</p>
@@ -273,26 +269,26 @@ const ScoreViewer = (() => {
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 18px;">
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;">
               <div style="font-weight: 700; color: #4f46e5; font-size: 12px;">SOPRAAN (S)</div>
-              <div style="font-size: 11px; color: #64748b;">D4 - F5 (Hoofdmelodie)</div>
+              <div style="font-size: 11px; color: #64748b;">D4 - G5 (Hoofdmelodie)</div>
             </div>
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;">
               <div style="font-weight: 700; color: #059669; font-size: 12px;">ALT (A)</div>
-              <div style="font-size: 11px; color: #64748b;">C#4 - A4 (Tweede stem)</div>
+              <div style="font-size: 11px; color: #64748b;">C#4 - D5 (Tweede stem)</div>
             </div>
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;">
               <div style="font-weight: 700; color: #d97706; font-size: 12px;">TENOR (T)</div>
-              <div style="font-size: 11px; color: #64748b;">F3 - D4 (Hoge mannenstem)</div>
+              <div style="font-size: 11px; color: #64748b;">F3 - G4 (Hoge mannenstem)</div>
             </div>
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;">
               <div style="font-weight: 700; color: #dc2626; font-size: 12px;">BAS (B)</div>
-              <div style="font-size: 11px; color: #64748b;">D2 - F3 (Koorfundament)</div>
+              <div style="font-size: 11px; color: #64748b;">F2 - G3 (Koorfundament)</div>
             </div>
           </div>
 
-          <!-- DIGITALE NOTATIE: VECTOR GRAVURE (SVG 2/4 MET 1/4 OPMAAT) -->
+          <!-- DIGITALE NOTATIE: VECTOR GRAVURE (SVG 2/4 MET 1/8 OPMAAT) -->
           <div style="border: 2px solid #0f172a; border-radius: 8px; padding: 16px; background: #ffffff; box-shadow: 0 4px 16px rgba(0,0,0,0.06); margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
-              <span style="font-weight: 700; font-size: 13px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">Vector Notatie: 2/4 Maat met 1/4 Opmaat</span>
+              <span style="font-weight: 700; font-size: 13px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">Vector Notatie: 2/4 Maat met 1/8 Opmaat</span>
               <span style="font-size: 12px; color: #64748b;">1 Mol (B♭) • ♩ ≈ 92 BPM</span>
             </div>
 
@@ -326,28 +322,29 @@ const ScoreViewer = (() => {
                 <text x="86" y="55" style="font-family: serif; font-size: 18px; font-weight: bold; fill: #0f172a;">2</text>
                 <text x="86" y="75" style="font-family: serif; font-size: 18px; font-weight: bold; fill: #0f172a;">4</text>
 
-                <!-- OPMAAT (1/4 tel): D4 "Komt" -->
-                <text x="110" y="32" class="measure-num">Opmaat</text>
-                <ellipse cx="120" cy="85" rx="5" ry="4" transform="rotate(-20 120 85)" class="note-head" />
-                <line x1="124" y1="83" x2="124" y2="52" class="note-stem" />
+                <!-- OPMAAT (1/8 tel): A4 "Komt" -->
+                <text x="105" y="32" class="measure-num">Opmaat</text>
+                <ellipse cx="120" cy="65" rx="5" ry="4" transform="rotate(-20 120 65)" class="note-head" />
+                <line x1="124" y1="63" x2="124" y2="35" class="note-stem" />
+                <path d="M 124 35 Q 132 44 133 52" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round" />
                 <text x="120" y="105" class="lyric-text" style="fill: #4f46e5; font-weight: 800;">Komt</text>
 
                 <!-- MAATSTREEP 1 -->
                 <line x1="155" y1="40" x2="155" y2="80" class="bar-line" />
 
-                <!-- MAAT 1: D4 D4 (achtsten) + F4 G4 (achtsten) -->
+                <!-- MAAT 1: D5 D5 (achtsten) + C5 D5 (achtsten) -->
                 <text x="165" y="32" class="measure-num">1</text>
-                <ellipse cx="180" cy="85" rx="5" ry="4" transform="rotate(-20 180 85)" class="note-head" />
-                <line x1="184" y1="83" x2="184" y2="52" class="note-stem" />
-                <ellipse cx="215" cy="85" rx="5" ry="4" transform="rotate(-20 215 85)" class="note-head" />
-                <line x1="219" y1="83" x2="219" y2="52" class="note-stem" />
-                <line x1="184" y1="52" x2="219" y2="52" class="note-beam" />
+                <ellipse cx="180" cy="50" rx="5" ry="4" transform="rotate(-20 180 50)" class="note-head" />
+                <line x1="184" y1="48" x2="184" y2="20" class="note-stem" />
+                <ellipse cx="215" cy="50" rx="5" ry="4" transform="rotate(-20 215 50)" class="note-head" />
+                <line x1="219" y1="48" x2="219" y2="20" class="note-stem" />
+                <line x1="184" y1="20" x2="219" y2="20" class="note-beam" />
 
-                <ellipse cx="255" cy="75" rx="5" ry="4" transform="rotate(-20 255 75)" class="note-head" />
-                <line x1="259" y1="73" x2="259" y2="44" class="note-stem" />
-                <ellipse cx="290" cy="70" rx="5" ry="4" transform="rotate(-20 290 70)" class="note-head" />
-                <line x1="294" y1="68" x2="294" y2="41" class="note-stem" />
-                <line x1="259" y1="44" x2="294" y2="41" class="note-beam" />
+                <ellipse cx="255" cy="55" rx="5" ry="4" transform="rotate(-20 255 55)" class="note-head" />
+                <line x1="259" y1="53" x2="259" y2="20" class="note-stem" />
+                <ellipse cx="290" cy="50" rx="5" ry="4" transform="rotate(-20 290 50)" class="note-head" />
+                <line x1="294" y1="48" x2="294" y2="20" class="note-stem" />
+                <line x1="259" y1="20" x2="294" y2="20" class="note-beam" />
 
                 <text x="180" y="105" class="lyric-text">vrien-</text>
                 <text x="215" y="105" class="lyric-text">den</text>
@@ -357,52 +354,63 @@ const ScoreViewer = (() => {
                 <!-- MAATSTREEP 2 -->
                 <line x1="330" y1="40" x2="330" y2="80" class="bar-line" />
 
-                <!-- MAAT 2: A4 (kwart) + A4 A4 (achtsten) -->
+                <!-- MAAT 2: E5 C#5 (achtsten) + D5 D5 (achtsten) -->
                 <text x="340" y="32" class="measure-num">2</text>
-                <ellipse cx="360" cy="65" rx="5" ry="4" transform="rotate(-20 360 65)" class="note-head" />
-                <line x1="364" y1="63" x2="364" y2="35" class="note-stem" />
-                <ellipse cx="410" cy="65" rx="5" ry="4" transform="rotate(-20 410 65)" class="note-head" />
-                <line x1="414" y1="63" x2="414" y2="35" class="note-stem" />
-                <ellipse cx="445" cy="65" rx="5" ry="4" transform="rotate(-20 445 65)" class="note-head" />
-                <line x1="449" y1="63" x2="449" y2="35" class="note-stem" />
-                <line x1="414" y1="35" x2="449" y2="35" class="note-beam" />
+                <ellipse cx="360" cy="45" rx="5" ry="4" transform="rotate(-20 360 45)" class="note-head" />
+                <line x1="364" y1="43" x2="364" y2="18" class="note-stem" />
+                <text x="393" y="58" style="font-family: serif; font-size: 16px; font-weight: bold; fill: #0f172a;">♯</text>
+                <ellipse cx="405" cy="55" rx="5" ry="4" transform="rotate(-20 405 55)" class="note-head" />
+                <line x1="409" y1="53" x2="409" y2="20" class="note-stem" />
+                <line x1="364" y1="18" x2="409" y2="20" class="note-beam" />
+
+                <ellipse cx="440" cy="50" rx="5" ry="4" transform="rotate(-20 440 50)" class="note-head" />
+                <line x1="444" y1="48" x2="444" y2="20" class="note-stem" />
+                <ellipse cx="468" cy="50" rx="5" ry="4" transform="rotate(-20 468 50)" class="note-head" />
+                <line x1="472" y1="48" x2="472" y2="20" class="note-stem" />
+                <line x1="444" y1="20" x2="472" y2="20" class="note-beam" />
 
                 <text x="360" y="105" class="lyric-text">ron-</text>
-                <text x="410" y="105" class="lyric-text">-de,</text>
-                <text x="445" y="105" class="lyric-text">min-</text>
+                <text x="405" y="105" class="lyric-text">-de,</text>
+                <text x="440" y="105" class="lyric-text">min-</text>
+                <text x="468" y="105" class="lyric-text">naars</text>
 
                 <!-- MAATSTREEP 3 -->
-                <line x1="480" y1="40" x2="480" y2="80" class="bar-line" />
+                <line x1="495" y1="40" x2="495" y2="80" class="bar-line" />
 
-                <!-- MAAT 3: A4 G4 (achtsten) + F4 E4 (achtsten) -->
-                <text x="490" y="32" class="measure-num">3</text>
-                <ellipse cx="510" cy="65" rx="5" ry="4" transform="rotate(-20 510 65)" class="note-head" />
-                <line x1="514" y1="63" x2="514" y2="35" class="note-stem" />
-                <ellipse cx="545" cy="70" rx="5" ry="4" transform="rotate(-20 545 70)" class="note-head" />
-                <line x1="549" y1="68" x2="549" y2="38" class="note-stem" />
-                <line x1="514" y1="35" x2="549" y2="38" class="note-beam" />
+                <!-- MAAT 3: A4 B4 (achtsten) + C5 D5 (achtsten) -->
+                <text x="502" y="32" class="measure-num">3</text>
+                <ellipse cx="518" cy="65" rx="5" ry="4" transform="rotate(-20 518 65)" class="note-head" />
+                <line x1="522" y1="63" x2="522" y2="35" class="note-stem" />
+                <ellipse cx="548" cy="60" rx="5" ry="4" transform="rotate(-20 548 60)" class="note-head" />
+                <line x1="552" y1="58" x2="552" y2="30" class="note-stem" />
+                <line x1="522" y1="35" x2="552" y2="30" class="note-beam" />
 
-                <ellipse cx="585" cy="75" rx="5" ry="4" transform="rotate(-20 585 75)" class="note-head" />
-                <line x1="589" y1="73" x2="589" y2="43" class="note-stem" />
-                <ellipse cx="620" cy="80" rx="5" ry="4" transform="rotate(-20 620 80)" class="note-head" />
-                <line x1="624" y1="78" x2="624" y2="48" class="note-stem" />
-                <line x1="589" y1="43" x2="624" y2="48" class="note-beam" />
+                <ellipse cx="585" cy="55" rx="5" ry="4" transform="rotate(-20 585 55)" class="note-head" />
+                <line x1="589" y1="53" x2="589" y2="25" class="note-stem" />
+                <ellipse cx="618" cy="50" rx="5" ry="4" transform="rotate(-20 618 50)" class="note-head" />
+                <line x1="622" y1="48" x2="622" y2="20" class="note-stem" />
+                <line x1="589" y1="25" x2="622" y2="20" class="note-beam" />
 
-                <text x="510" y="105" class="lyric-text">naars</text>
-                <text x="545" y="105" class="lyric-text">van</text>
-                <text x="585" y="105" class="lyric-text">e-</text>
-                <text x="620" y="105" class="lyric-text">nen</text>
+                <text x="518" y="105" class="lyric-text">van</text>
+                <text x="548" y="105" class="lyric-text">e-</text>
+                <text x="585" y="105" class="lyric-text">nen</text>
+                <text x="618" y="105" class="lyric-text">stiel.</text>
 
                 <!-- MAATSTREEP 4 -->
-                <line x1="660" y1="40" x2="660" y2="80" class="bar-line" />
+                <line x1="655" y1="40" x2="655" y2="80" class="bar-line" />
 
-                <!-- MAAT 4: D4 (kwart) "stiel." + rust -->
-                <text x="670" y="32" class="measure-num">4</text>
-                <ellipse cx="700" cy="85" rx="5" ry="4" transform="rotate(-20 700 85)" class="note-head" />
-                <line x1="704" y1="83" x2="704" y2="52" class="note-stem" />
-                <text x="700" y="105" class="lyric-text">stiel.</text>
+                <!-- MAAT 4: D5 (kwart) "stiel." + rust + D5 "Ik" -->
+                <text x="665" y="32" class="measure-num">4</text>
+                <ellipse cx="685" cy="50" rx="5" ry="4" transform="rotate(-20 685 50)" class="note-head" />
+                <line x1="689" y1="48" x2="689" y2="20" class="note-stem" />
+                <text x="685" y="105" class="lyric-text">stiel.</text>
                 <!-- Rust symbool -->
-                <text x="750" y="68" style="font-family: serif; font-size: 24px; fill: #64748b;">𝄽</text>
+                <text x="730" y="65" style="font-family: serif; font-size: 22px; fill: #64748b;">𝄽</text>
+                <!-- Achtste noot D5 "Ik" -->
+                <ellipse cx="765" cy="50" rx="5" ry="4" transform="rotate(-20 765 50)" class="note-head" />
+                <line x1="769" y1="48" x2="769" y2="20" class="note-stem" />
+                <path d="M 769 20 Q 777 28 778 36" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round" />
+                <text x="765" y="105" class="lyric-text">Ik</text>
 
                 <line x1="795" y1="40" x2="795" y2="80" class="bar-line" />
                 <line x1="800" y1="40" x2="800" y2="80" class="bar-line" style="stroke-width: 3;" />
@@ -579,7 +587,7 @@ const ScoreViewer = (() => {
 
           <!-- Oefeninstructie -->
           <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 16px; border-radius: 6px; font-size: 13px; color: #1e40af;">
-            🎶 <strong>Koor-Repetitietip:</strong> De begeleiding tikt strak in de <strong>2/4 maat</strong> en zet direct in op de <strong>1/4 opmaat ("Komt")</strong>. Oefen eerst jouw eigen partij (<em>Sopraan</em>, <em>Alt</em>, <em>Tenor</em> of <em>Bas</em>) op 80% tempo en schakel daarna naar <strong>Tutti</strong> om te horen hoe jouw stem samensmelt met de andere stemmen!
+            🎶 <strong>Koor-Repetitietip:</strong> De begeleiding tikt strak in de <strong>2/4 maat</strong> en zet direct in op de <strong>1/8 opmaat ("Komt")</strong>. Oefen eerst jouw eigen partij (<em>Sopraan</em>, <em>Alt</em>, <em>Tenor</em> of <em>Bas</em>) op 80% tempo en schakel daarna naar <strong>Tutti</strong> om te horen hoe jouw stem samensmelt met de andere stemmen!
           </div>
 
         </div>
@@ -713,7 +721,7 @@ const ScoreViewer = (() => {
 
     titleEl.textContent = scoreData.title;
     if (scoreData.voices) {
-      subtitleEl.textContent = `Oefenstem: ${getVoiceLabel(selectedVoice)} • 2/4 Maat (1/4 Opmaat)`;
+      subtitleEl.textContent = `Oefenstem: ${getVoiceLabel(selectedVoice)} • 2/4 Maat (1/8 Opmaat)`;
     } else {
       subtitleEl.textContent = scoreData.subtitle;
     }

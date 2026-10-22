@@ -21,11 +21,13 @@ const AudioEngine = (() => {
     return ctx;
   }
 
-  // Convert note name (e.g. "A3", "C#4") to frequency
+  // Convert note name (e.g. "A3", "C#4", "Bb4") to frequency
   function noteToFrequency(noteStr) {
-    const match = noteStr.match(/^([A-G]#?)(-?\d+)$/i);
+    const flatMap = { 'DB': 'C#', 'EB': 'D#', 'GB': 'F#', 'AB': 'G#', 'BB': 'A#' };
+    const match = noteStr.match(/^([A-G][#b]?)(-?\d+)$/i);
     if (!match) return 440;
-    const note = match[1].toUpperCase();
+    let note = match[1].toUpperCase();
+    if (flatMap[note]) note = flatMap[note];
     const octave = parseInt(match[2], 10);
     const semitone = NOTE_NAMES.indexOf(note);
     if (semitone === -1) return 440;
@@ -221,7 +223,15 @@ const AudioEngine = (() => {
     }
     if (!noteWithOctave) return;
 
-    const id = `key-${noteWithOctave.replace('#', 's')}`;
+    let norm = noteWithOctave;
+    const flatMap = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
+    for (const [flat, sharp] of Object.entries(flatMap)) {
+      if (norm.startsWith(flat)) {
+        norm = norm.replace(flat, sharp);
+        break;
+      }
+    }
+    const id = `key-${norm.replace('#', 's')}`;
     const el = document.getElementById(id);
     if (el) {
       el.classList.add('sung-match');

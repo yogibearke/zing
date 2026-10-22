@@ -259,9 +259,14 @@ const ScoreViewer = (() => {
               <p style="margin: 4px 0 0 0; color: #64748b; font-size: 13px;">Het Slijperslied • Toonsoort: <strong>d-mineur (1 mol: B♭)</strong> • Allegretto vivace</p>
             </div>
             
-            <a href="./assets/sample-scores/komt-vrienden-in-het-ronde.pdf" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; background: #4f46e5; color: #ffffff; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);">
-              <span>Open Volledige PDF (2 Blz) ↗</span>
-            </a>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <a href="./assets/sample-scores/komt-vrienden-in-het-ronde.musicxml" download="komt-vrienden-in-het-ronde.musicxml" style="display: inline-flex; align-items: center; gap: 6px; background: #059669; color: #ffffff; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);">
+                <span>📥 Download MusicXML (voor MuseScore)</span>
+              </a>
+              <a href="./assets/sample-scores/komt-vrienden-in-het-ronde.pdf" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; background: #4f46e5; color: #ffffff; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);">
+                <span>Open Volledige PDF (2 Blz) ↗</span>
+              </a>
+            </div>
           </div>
 
           <!-- Koorstem Oefen-badges -->

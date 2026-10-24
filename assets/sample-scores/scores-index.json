@@ -1,0 +1,22 @@
+[
+  {
+    "key": "komt-vrienden",
+    "title": "1. Komt vrienden in het ronde (Het Slijperslied)",
+    "composer": "Traditioneel / Koorarrangement SATB",
+    "musicXmlUrl": "./assets/sample-scores/komt-vrienden-in-het-ronde.musicxml",
+    "pdfUrl": "./assets/sample-scores/komt-vrienden-in-het-ronde.pdf",
+    "badge": "SATB Koor",
+    "badgeClass": "badge-green",
+    "desc": "Originele partituur in d-mineur (2/4 maat met 1/8 opmaat). Oefen Sopraan, Alt, Tenor, Bas of Tutti."
+  },
+  {
+    "key": "befiehl-du-deine-wege",
+    "title": "44. Choral: Befiehl du deine Wege",
+    "composer": "Johann Sebastian Bach (1685–1750)",
+    "musicXmlUrl": "./assets/sample-scores/befiehl-du-deine-wege.musicxml",
+    "pdfUrl": "./assets/sample-scores/befiehl-du-deine-wege.pdf",
+    "badge": "SATB Koraal",
+    "badgeClass": "badge-gold",
+    "desc": "Matthäus-Passion BWV 244 in D-groot (4/4 maat met 1/4 opmaat). Oefen Sopraan, Alt, Tenor, Bas of Tutti."
+  }
+]

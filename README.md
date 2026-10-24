@@ -23,6 +23,20 @@ Een interactieve, moderne webapplicatie (Progressive Web App) ontworpen voor zan
 
 ---
 
+## 🔐 Beheerderspaswoord & Serverbeheer
+
+Voor het uploaden van nieuwe partituren, het overschrijven van bestaande stukken of het verwijderen van partituren op de server:
+* **Beheerderspaswoord:** `tatjana01`
+
+Met dit paswoord kun je in de app via de knop **"➕ Partituur Toevoegen"**:
+1. **Nieuwe MusicXML (+ optioneel PDF) uploaden:** Wordt direct vastgelegd op de server zodat alle koorleden het kunnen openen.
+2. **Bestaande partituur overschrijven (updaten):** Als er een correctie of nieuwe versie van een lied is.
+3. **Partituur verwijderen van server:** Met de rode knop *"🗑️ Verwijder van Server"* na paswoordbevestiging.
+
+*(Koorleden kunnen de uploadknop zonder paswoord gebruiken om een eigen bestand privé op hun eigen telefoon in te laden).*
+
+---
+
 ## 📱 Installeren als App op Smartphone
 
 Open de GitHub Pages link op je telefoon:

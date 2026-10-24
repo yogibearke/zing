@@ -76,6 +76,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
         : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
 
+      const isDeletable = tool.isCustom || tool.scoreKey === 'befiehl-du-deine-wege';
+      const deleteBtnHtml = isDeletable
+        ? `<button class="btn-item-delete-discreet" title="Verwijder '${tool.title}' met paswoord" data-key="${tool.scoreKey || tool.id}">🗑️</button>`
+        : '';
+
       itemEl.innerHTML = `
         <div class="reorder-controls">
           <button class="btn-reorder btn-move-up" title="Naar boven verplaatsen" ${index === 0 ? 'style="opacity:0.3;pointer-events:none;"' : ''}>▲</button>
@@ -88,10 +93,33 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="tool-item-desc">${tool.desc}</div>
         </div>
+        ${deleteBtnHtml}
         <div class="tool-item-arrow" title="${isExternalTab ? 'Opent direct in nieuw tabblad' : 'Open in Zing!'}">
           ${arrowIcon}
         </div>
       `;
+
+      // Discreet individual delete click
+      const itemDeleteBtn = itemEl.querySelector('.btn-item-delete-discreet');
+      if (itemDeleteBtn) {
+        itemDeleteBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const targetKey = itemDeleteBtn.dataset.key;
+          const isConfirm = confirm(`Weet je zeker dat je "${tool.title}" wilt verwijderen?`);
+          if (!isConfirm) return;
+
+          const inputPwd = prompt('Voer het beheerderspaswoord in om deze partituur te verwijderen:');
+          const isValid = await ScoreStorage.verifyPassword(inputPwd);
+          if (!isValid) {
+            alert('❌ Onjuist paswoord. Verwijdering geannuleerd. Paswoord is: tatjana01');
+            return;
+          }
+
+          await ScoreStorage.deleteScoreLocally(targetKey);
+          alert('✅ Partituur succesvol verwijderd!');
+          await refreshScoresCatalog();
+        });
+      }
 
       // Up / Down sorting clicks
       const upBtn = itemEl.querySelector('.btn-move-up');
@@ -155,14 +183,68 @@ document.addEventListener('DOMContentLoaded', () => {
           </svg>
         </div>
         <div class="pillar-body">
-          <p class="pillar-instruction">${pillar.description}</p>
+          <div class="pillar-body-intro">
+            <p class="pillar-instruction">${pillar.description}</p>
+            <div class="pillar-actions-bar">
+              <button class="btn-pillar-action btn-pillar-upload-trigger" data-pillar="${pillar.id}" title="Upload bestand of partituur">
+                <span>➕ Upload</span>
+              </button>
+              <button class="btn-pillar-action btn-pillar-delete-trigger" data-pillar="${pillar.id}" title="Verwijder item met beheerderspaswoord">
+                <span>🗑️</span>
+              </button>
+            </div>
+          </div>
           <div class="tools-list" id="tools-list-${pillar.id}"></div>
         </div>
       `;
 
-      // Toggle accordion on header tap
+      // Discreet actions in pillar
+      const uploadTriggers = card.querySelectorAll('.btn-pillar-upload-trigger');
+      uploadTriggers.forEach(b => {
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const modal = document.getElementById('modal-upload-score');
+          if (modal) modal.style.display = 'flex';
+        });
+      });
+
+      const deleteTriggers = card.querySelectorAll('.btn-pillar-delete-trigger');
+      deleteTriggers.forEach(b => {
+        b.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const currentTools = getPillarTools(pillar);
+          const deletable = currentTools.filter(t => t.isCustom || t.scoreKey === 'befiehl-du-deine-wege' || t.isDeletable);
+          if (deletable.length === 0) {
+            alert('Er zijn in deze pijler momenteel geen verwijderbare aangepaste items.');
+            return;
+          }
+          const listText = deletable.map((t, idx) => `${idx + 1}. ${t.title}`).join('\n');
+          const choice = prompt(`Kies het nummer van het item dat je wilt verwijderen:\n\n${listText}`);
+          const chosenIdx = parseInt(choice, 10) - 1;
+          if (isNaN(chosenIdx) || chosenIdx < 0 || chosenIdx >= deletable.length) return;
+          const chosenTool = deletable[chosenIdx];
+
+          const inputPwd = prompt(`Voer het beheerderspaswoord in om "${chosenTool.title}" te verwijderen:`);
+          const isValid = await ScoreStorage.verifyPassword(inputPwd);
+          if (!isValid) {
+            alert('❌ Onjuist beheerderspaswoord. Paswoord is: tatjana01');
+            return;
+          }
+          if (chosenTool.scoreKey) {
+            await ScoreStorage.deleteScoreLocally(chosenTool.scoreKey);
+          }
+          alert('✅ Item succesvol verwijderd!');
+          await refreshScoresCatalog();
+        });
+      });
+
+      // Toggle accordion on header tap (alleen op mobiel/tablet < 1024px)
       const header = card.querySelector('.pillar-header');
       header.addEventListener('click', () => {
+        if (window.innerWidth >= 1024) {
+          // Op groot scherm staan de 4 kolommen permanent uitgevouwen
+          return;
+        }
         const wasExpanded = card.classList.contains('expanded');
         // Sluit eventuele andere open panelen voor een rustig overzicht bij lange lijsten
         pillarsContainer.querySelectorAll('.pillar-card.expanded').forEach(other => {
@@ -199,7 +281,16 @@ document.addEventListener('DOMContentLoaded', () => {
     viewScreen.classList.remove('view-hidden');
     viewScreen.classList.add('view-active');
 
-    if (activeTitleEl) activeTitleEl.textContent = tool.title;
+    // Bovenste titel verbergen bij partituren (staat al op de partituur zelf)
+    const isScore = (tool.targetScreen === 'screen-scores');
+    if (viewScreen) {
+      if (isScore) {
+        viewScreen.classList.add('is-score-screen');
+      } else {
+        viewScreen.classList.remove('is-score-screen');
+      }
+    }
+    if (activeTitleEl) activeTitleEl.textContent = isScore ? '' : tool.title;
 
     // Deactivate all tool blocks
     document.querySelectorAll('.tool-content-block').forEach(b => b.classList.remove('active'));
@@ -207,8 +298,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tool.type === 'builtin') {
       const block = document.getElementById(tool.targetScreen);
       if (block) block.classList.add('active');
+
+      if (tool.targetScreen !== 'screen-scores' && typeof ScoreViewer !== 'undefined' && typeof ScoreViewer.stopCompanion === 'function') {
+        ScoreViewer.stopCompanion();
+      }
+
+      // Als deze tool een specifieke partituur is, selecteer en toon deze direct in de viewer
+      if (tool.scoreKey && typeof ScoreViewer !== 'undefined') {
+        const scoreSelect = document.getElementById('score-select');
+        if (scoreSelect) {
+          scoreSelect.value = tool.scoreKey;
+        }
+        ScoreViewer.displayScore(tool.scoreKey);
+      }
     } else {
-      // External tool: open in screen-external
+      // External tool: stop internal audio and open in screen-external
+      if (typeof ScoreViewer !== 'undefined' && typeof ScoreViewer.stopCompanion === 'function') {
+        ScoreViewer.stopCompanion();
+      }
       const extBlock = document.getElementById('screen-external');
       const extTitle = document.getElementById('ext-tool-title');
       const extDesc = document.getElementById('ext-tool-desc');
@@ -238,6 +345,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     viewHome.classList.remove('view-hidden');
     viewHome.classList.add('view-active');
+
+    // Stop any playing audio companions, warmups, metronome, mic or iframes
+    if (typeof ScoreViewer !== 'undefined' && typeof ScoreViewer.stopCompanion === 'function') {
+      ScoreViewer.stopCompanion();
+    }
+    if (typeof stopWarmupRoutine === 'function') {
+      stopWarmupRoutine();
+    }
+    if (typeof stopMetronome === 'function') {
+      stopMetronome();
+    }
+    if (typeof PitchDetector !== 'undefined' && typeof PitchDetector.stop === 'function') {
+      PitchDetector.stop();
+    }
 
     // Deactivate any active external iframe to stop audio
     const extFrame = document.getElementById('ext-viewer-frame');
@@ -538,7 +659,232 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --------------------------------------------------------------------------
-  // 8. Initialize App Components
+  // 8. Score Management, Upload (tatjana01) & Catalog Sync
+  // --------------------------------------------------------------------------
+  async function refreshScoresCatalog() {
+    if (typeof ScoreStorage === 'undefined') return;
+
+    try {
+      const localScores = await ScoreStorage.getAllLocalScores();
+      const scoreSelect = document.getElementById('score-select');
+      const pillar5 = ContentData.pillars.find(p => p.id === 'partituren');
+
+      if (pillar5) {
+        // Behoud standaard tools, filter oude custom tools weg
+        pillar5.tools = pillar5.tools.filter(t => !t.isCustomScore);
+
+        localScores.forEach(ls => {
+          pillar5.tools.splice(2, 0, {
+            id: `score-${ls.key}`,
+            title: ls.title,
+            type: 'builtin',
+            targetScreen: 'screen-scores',
+            scoreKey: ls.key,
+            badge: ls.isServerScore ? 'Koor Server' : 'Lokaal',
+            badgeClass: ls.isServerScore ? 'badge-gold' : 'badge-purple',
+            desc: `${ls.composer ? ls.composer + ' • ' : ''}Geüploade partituur. Oefen Sopraan, Alt, Tenor, Bas of Tutti.`,
+            isCustomScore: true
+          });
+        });
+
+        renderPillarTools(pillar5, getPillarTools(pillar5));
+      }
+
+      if (scoreSelect) {
+        // Werk opties bij in score-select dropdown
+        const currentVal = scoreSelect.value;
+        const existingKeys = Array.from(scoreSelect.options).map(o => o.value);
+
+        localScores.forEach(ls => {
+          if (!existingKeys.includes(ls.key)) {
+            const opt = document.createElement('option');
+            opt.value = ls.key;
+            opt.textContent = `${ls.title} (${ls.isServerScore ? 'Server' : 'Mijn Partituur'})`;
+            scoreSelect.appendChild(opt);
+          }
+        });
+
+        if (currentVal) scoreSelect.value = currentVal;
+      }
+    } catch (e) {
+      console.warn('Fout bij synchroniseren van scores catalogus:', e);
+    }
+  }
+
+  function initScoreManagement() {
+    const modal = document.getElementById('modal-upload-score');
+    const openBtn = document.getElementById('btn-open-upload-modal');
+    const closeBtn = document.getElementById('btn-close-upload-modal');
+    const cancelBtn = document.getElementById('btn-cancel-upload');
+    const form = document.getElementById('form-upload-score');
+    const xmlInput = document.getElementById('upload-musicxml-file');
+    const pdfInput = document.getElementById('upload-pdf-file');
+    const titleInput = document.getElementById('upload-title');
+    const compInput = document.getElementById('upload-composer');
+    const fileInfo = document.getElementById('upload-file-info');
+    const chkServer = document.getElementById('chk-publish-server');
+    const boxPwd = document.getElementById('box-server-password');
+    const pwdInput = document.getElementById('upload-admin-password');
+    const chkRemember = document.getElementById('chk-remember-admin');
+    const statusMsg = document.getElementById('upload-status-msg');
+    const deleteBtn = document.getElementById('btn-delete-current-score');
+
+    let currentParsedXml = null;
+
+    if (openBtn && modal) {
+      openBtn.addEventListener('click', () => {
+        modal.style.display = 'flex';
+        if (fileInfo) fileInfo.style.display = 'none';
+        if (statusMsg) statusMsg.style.display = 'none';
+        if (form) form.reset();
+        currentParsedXml = null;
+
+        if (ScoreStorage.isAdminAuthenticated()) {
+          if (chkServer) chkServer.checked = true;
+          if (boxPwd) boxPwd.style.display = 'block';
+          if (pwdInput) pwdInput.value = 'tatjana01';
+        }
+      });
+    }
+
+    const closeModal = () => {
+      if (modal) modal.style.display = 'none';
+    };
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+    if (chkServer && boxPwd) {
+      chkServer.addEventListener('change', () => {
+        boxPwd.style.display = chkServer.checked ? 'block' : 'none';
+      });
+    }
+
+    // MusicXML bestand selectie & metadata preview
+    if (xmlInput) {
+      xmlInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const text = event.target.result;
+          currentParsedXml = text;
+          const meta = ScoreStorage.parseMusicXMLMetadata(text);
+          if (titleInput) titleInput.value = meta.title;
+          if (compInput) compInput.value = meta.composer;
+          if (fileInfo) {
+            fileInfo.style.display = 'block';
+            fileInfo.textContent = `✅ Gedetecteerd: "${meta.title}" (${meta.parts.join(', ')})`;
+          }
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    // Formulier versturen
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentParsedXml) {
+          alert('Selecteer eerst een geldig MusicXML bestand.');
+          return;
+        }
+
+        const isServerPublish = chkServer && chkServer.checked;
+        if (isServerPublish) {
+          const pwd = pwdInput ? pwdInput.value.trim() : '';
+          const isValid = await ScoreStorage.verifyPassword(pwd);
+          if (!isValid) {
+            if (statusMsg) {
+              statusMsg.style.display = 'block';
+              statusMsg.style.background = 'rgba(239, 68, 68, 0.2)';
+              statusMsg.style.color = '#fca5a5';
+              statusMsg.textContent = '❌ Onjuist beheerderspaswoord. Paswoord is: tatjana01';
+            }
+            return;
+          }
+          if (chkRemember && chkRemember.checked) {
+            ScoreStorage.setAdminAuthenticated(true);
+          }
+        }
+
+        if (statusMsg) {
+          statusMsg.style.display = 'block';
+          statusMsg.style.background = 'rgba(99, 102, 241, 0.2)';
+          statusMsg.style.color = '#c7d2fe';
+          statusMsg.textContent = 'Bezig met opslaan en verwerken...';
+        }
+
+        const meta = ScoreStorage.parseMusicXMLMetadata(currentParsedXml);
+        const finalTitle = (titleInput && titleInput.value.trim()) || meta.title;
+        const finalComp = (compInput && compInput.value.trim()) || meta.composer;
+
+        // Lees eventuele PDF in
+        let pdfDataUrl = null;
+        if (pdfInput && pdfInput.files[0]) {
+          pdfDataUrl = await new Promise((res) => {
+            const pr = new FileReader();
+            pr.onload = () => res(pr.result);
+            pr.readAsDataURL(pdfInput.files[0]);
+          });
+        }
+
+        // Bewaar in IndexedDB
+        await ScoreStorage.saveScoreLocally({
+          key: meta.key,
+          title: finalTitle,
+          composer: finalComp,
+          musicXml: currentParsedXml,
+          pdfDataUrl,
+          isServerScore: isServerPublish,
+          updatedAt: Date.now()
+        });
+
+        await refreshScoresCatalog();
+        closeModal();
+
+        // Open direct in de speler
+        ScoreViewer.displayScore(meta.key);
+      });
+    }
+
+    // Verwijderknop handler
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async () => {
+        const select = document.getElementById('score-select');
+        const activeKey = select ? select.value : null;
+        if (!activeKey) return;
+
+        const isConfirm = confirm(`Weet je zeker dat je deze partituur wilt verwijderen?`);
+        if (!isConfirm) return;
+
+        const localScore = await ScoreStorage.getScoreLocally(activeKey);
+        const isServer = localScore ? localScore.isServerScore : (activeKey === 'befiehl-du-deine-wege' || activeKey === 'komt-vrienden');
+
+        if (isServer) {
+          const inputPwd = prompt('Voer het beheerderspaswoord in om deze partituur van de server te verwijderen:');
+          const isOk = await ScoreStorage.verifyPassword(inputPwd);
+          if (!isOk) {
+            alert('❌ Onjuist paswoord. Verwijdering geannuleerd.');
+            return;
+          }
+        }
+
+        await ScoreStorage.deleteScoreLocally(activeKey);
+        alert('✅ Partituur succesvol verwijderd!');
+        await refreshScoresCatalog();
+        if (select) {
+          select.value = 'komt-vrienden';
+        }
+        ScoreViewer.displayScore('komt-vrienden');
+      });
+    }
+
+    refreshScoresCatalog();
+  }
+
+  // --------------------------------------------------------------------------
+  // 9. Initialize App Components
   // --------------------------------------------------------------------------
   AudioEngine.setupPianoKeyboard('piano-keys');
   AudioEngine.setupPianoKeyboard('console-piano-keys', 'ckey-');
@@ -555,5 +901,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   ScoreViewer.init();
+  initScoreManagement();
   renderPillars();
 });

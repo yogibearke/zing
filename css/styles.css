@@ -282,19 +282,13 @@ body::before {
   letter-spacing: 0.06em;
 }
 
-/* 5 gelijke rijen over de volledige beschikbare hoogte */
+/* 4 Pijlers: op mobiel verticaal gestapeld */
 .pillars-container {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: repeat(5, minmax(min-content, 1fr));
-  gap: 0.6rem;
-}
-
-.home-expanded .pillars-container {
-  grid-template-rows: none;
-  grid-auto-rows: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 
 .pillar-card {
@@ -457,41 +451,106 @@ body::before {
 }
 
 /* ==========================================================================
-   Desktop (>= 1000px): panelen onder elkaar in 1 kolom + studio-console
+   Desktop (>= 1024px): 4 kolommen naast elkaar met uitgevouwen lijsten
    ========================================================================== */
-@media (min-width: 1000px) {
+@media (min-width: 1024px) {
   .main-wrapper {
-    max-width: 1360px;
+    max-width: 1650px;
     padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
 
   #view-home.view-active {
-    display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(360px, 420px);
-    gap: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
     height: auto;
-    min-height: calc(100dvh - var(--header-height) - 1.75rem);
-    align-items: start;
+    min-height: calc(100dvh - var(--header-height) - 1.5rem);
+    align-items: stretch;
   }
 
-  #view-home.view-active.home-expanded {
-    height: auto;
-    align-items: start;
+  .home-main {
+    width: 100%;
   }
 
+  /* 4 kolommen strak naast elkaar op groot scherm */
   .pillars-container {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    gap: 0.85rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.15rem;
+    align-items: start;
   }
 
-  .pillar-card:last-child {
-    grid-column: auto;
+  .pillar-card {
+    height: auto;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
   }
 
   .pillar-header {
-    padding: 1rem 1.25rem;
+    flex: none !important;
+    padding: 0.85rem 1rem;
+    cursor: default;
+    min-height: 170px;
+    display: flex;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .pillar-titles {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .pillar-name {
+    min-height: 3.4rem;
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 0.35rem;
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+
+  .pillar-explanation {
+    min-height: 4.2rem;
+    font-size: 0.86rem;
+    line-height: 1.35;
+  }
+
+  /* Lijsten permanent uitgevouwen op groot scherm */
+  .pillar-body {
+    display: block !important;
+    padding: 0.5rem 0.85rem 0.85rem 0.85rem !important;
+    flex: 1;
+  }
+
+  .pillar-body-intro {
+    min-height: 75px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.25rem 0 0.45rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 0.65rem;
+  }
+
+  .pillar-body-intro .pillar-instruction {
+    margin: 0;
+    padding: 0;
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .pillar-chevron {
+    display: none !important;
+  }
+
+  .pillar-tools-count {
+    display: none !important;
   }
 
   #view-screen {
@@ -508,14 +567,11 @@ body::before {
       var(--bg-surface);
     border: 1px solid var(--border-highlight);
     border-radius: var(--radius-lg);
-    padding: 1.4rem;
+    padding: 1.25rem;
     box-shadow: var(--shadow-md);
-    overflow-y: auto;
-  }
-
-  .home-expanded .studio-console {
-    position: sticky;
-    top: calc(var(--header-height) + 0.75rem);
+    max-width: 820px;
+    margin: 1.25rem auto 0 auto;
+    width: 100%;
   }
 
   .console-title {
@@ -596,10 +652,67 @@ body::before {
   animation: fadeIn 0.2s ease-out;
 }
 
-.pillar-instruction {
+/* Upload Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 14, 26, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-card-custom {
+  background: #181d33;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75);
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+  color: #f8fafc;
+  animation: modalFadeIn 0.22s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.pillar-body-intro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0 0.45rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 0.45rem;
+}
+
+.pillar-body-intro .pillar-instruction {
+  margin: 0;
+  padding: 0;
+  flex: 1;
   font-size: 0.8rem;
   color: var(--text-secondary);
-  padding: 0.75rem 0.25rem 0.5rem 0.25rem;
+  line-height: 1.35;
+}
+
+.pillar-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
 }
 
 /* Pillar Tools List (Reorderable) */
@@ -741,6 +854,48 @@ body::before {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-muted);
+}
+
+/* Ultra-compact top bar when viewing a score */
+#view-screen.is-score-screen .screen-top-bar {
+  padding: 0.35rem 0.25rem 0.45rem 0.25rem;
+  margin-bottom: 0.35rem;
+}
+#view-screen.is-score-screen .screen-current-title {
+  display: none;
+}
+#view-screen.is-score-screen .btn-back {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.84rem;
+}
+
+/* Score Sheet HTML Banner (replacing colliding SVG text) */
+.score-sheet-banner {
+  text-align: center;
+  padding: 4px 8px 6px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 4px;
+}
+.score-sheet-title {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+}
+.score-sheet-meta {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* Compact BPM Stepper */
+.bpm-stepper-compact .btn-step:hover {
+  color: #60a5fa !important;
+}
+.bpm-stepper-compact .btn-step:active {
+  transform: scale(0.9);
 }
 
 /* Floating Bottom Back Button on Mobile */
@@ -1292,13 +1447,30 @@ body::before {
   outline: none;
 }
 
-/* Spotify Card Integration */
-.spotify-card {
-  padding: 1rem 1.15rem;
-  background: linear-gradient(135deg, rgba(29, 185, 84, 0.12) 0%, rgba(18, 22, 36, 0.95) 100%);
-  border: 1px solid rgba(29, 185, 84, 0.35);
-  border-radius: var(--radius-md);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+/* Choir Tools Drawer & Cards */
+#choir-tools-panel {
+  animation: fadeInDown 0.25s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.choir-tool-card {
+  transition: all 0.2s ease;
+}
+
+.choir-tool-card:hover {
+  background: rgba(99, 102, 241, 0.15) !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+  transform: translateY(-2px);
 }
 
 .audio-companion-bar {
@@ -1352,3 +1524,156 @@ body::before {
   height: 520px;
   border: none;
 }
+
+#osmd-container {
+  width: 100%;
+  min-height: 480px;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+#osmd-container svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+.view-toggle-btn.active {
+  background: var(--accent-indigo) !important;
+  color: #ffffff !important;
+  border-color: var(--accent-indigo) !important;
+}
+
+/* Voice Selector Pills (SATB & Tutti) */
+.voice-pills-bar {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.voice-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.voice-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: var(--border-highlight);
+}
+
+.voice-pill:active {
+  transform: scale(0.96);
+}
+
+.voice-pill.active {
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  font-weight: 700;
+}
+
+.voice-pill[data-voice="sopraan"].active {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.voice-pill[data-voice="alt"].active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.voice-pill[data-voice="tenor"].active {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.voice-pill[data-voice="bas"].active {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.voice-pill[data-voice="tutti"].active {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+/* Pillar 5 Dedicated Action Bar & Discreet Multi-Pillar Actions */
+.pillar-scores-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.4rem 0 0.85rem 0;
+  flex-wrap: wrap;
+}
+
+.btn-pillar-action {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.btn-pillar-action:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-pillar-action:active {
+  transform: scale(0.96);
+}
+
+.btn-item-delete-discreet {
+  background: transparent;
+  border: none;
+  color: #f87171;
+  opacity: 0.6;
+  font-size: 0.75rem;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.btn-item-delete-discreet:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.btn-pillar-upload {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+}
+
+.btn-pillar-upload:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-pill-upload-quick {
+  transition: transform 0.15s;
+}
+
+.btn-pill-upload-quick:hover {
+  transform: scale(1.05);
+}
+

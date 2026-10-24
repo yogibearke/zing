@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Zing! - Mobiele Zangtrainer & Partituren</title>
-  <meta name="description" content="5 Pijlers voor elke zanger: ademhaling, opwarmen, zuiverheid (A3), ritme en partituren met Spotify.">
+  <meta name="description" content="5 Pijlers voor elke zanger: ademhaling, opwarmen, zuiverheid (A3), ritme en koorpartituren.">
   <meta name="theme-color" content="#6366f1">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="assets/icons/icon.svg">
 
   <!-- Modern Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=14">
+  <link rel="stylesheet" href="css/styles.css?v=28">
 </head>
 <body>
 
@@ -48,15 +48,11 @@
   <main class="main-wrapper">
 
     <!-- ======================================================================
-         VIEW 1: HOOFDSCHERM (De 5 Pijlers Compact Zichtbaar)
+         VIEW 1: HOOFDSCHERM (De 4 Pijlers: Desktop 4 kolommen, Mobiel onder elkaar)
          ====================================================================== -->
     <section id="view-home" class="view-active">
       <div class="home-main">
-        <div class="home-hero-compact">
-          <span class="section-tag">JOUW ZANGTOOLS</span>
-        </div>
-
-        <!-- The 5 Expandable Pillars with Sortable Tools -->
+        <!-- The 4 Pillars with Sortable Tools -->
         <div class="pillars-container" id="pillars-container">
           <!-- Rendered dynamically by app.js from ContentData.pillars -->
         </div>
@@ -81,7 +77,7 @@
             <button class="console-quick-btn" data-tool-id="builtin-warmup"><span class="qi">🔥</span>Inzingen</button>
             <button class="console-quick-btn" data-tool-id="builtin-tuner"><span class="qi">🎯</span>Stemtrainer</button>
             <button class="console-quick-btn" data-tool-id="builtin-metronome"><span class="qi">⏱️</span>Metronoom</button>
-            <button class="console-quick-btn" data-tool-id="builtin-scores" style="grid-column: 1 / -1;"><span class="qi">🎼</span>Partituren &amp; Spotify</button>
+            <button class="console-quick-btn" data-tool-id="score-komt-vrienden" style="grid-column: 1 / -1;"><span class="qi">🎼</span>Partituren &amp; Koor</button>
           </div>
         </div>
       </aside>
@@ -251,97 +247,79 @@
           </div>
         </div>
 
-        <!-- 6. Screen: Partituren Viewer met Spotify Integratie -->
+        <!-- 6. Screen: Partituren Viewer & Koor-oefenspeler -->
         <div id="screen-scores" class="tool-content-block">
           <div class="score-viewer-container">
             
-            <!-- Score Selector & Voice Part Toolbar -->
-            <div class="score-toolbar" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between;">
-              <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; flex: 1;">
-                <div class="score-picker">
-                  <label for="score-select" style="font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">Partituur:</label>
-                  <select id="score-select" class="select-custom">
-                    <option value="komt-vrienden" selected>1. Komt vrienden in het ronde (SATB Koor)</option>
-                    <option value="vader-jacob">Vader Jacob (Koor Canon - 4 stemmig)</option>
-                    <option value="dona-nobis">Dona Nobis Pacem (Klassieke Canon)</option>
-                    <option value="toonladder-oefening">Toonladder & Inzing-oefening</option>
-                  </select>
+            <!-- Clean, Ultra-Compact Score Toolbar: Voice Pills -->
+            <div class="score-toolbar" style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; justify-content: flex-start; margin-bottom: 0.25rem;">
+              <div class="voice-picker-wrapper" id="voice-picker-container" style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; width: 100%;">
+                <span style="font-weight: 700; font-size: 0.78rem; color: var(--accent-indigo);">Oefenstem:</span>
+                <div class="voice-pills-bar" id="voice-pills-bar">
+                  <button class="voice-pill active" data-voice="sopraan">🔵 Sopraan</button>
+                  <button class="voice-pill" data-voice="alt">🟢 Alt</button>
+                  <button class="voice-pill" data-voice="tenor">🟠 Tenor</button>
+                  <button class="voice-pill" data-voice="bas">🔴 Bas</button>
+                  <button class="voice-pill" data-voice="tutti">🟣 Tutti</button>
                 </div>
-
-                <!-- Voice Part Selector for SATB rehearsal -->
-                <div class="score-picker" id="voice-picker-container" style="min-width: 180px;">
-                  <label for="voice-part-select" style="font-weight: 600; font-size: 0.85rem; color: var(--accent-indigo);">Oefenstem (SATB):</label>
-                  <select id="voice-part-select" class="select-custom" style="border-color: var(--accent-indigo); background: rgba(99, 102, 241, 0.08); font-weight: 600;">
-                    <option value="sopraan" selected>Sopraan (Melodie)</option>
-                    <option value="alt">Alt (2e stem)</option>
-                    <option value="tenor">Tenor (Mannen hoog)</option>
-                    <option value="bas">Bas (Mannen laag)</option>
-                    <option value="tutti">Tutti (Volledig koor)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <button id="btn-fullscreen-pdf" class="btn-icon" title="Schermvullend">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
-                </button>
+                <!-- Hidden fallback selects for programmatic sync -->
+                <select id="voice-part-select" style="display: none;">
+                  <option value="sopraan" selected>Sopraan</option>
+                  <option value="alt">Alt</option>
+                  <option value="tenor">Tenor</option>
+                  <option value="bas">Bas</option>
+                  <option value="tutti">Tutti</option>
+                </select>
+                <select id="score-select" style="display: none;">
+                  <option value="komt-vrienden">komt-vrienden</option>
+                </select>
               </div>
             </div>
 
-            <!-- SPOTIFY PLAYER VOOR HET WIJSJE -->
-            <div class="spotify-card">
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#1db954"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.508 17.308a.75.75 0 0 1-1.033.249c-2.825-1.727-6.38-2.118-10.569-1.162a.75.75 0 1 1-.334-1.462c4.585-1.047 8.528-.601 11.687 1.342a.75.75 0 0 1 .249 1.033zm1.47-3.268a.938.938 0 0 1-1.291.309c-3.234-1.988-8.163-2.563-11.988-1.402a.938.938 0 1 1-.548-1.794c4.372-1.328 9.799-.687 13.518 1.596a.937.937 0 0 1 .309 1.291zm.126-3.41c-3.878-2.303-10.279-2.515-13.985-1.39a1.125 1.125 0 1 1-.65-2.155c4.256-1.292 11.324-1.044 15.789 1.607a1.125 1.125 0 0 1-1.154 1.938z"/></svg>
-                  <span style="font-weight: 700; font-size: 0.95rem; color: #f8fafc;">Spotify: Beluister het Wijsje</span>
-                </div>
-                <span class="badge badge-green" style="font-size: 0.7rem;">Originele Melodie</span>
-              </div>
-              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
-                Luister direct naar het originele nummer om de melodie in je hoofd te krijgen:
-              </p>
-
-              <!-- Spotify Embed iFrame -->
-              <div style="border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
-                <iframe id="spotify-embed-frame" style="border-radius:12px" src="https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT?utm_source=generator&theme=0" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-              </div>
-
-              <!-- Input for custom Spotify link -->
-              <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-                <input type="text" id="spotify-custom-url" placeholder="Plak een Spotify link van jouw eigen liedje..." class="select-custom" style="flex: 1; font-size: 0.8rem;">
-                <button id="btn-set-spotify" class="btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; white-space: nowrap;">Stel In</button>
-              </div>
-            </div>
-
-            <!-- Tempo Rehearsal Companion Player -->
-            <div class="audio-companion-bar">
-              <div class="companion-info">
-                <div class="companion-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                </div>
-                <div>
-                  <div style="font-weight: 700; font-size: 0.9rem;" id="track-title">Pianobegeleiding: Vader Jacob</div>
-                  <div style="font-size: 0.75rem; color: var(--text-secondary);" id="track-subtitle">Melodie & Begeleiding</div>
-                </div>
-              </div>
-
-              <div class="companion-controls">
-                <button id="btn-play-companion" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
-                  <span id="play-companion-text">Speel Begeleiding</span>
+            <!-- Mode & Playback Toolbar: Play button, BPM stepper, Mode switcher, Download XML -->
+            <div class="score-view-mode-bar" style="display: flex; gap: 0.35rem; margin-top: 0.15rem; margin-bottom: 0.35rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+              <!-- Left: Play/Pause and BPM Stepper -->
+              <div style="display: flex; gap: 0.35rem; align-items: center;">
+                <button id="btn-play-companion" class="btn-primary" style="padding: 0.3rem 0.75rem; font-size: 0.82rem; font-weight: 700; background: #10b981; border-color: #059669; display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <span id="play-btn-icon">▶️</span> <span id="play-btn-label">Speel</span>
                 </button>
 
-                <div style="display: flex; align-items: center; gap: 0.35rem;">
-                  <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Tempo:</span>
-                  <button class="btn-secondary tempo-btn" data-tempo="0.8" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">80%</button>
-                  <button class="btn-secondary tempo-btn active" data-tempo="1.0" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; background: var(--accent-indigo); color: white;">100%</button>
-                  <button class="btn-secondary tempo-btn" data-tempo="1.15" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">115%</button>
+                <!-- BPM Stepper -->
+                <div class="bpm-stepper-compact" style="display: inline-flex; align-items: center; background: rgba(255,255,255,0.08); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1px 4px;">
+                  <button id="btn-bpm-minus" class="btn-step" title="Langzamer (-5 BPM)" style="background: none; border: none; color: #fff; padding: 2px 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">−</button>
+                  <span id="score-bpm-display" style="font-size: 0.78rem; font-weight: 700; color: #e2e8f0; min-width: 50px; text-align: center;">80 BPM</span>
+                  <button id="btn-bpm-plus" class="btn-step" title="Sneller (+5 BPM)" style="background: none; border: none; color: #fff; padding: 2px 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">+</button>
                 </div>
               </div>
+
+              <!-- Right: View Mode Toggle & Download XML -->
+              <div style="display: flex; gap: 0.3rem; align-items: center;">
+                <button id="btn-view-musicxml" class="btn-secondary view-toggle-btn active" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; font-weight: 600; background: var(--accent-indigo); color: white; border-color: var(--accent-indigo);">
+                  <span>🎼 MusicXML</span>
+                </button>
+                <button id="btn-view-pdf" class="btn-secondary view-toggle-btn" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; font-weight: 600;">
+                  <span>📄 Scan</span>
+                </button>
+                <a id="btn-download-musicxml" href="#" download class="btn-secondary" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;" title="Download MusicXML bestand">
+                  <span>⬇️ XML</span>
+                </a>
+              </div>
+              <span id="score-rendering-status" style="display: none;"></span>
             </div>
 
-            <!-- PDF Score Rendering Viewport -->
-            <div class="score-display-frame" id="score-container">
-              <iframe id="pdf-viewer-frame" class="score-frame-content" title="Partituur Weergave"></iframe>
+            <!-- Score Rendering Viewport -->
+            <div class="score-display-frame" id="score-container" style="min-height: 520px; background: #ffffff; overflow-y: auto; overflow-x: auto; padding: 6px 4px; border-radius: var(--radius-md);">
+              <!-- Clean HTML Sheet Title Banner (No SVG overlap!) -->
+              <div id="score-sheet-banner" class="score-sheet-banner">
+                <div id="score-sheet-title" class="score-sheet-title">--</div>
+                <div id="score-sheet-meta" class="score-sheet-meta">--</div>
+              </div>
+
+              <!-- OpenSheetMusicDisplay renders the MusicXML into this container -->
+              <div id="osmd-container" style="width: 100%; min-height: 480px; background: #ffffff;"></div>
+
+              <!-- Fallback / Alternative iframe for PDF view or HTML score -->
+              <iframe id="pdf-viewer-frame" class="score-frame-content" style="display: none; width: 100%; height: 600px; border: none;" title="Partituur Weergave"></iframe>
             </div>
 
           </div>
@@ -374,21 +352,99 @@
       </div>
     </section>
 
+    <!-- Modal: Partituur Uploaden / Overschrijven -->
+    <div id="modal-upload-score" class="modal-overlay" style="display: none;">
+      <div class="modal-card-custom">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🎼 Partituur Toevoegen / Overschrijven</span>
+          </h3>
+          <button id="btn-close-upload-modal" class="btn-icon" style="width: 32px; height: 32px; font-size: 1.1rem;" title="Sluit venster">✕</button>
+        </div>
+
+        <form id="form-upload-score">
+          <!-- 1. MusicXML Bestand (Verplicht) -->
+          <div style="margin-bottom: 1rem;">
+            <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.35rem; color: #f8fafc;">
+              1. Kies MusicXML bestand (.musicxml of .xml) *
+            </label>
+            <input type="file" id="upload-musicxml-file" accept=".musicxml,.xml" required class="select-custom" style="width: 100%; padding: 0.5rem; font-size: 0.85rem;" />
+            <div id="upload-file-info" style="font-size: 0.75rem; color: #10b981; margin-top: 0.3rem; display: none;"></div>
+          </div>
+
+          <!-- 2. PDF Bestand (Optioneel) -->
+          <div style="margin-bottom: 1rem;">
+            <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.35rem; color: #cbd5e1;">
+              2. Kies PDF partituur (optioneel voor scan-weergave)
+            </label>
+            <input type="file" id="upload-pdf-file" accept=".pdf" class="select-custom" style="width: 100%; padding: 0.5rem; font-size: 0.85rem;" />
+          </div>
+
+          <!-- Metadata previews -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem;">
+            <div>
+              <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Titel van lied:</label>
+              <input type="text" id="upload-title" placeholder="Wordt automatisch uitgelezen" class="select-custom" style="width: 100%; font-size: 0.82rem;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Componist:</label>
+              <input type="text" id="upload-composer" placeholder="Optioneel" class="select-custom" style="width: 100%; font-size: 0.82rem;" />
+            </div>
+          </div>
+
+          <!-- Server Publicatie & Paswoord (tatjana01) -->
+          <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 0.85rem; margin-bottom: 1.25rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 700; font-size: 0.85rem; color: #f8fafc;">
+              <input type="checkbox" id="chk-publish-server" style="width: 16px; height: 16px; accent-color: var(--accent-indigo);" />
+              <span>🌐 Publiceren / overschrijven op server (voor alle koorleden)</span>
+            </label>
+            <p style="font-size: 0.72rem; color: var(--text-secondary); margin: 0.35rem 0 0.6rem 1.6rem;">
+              Vink aan om het lied direct op de server te zetten. Zonder vinkje blijft de partituur alleen privé op jouw eigen toestel bewaard.
+            </p>
+
+            <div id="box-server-password" style="display: none; margin-left: 1.6rem; margin-top: 0.5rem;">
+              <label style="display: block; font-size: 0.75rem; color: #f8fafc; font-weight: 600; margin-bottom: 0.25rem;">
+                Beheerderspaswoord:
+              </label>
+              <input type="password" id="upload-admin-password" placeholder="Voer paswoord in (tatjana01)" class="select-custom" style="width: 100%; max-width: 260px; font-size: 0.82rem;" />
+              
+              <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--text-secondary); margin-top: 0.4rem; cursor: pointer;">
+                <input type="checkbox" id="chk-remember-admin" checked style="accent-color: var(--accent-indigo);" />
+                <span>Onthoud paswoord op dit apparaat</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="upload-status-msg" style="display: none; padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.8rem; margin-bottom: 1rem;"></div>
+
+          <!-- Knoppen -->
+          <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+            <button type="button" id="btn-cancel-upload" class="btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Annuleren</button>
+            <button type="submit" id="btn-submit-upload" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.85rem;">
+              <span>💾 Opslaan &amp; Openen</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </main>
 
   <!-- Scripts -->
-  <script src="js/content-data.js?v=14"></script>
-  <script src="js/audio-engine.js?v=14"></script>
-  <script src="js/pitch-detector.js?v=14"></script>
-  <script src="js/breathing-trainer.js?v=14"></script>
-  <script src="js/score-viewer.js?v=14"></script>
-  <script src="js/app.js?v=14"></script>
+  <script src="js/content-data.js?v=26"></script>
+  <script src="js/audio-engine.js?v=26"></script>
+  <script src="js/pitch-detector.js?v=26"></script>
+  <script src="js/breathing-trainer.js?v=26"></script>
+  <script src="js/lib/opensheetmusicdisplay.min.js?v=26"></script>
+  <script src="js/score-storage.js?v=26"></script>
+  <script src="js/score-viewer.js?v=27"></script>
+  <script src="js/app.js?v=27"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=14')
+        navigator.serviceWorker.register('./sw.js?v=27')
           .then(reg => {
             reg.update();
             console.log('ServiceWorker registered & updated:', reg.scope);

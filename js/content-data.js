@@ -1,11 +1,10 @@
 /**
  * Zing! - Content Data
- * 5 Kernpijlers in beproefde didactische volgorde:
- * 1. Ademhaling & Lichaam
- * 2. Opwarmen & Stemregisters (eerst soepel maken!)
- * 3. Gehoor & Zuiverheid (Pitch matching, A3)
- * 4. Ritme & Notenleer
- * 5. Koor, Partituren & Repertoire (met Spotify)
+ * 4 Kernpijlers:
+ * 1. Ademhaling & Lichaamshouding (Fundament)
+ * 2. Opwarmen & Stemregisters (Inzingen)
+ * 3. Partituren & Repertoire (Koor, SATB)
+ * 4. Tools & Zanghulpmiddelen (Stemtrainer, Metronoom, AI Tools, Solfège)
  */
 
 const ContentData = {
@@ -120,6 +119,16 @@ const ContentData = {
           desc: 'Bespeelbaar klavier om toonladders en losse referentietonen aan te slaan.'
         },
         {
+          id: 'score-toonladder',
+          title: 'Dagelijkse Inzing-Toonladder & 5-Toons Vocalise',
+          type: 'builtin',
+          targetScreen: 'screen-scores',
+          scoreKey: 'toonladder-oefening',
+          badge: 'Inzingen',
+          badgeClass: 'badge-gold',
+          desc: '5-toonsladder in C-groot om de stembanden rustig soepel te maken op klinkers.'
+        },
+        {
           id: 'ext-pitchhighway',
           title: 'PitchHighway Guided Warm-up',
           type: 'external',
@@ -132,14 +141,66 @@ const ContentData = {
       ]
     },
     {
-      id: 'zuiverheid',
+      id: 'partituren',
       num: 3,
-      badge: '03 • INTONATIE',
-      themeClass: 'theme-green',
-      icon: '🎯',
-      title: 'Gehoor & Zuiverheid (Pitch)',
-      shortExplanation: 'Train je gehoor op pitch matching. De realtime stemtrainer toont exact of je zuiver op A3 of C4 zit.',
-      description: 'Luister eerst in stilte, stel je de noot voor in gedachten en zing na. De stemtrainer controleert direct of je op toonhoogte zit.',
+      badge: '03 • REPERTOIRE',
+      themeClass: 'theme-pink',
+      icon: '🎼',
+      title: 'Partituren & Repertoire',
+      shortExplanation: 'Instuderen van koorpartijen (SATB), interactieve MusicXML bladmuziek en oefenspeler.',
+      description: 'Zing meerstemmig in een koor of ensemble. Oefen jouw stempartij (S/A/T/B) met instelbaar tempo, dynamische partituren en uploadmogelijkheid.',
+      tools: [
+        {
+          id: 'score-komt-vrienden',
+          title: '1. Komt vrienden in het ronde (Het Slijperslied)',
+          type: 'builtin',
+          targetScreen: 'screen-scores',
+          scoreKey: 'komt-vrienden',
+          badge: 'SATB Koor',
+          badgeClass: 'badge-green',
+          desc: 'Originele partituur in d-mineur (2/4 maat met 1/8 opmaat). Oefen Sopraan, Alt, Tenor, Bas of Tutti.'
+        },
+        {
+          id: 'score-befiehl-du-deine-wege',
+          title: '44. Befiehl du deine Wege (J.S. Bach - Matthäus-Passion)',
+          type: 'builtin',
+          targetScreen: 'screen-scores',
+          scoreKey: 'befiehl-du-deine-wege',
+          badge: 'SATB Koraal',
+          badgeClass: 'badge-gold',
+          desc: 'Klassiek 4-stemmig koraal BWV 244 in D-groot (4/4 maat met 1/4 opmaat). Oefen Sopraan, Alt, Tenor, Bas of Tutti.'
+        },
+        {
+          id: 'score-vader-jacob',
+          title: 'Vader Jacob (Koor Canon - 4 stemmig)',
+          type: 'builtin',
+          targetScreen: 'screen-scores',
+          scoreKey: 'vader-jacob',
+          badge: 'Canon',
+          badgeClass: 'badge-purple',
+          desc: 'Klassieke 4-stemmige canon in F-groot met meespeelbare pianobegeleiding.'
+        },
+        {
+          id: 'score-dona-nobis',
+          title: 'Dona Nobis Pacem (Klassieke Canon)',
+          type: 'builtin',
+          targetScreen: 'screen-scores',
+          scoreKey: 'dona-nobis',
+          badge: '3-Stemmig',
+          badgeClass: 'badge-purple',
+          desc: 'Traditionele Latijnse canon in 3/4 maat voor zachte klankversmelting.'
+        }
+      ]
+    },
+    {
+      id: 'tools',
+      num: 4,
+      badge: '04 • TOOLS',
+      themeClass: 'theme-purple',
+      icon: '🛠️',
+      title: 'Tools & Zanghulpmiddelen',
+      shortExplanation: 'Stemtrainer, metronoom, AI stem-splitters, gehoortraining en solfège.',
+      description: 'Handige hulpmiddelen voor elke zanger: controleer zuiverheid, houd de maat, splits zang uit opnames of train solfège.',
       tools: [
         {
           id: 'builtin-tuner',
@@ -151,6 +212,15 @@ const ContentData = {
           desc: 'Zing in de microfoon. Toont direct de noot (bijv. A3, C4), de Hz en naaldindicator.'
         },
         {
+          id: 'builtin-metronome',
+          title: 'Interactieve Visuele Metronoom',
+          type: 'builtin',
+          targetScreen: 'screen-metronome',
+          badge: 'Ingebouwd',
+          badgeClass: 'badge-green',
+          desc: 'Instelbaar van 40 tot 200 BPM met visuele puls en audio-klak.'
+        },
+        {
           id: 'ext-pitchcraft',
           title: 'PitchCraft Live Pianorol',
           type: 'external',
@@ -160,13 +230,22 @@ const ContentData = {
           desc: 'Tekent je gezongen lijn realtime op een pianorol. Zie je vibrato en zuiverheidscurve.'
         },
         {
-          id: 'ext-muted',
-          title: 'Muted.io Voice Tuner',
+          id: 'ext-vocalremover',
+          title: 'VocalRemover.org AI Stem-Splitter',
           type: 'external',
-          externalUrl: 'https://muted.io',
-          badge: 'Webapp',
+          externalUrl: 'https://vocalremover.org',
+          badge: 'AI Tool',
           badgeClass: 'badge-purple',
-          desc: 'Minimalistische, razendsnelle stem-stemmer met toetsenbord.'
+          desc: '100% gratis in de browser. Splitst elk liedje in instrumentale begeleiding en zangstem.'
+        },
+        {
+          id: 'ext-moises',
+          title: 'Moises.ai Repetitie Station',
+          type: 'external',
+          externalUrl: 'https://moises.ai',
+          badge: 'Repetitie',
+          badgeClass: 'badge-gold',
+          desc: 'Oefen koorpartijen: vertraag moeilijke passages en zet specifieke stemmen harder.'
         },
         {
           id: 'ext-singingcarrots',
@@ -185,27 +264,15 @@ const ContentData = {
           badge: 'Webapp',
           badgeClass: 'badge-gold',
           desc: 'Vind binnen 60 seconden je stembereik (laagste tot hoogste comfortabele noot).'
-        }
-      ]
-    },
-    {
-      id: 'ritme',
-      num: 4,
-      badge: '04 • MAAT & NOTEN',
-      themeClass: 'theme-purple',
-      icon: '⏱️',
-      title: 'Ritme & Notenleer',
-      shortExplanation: 'Oefen het maathouden met de metronoom, solfège (Do-Re-Mi) en het herkennen van intervallen.',
-      description: 'Muziek leeft van ritme en melodieafstand. Leer maat houden en herken de afstanden tussen noten (tertzen, kwinten).',
-      tools: [
+        },
         {
-          id: 'builtin-metronome',
-          title: 'Interactieve Visuele Metronoom',
-          type: 'builtin',
-          targetScreen: 'screen-metronome',
-          badge: 'Ingebouwd',
-          badgeClass: 'badge-green',
-          desc: 'Instelbaar van 40 tot 200 BPM met visuele puls en audio-klak.'
+          id: 'ext-muted',
+          title: 'Muted.io Voice Tuner',
+          type: 'external',
+          externalUrl: 'https://muted.io',
+          badge: 'Webapp',
+          badgeClass: 'badge-purple',
+          desc: 'Minimalistische, razendsnelle stem-stemmer met toetsenbord.'
         },
         {
           id: 'ext-teoria',
@@ -233,45 +300,6 @@ const ContentData = {
           badge: 'Speels Leren',
           badgeClass: 'badge-purple',
           desc: 'Gamified gehoortraining met dagelijkse luisteroefeningen en melodiedictees.'
-        }
-      ]
-    },
-    {
-      id: 'partituren',
-      num: 5,
-      badge: '05 • REPERTOIRE',
-      themeClass: 'theme-pink',
-      icon: '🎼',
-      title: 'Koor, Partituren & Repertoire',
-      shortExplanation: 'Instuderen van partijen (PDF), audiospeler met tempo-regeling én Spotify om het wijsje te leren.',
-      description: 'Zing meerstemmig in een koor of ensemble. Lees je partituur en luister naar het originele nummer via Spotify om het wijsje te leren.',
-      tools: [
-        {
-          id: 'builtin-scores',
-          title: 'Partituren Viewer met Spotify & Audio-oefenspeler',
-          type: 'builtin',
-          targetScreen: 'screen-scores',
-          badge: 'Ingebouwd',
-          badgeClass: 'badge-green',
-          desc: 'Lees PDF bladmuziek, luister naar het wijsje via Spotify en vertraag de oefentrack.'
-        },
-        {
-          id: 'ext-vocalremover',
-          title: 'VocalRemover.org AI Splitter',
-          type: 'external',
-          externalUrl: 'https://vocalremover.org',
-          badge: 'Webapp',
-          badgeClass: 'badge-purple',
-          desc: '100% gratis in browser. Splitst elk liedje in instrumentale karaoke en zangpartij.'
-        },
-        {
-          id: 'ext-moises',
-          title: 'Moises.ai Repetitie Station',
-          type: 'external',
-          externalUrl: 'https://moises.ai',
-          badge: 'Webapp',
-          badgeClass: 'badge-gold',
-          desc: 'Oefen koorpartijen: vertraag moeilijke passages en zet specifieke stemmen harder.'
         },
         {
           id: 'ext-cpdl',
@@ -287,7 +315,7 @@ const ContentData = {
           title: 'MuseScore Open Scores',
           type: 'external',
           externalUrl: 'https://musescore.org',
-          badge: 'Webapp',
+          badge: 'Bibliotheek',
           badgeClass: 'badge-purple',
           desc: 'Speel partituren interactief af en laat jouw eigen stempartij op de voorgrond treden.'
         }

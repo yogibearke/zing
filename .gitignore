@@ -4,3 +4,7 @@ node_modules/
 .vscode/
 .idea/
 *.log
+__pycache__/
+*.py[cod]
+*$py.class
+*.tmp

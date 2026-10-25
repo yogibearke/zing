@@ -951,7 +951,48 @@ const ScoreViewer = (() => {
       title: 'Calypso',
       subtitle: 'Jan Holstock • 4/4 Maat • Koorlied',
       musicXmlUrl: './assets/sample-scores/calypso.musicxml',
-      pdfUrl: './assets/sample-scores/calypso.pdf'
+      pdfUrl: './assets/sample-scores/calypso.pdf',
+      htmlScore: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 18px; color: #0f172a; max-width: 900px; margin: 0 auto; background: #ffffff;">
+          
+          <!-- Header met Partituur Informatie -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 14px;">
+            <div>
+              <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 6px;">
+                <span style="background: #7c3aed; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.5px;">Koorlied</span>
+                <span style="background: #f5f3ff; color: #7c3aed; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px;">Melodie &amp; Koor</span>
+                <span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px;">4/4 Maat</span>
+              </div>
+              <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #0f172a;">Calypso</h2>
+              <div style="font-size: 13px; color: #64748b; margin-top: 4px;">
+                Jan Holstock • Swingend ritme en koorbegeleiding
+              </div>
+            </div>
+            <div style="text-align: right; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 14px; border-radius: 8px;">
+              <div style="font-size: 12px; font-weight: 700; color: #0f172a;">C-groot (geen voortekens)</div>
+              <div style="font-size: 12px; color: #64748b;">4/4 Maat • Vivace / Calypso tempo</div>
+            </div>
+          </div>
+
+          <!-- ORIGINELE 500 DPI SCAN WEERGAVE -->
+          <div style="border: 2px solid #0f172a; border-radius: 8px; padding: 12px; background: #ffffff; box-shadow: 0 4px 16px rgba(0,0,0,0.06); margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
+              <span style="font-weight: 700; font-size: 12px; color: #0f172a; text-transform: uppercase;">Originele Partituur (500 DPI Scan)</span>
+              <div style="display: flex; gap: 10px;">
+                <a href="./assets/sample-scores/calypso.pdf" target="_blank" style="font-size: 12px; color: #4f46e5; text-decoration: none; font-weight: 600;">Open PDF ↗</a>
+                <a href="./assets/sample-scores/calypso.musicxml" download="calypso.musicxml" style="font-size: 12px; color: #059669; text-decoration: none; font-weight: 600;">Download MusicXML 📥</a>
+              </div>
+            </div>
+            <img src="./assets/sample-scores/calypso_page_1.png" style="width: 100%; height: auto; display: block; border-radius: 4px;" alt="Calypso Partituur Scan" />
+          </div>
+
+          <!-- Repetitietip -->
+          <div style="background: #fdf4ff; border: 1px solid #f0abfc; padding: 12px 16px; border-radius: 6px; font-size: 13px; color: #86198f;">
+            🎶 <strong>Koor-Repetitietip:</strong> Let bij Calypso goed op het swingende, gesyncopeerde ritme en de vlotte tekstplaatsing. Oefen eerst langzaam en schakel daarna op naar het levendige caribische tempo!
+          </div>
+
+        </div>
+      `
     },
     'toonladder-oefening': {
       title: 'Toonladder & 5-Toons Vocalise',

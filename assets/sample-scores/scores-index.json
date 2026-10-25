@@ -28,5 +28,15 @@
     "badge": "Koorlied",
     "badgeClass": "badge-purple",
     "desc": "Calypso van Jan Holstock in 4/4 maat. Oefen melodie, tempo en koorbegeleiding."
+  },
+  {
+    "key": "drink-to-me-only",
+    "title": "Drink To Me Only With Thine Eyes",
+    "composer": "Traditioneel / Arr. John Reager",
+    "musicXmlUrl": "./assets/sample-scores/drink-to-me-only.musicxml",
+    "pdfUrl": "./assets/sample-scores/drink-to-me-only.pdf",
+    "badge": "SAB Koor",
+    "badgeClass": "badge-green",
+    "desc": "Engelse traditional in F-groot (6/8 maat) voor Sopraan, Alt en Bariton (SAB) met 2 coupletten."
   }
 ]

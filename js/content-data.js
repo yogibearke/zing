@@ -179,6 +179,16 @@ const ContentData = {
           badge: 'Koorlied',
           badgeClass: 'badge-purple',
           desc: 'Vrolijk 4/4 koorlied van Jan Holstock. Oefen melodie, tempo en zangbegeleiding.'
+        },
+        {
+          id: 'score-drink-to-me-only',
+          title: 'Drink To Me Only With Thine Eyes',
+          type: 'builtin',
+          targetScreen: 'screen-scores',
+          scoreKey: 'drink-to-me-only',
+          badge: 'SAB Koor',
+          badgeClass: 'badge-green',
+          desc: 'Traditioneel koorwerk in F-groot (6/8 maat) voor Sopraan, Alt en Bariton (SAB) met 2 coupletten.'
         }
       ]
     },

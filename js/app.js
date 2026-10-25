@@ -906,4 +906,18 @@ document.addEventListener('DOMContentLoaded', () => {
   ScoreViewer.init();
   initScoreManagement();
   renderPillars();
+
+  // Directe hash routing (bv. #tool-score-drink-to-me-only)
+  if (window.location.hash.startsWith('#tool-')) {
+    const toolId = window.location.hash.substring(6);
+    let found = null;
+    ContentData.pillars.forEach(p => {
+      const t = p.tools.find(tool => tool.id === toolId);
+      if (t) found = t;
+    });
+    if (found) {
+      setTimeout(() => openToolScreen(found), 150);
+    }
+  }
 });
+

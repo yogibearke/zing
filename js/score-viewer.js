@@ -39,7 +39,8 @@ const ScoreViewer = (() => {
           .filter(n => n && n !== 'REST');
         return {
           notes: chord.length > 0 ? chord : ['REST'],
-          dur: baseNote.dur
+          dur: baseNote.dur,
+          measureIndex: baseNote.measureIndex
         };
       });
     }
@@ -57,7 +58,8 @@ const ScoreViewer = (() => {
           .filter(n => n && n !== 'REST');
         return {
           notes: chord.length > 0 ? chord : ['REST'],
-          dur: baseNote.dur
+          dur: baseNote.dur,
+          measureIndex: baseNote.measureIndex
         };
       });
     }
@@ -115,6 +117,76 @@ const ScoreViewer = (() => {
         defaultDivisions = parseInt(firstDiv.textContent.trim(), 10) || 4;
       }
 
+      // Analyseer herhalingstekens en volta's op basis van de maatstructuur in het eerste part
+      let playbackOrder = [];
+      const sampleMeasures = parts[0].querySelectorAll('measure');
+      const measureCount = sampleMeasures.length;
+
+      if (measureCount > 0) {
+        const meta = [];
+        sampleMeasures.forEach((m, idx) => {
+          const fwdRepeat = m.querySelector('repeat[direction="forward"]');
+          const bwdRepeat = m.querySelector('repeat[direction="backward"]');
+          const endingEl = m.querySelector('ending');
+          let ending = null;
+          if (endingEl) {
+            ending = {
+              number: endingEl.getAttribute('number') || '1',
+              type: endingEl.getAttribute('type') || 'start'
+            };
+          }
+          meta.push({
+            index: idx,
+            forward: !!fwdRepeat,
+            backward: !!bwdRepeat,
+            ending: ending
+          });
+        });
+
+        const hasBackward = meta.some(m => m.backward);
+        if (!hasBackward) {
+          playbackOrder = Array.from({ length: measureCount }, (_, i) => i);
+        } else {
+          let currentRepeatStart = 0;
+          let ending1Start = -1;
+          let ending2Start = -1;
+
+          for (let i = 0; i < measureCount; i++) {
+            const m = meta[i];
+            if (m.forward) {
+              currentRepeatStart = i;
+              ending1Start = -1;
+              ending2Start = -1;
+            }
+            if (m.ending) {
+              const numStr = String(m.ending.number || '1');
+              if (numStr.includes('1') && ending1Start === -1) ending1Start = i;
+              if (numStr.includes('2') && ending2Start === -1) ending2Start = i;
+            }
+
+            playbackOrder.push(i);
+
+            if (m.backward) {
+              if (ending1Start !== -1) {
+                for (let j = currentRepeatStart; j < ending1Start; j++) {
+                  playbackOrder.push(j);
+                }
+                if (ending2Start !== -1 && ending2Start > i) {
+                  i = ending2Start - 1;
+                }
+              } else {
+                for (let j = currentRepeatStart; j <= i; j++) {
+                  playbackOrder.push(j);
+                }
+              }
+              currentRepeatStart = i + 1;
+              ending1Start = -1;
+              ending2Start = -1;
+            }
+          }
+        }
+      }
+
       parts.forEach((partEl, idx) => {
         const partId = partEl.getAttribute('id');
         let voiceKey = partNameMap[partId];
@@ -128,16 +200,17 @@ const ScoreViewer = (() => {
           }
         }
 
-        const notes = [];
+        const measuresNotes = [];
         let currentDivisions = defaultDivisions;
         const measures = partEl.querySelectorAll('measure');
 
-        measures.forEach(measure => {
+        measures.forEach((measure, mIndex) => {
           const divEl = measure.querySelector('attributes > divisions');
           if (divEl) {
             currentDivisions = parseInt(divEl.textContent.trim(), 10) || currentDivisions;
           }
 
+          const mNotes = [];
           const noteEls = measure.querySelectorAll('note');
           noteEls.forEach(n => {
             // Sla akkoordnoten op dezelfde balk over (koorbalken zijn monofoon per stem)
@@ -150,7 +223,7 @@ const ScoreViewer = (() => {
             const dur = durDivs / currentDivisions;
 
             if (isRest) {
-              notes.push({ note: 'REST', dur });
+              mNotes.push({ note: 'REST', dur, measureIndex: mIndex });
             } else {
               const stepEl = n.querySelector('pitch > step');
               const octEl = n.querySelector('pitch > octave');
@@ -164,12 +237,27 @@ const ScoreViewer = (() => {
                   if (altVal === '1') acc = '#';
                   else if (altVal === '-1') acc = 'b';
                 }
-                notes.push({ note: `${step}${acc}${oct}`, dur });
+                mNotes.push({ note: `${step}${acc}${oct}`, dur, measureIndex: mIndex });
               }
             }
           });
+          measuresNotes[mIndex] = mNotes;
         });
-        parsedVoices[voiceKey] = notes;
+
+        // Unroll maten volgens berekende afspeelvolgorde (inclusief herhalingen)
+        const unrolledVoiceNotes = [];
+        const effectiveOrder = (playbackOrder && playbackOrder.length > 0)
+          ? playbackOrder
+          : Array.from({ length: measures.length }, (_, i) => i);
+
+        effectiveOrder.forEach(mIdx => {
+          const notesInM = measuresNotes[mIdx] || [];
+          notesInM.forEach(noteItem => {
+            unrolledVoiceNotes.push({ ...noteItem, measureIndex: mIdx });
+          });
+        });
+
+        parsedVoices[voiceKey] = unrolledVoiceNotes;
       });
 
       // Zoek tempo markering in de MusicXML zoals geëxporteerd door MuseScore
@@ -887,6 +975,104 @@ const ScoreViewer = (() => {
           </div>
         </div>
       `
+    },
+    'drink-to-me-only': {
+      title: 'Drink To Me Only With Thine Eyes',
+      subtitle: 'Traditioneel • Arr. John Reager • F-groot • 6/8 Maat • SAB Koor',
+      bpm: 50,
+      pdfUrl: './assets/sample-scores/drink-to-me-only.pdf',
+      musicXmlUrl: './assets/sample-scores/drink-to-me-only.musicxml',
+      notes: [],
+      htmlScore: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 18px; color: #0f172a; max-width: 900px; margin: 0 auto; background: #ffffff;">
+          
+          <!-- Header met Koor Informatie -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 14px;">
+            <div>
+              <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 6px;">
+                <span style="background: #059669; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.5px;">Traditioneel Koorwerk</span>
+                <span style="background: #ecfdf5; color: #059669; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px;">SAB Koor</span>
+                <span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px;">6/8 Maat</span>
+              </div>
+              <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #0f172a;">Drink To Me Only With Thine Eyes</h2>
+              <div style="font-size: 13px; color: #64748b; margin-top: 4px;">
+                Traditioneel Engels • Bewerking: John Reager (2013) • Tekst: Ben Jonson (1572–1637)
+              </div>
+            </div>
+            <div style="text-align: right; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 14px; border-radius: 8px;">
+              <div style="font-size: 12px; font-weight: 700; color: #0f172a;">F-groot (1 mol: B♭)</div>
+              <div style="font-size: 12px; color: #64748b;">6/8 Maat • Andante espressivo • ♩. ≈ 50 BPM</div>
+            </div>
+          </div>
+
+          <!-- Koorstemmen SAB Legenda -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 16px;">
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;">
+              <div style="font-weight: 700; color: #2563eb; font-size: 12px;">SOPRAAN (S)</div>
+              <div style="font-size: 11px; color: #64748b;">F4 - F5 (Hoofdmelodie &amp; Expressie)</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;">
+              <div style="font-weight: 700; color: #16a34a; font-size: 12px;">ALT (A)</div>
+              <div style="font-size: 11px; color: #64748b;">C4 - A4 (Warme middenstem)</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;">
+              <div style="font-weight: 700; color: #d97706; font-size: 12px;">BARITON (B)</div>
+              <div style="font-size: 11px; color: #64748b;">F2 - F3 (Harmonisch fundament)</div>
+            </div>
+          </div>
+
+          <!-- RECHTGEZETTE EN OPGESCHOONDE 500 DPI SCANS (BLZ 1 & 2) -->
+          <div style="border: 2px solid #0f172a; border-radius: 8px; padding: 12px; background: #ffffff; box-shadow: 0 4px 16px rgba(0,0,0,0.06); margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
+              <span style="font-weight: 700; font-size: 12px; color: #0f172a; text-transform: uppercase;">Pagina 1 (Maten 1 - 8) • 500 DPI Deskewed &amp; Enhanced</span>
+              <a href="./assets/sample-scores/drink-to-me-only.pdf" target="_blank" style="font-size: 12px; color: #4f46e5; text-decoration: none; font-weight: 600;">Open PDF ↗</a>
+            </div>
+            <img src="./assets/sample-scores/drink-to-me-only_page_1.png" style="width: 100%; height: auto; display: block; border-radius: 4px; margin-bottom: 16px;" alt="Drink To Me Only Pagina 1 Scan" />
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
+              <span style="font-weight: 700; font-size: 12px; color: #0f172a; text-transform: uppercase;">Pagina 2 (Maten 9 - 16) • 500 DPI Deskewed &amp; Enhanced</span>
+              <a href="./assets/sample-scores/drink-to-me-only.musicxml" download="drink-to-me-only.musicxml" style="font-size: 12px; color: #059669; text-decoration: none; font-weight: 600;">Download MusicXML 📥</a>
+            </div>
+            <img src="./assets/sample-scores/drink-to-me-only_page_2.png" style="width: 100%; height: auto; display: block; border-radius: 4px;" alt="Drink To Me Only Pagina 2 Scan" />
+          </div>
+
+          <!-- LIEDTEKST OVERZICHT (2 COUPLETTEN) -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 700; color: #0f172a;">Liedtekst (Ben Jonson, 1616):</h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+              <div style="background: #ffffff; padding: 12px 14px; border-radius: 6px; border-left: 3px solid #2563eb;">
+                <div style="font-weight: 700; font-size: 13px; color: #2563eb; margin-bottom: 6px;">Couplet 1</div>
+                <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #334155; font-style: italic;">
+                  Drink to me only with thine eyes,<br>
+                  And I will pledge with mine;<br>
+                  Or leave a kiss within the cup,<br>
+                  And I'll not look for wine.<br>
+                  The thirst that from the soul doth rise<br>
+                  Doth ask a drink divine;<br>
+                  But might I of Jove's nectar sup,<br>
+                  I would not change for thine.
+                </p>
+              </div>
+
+              <div style="background: #ffffff; padding: 12px 14px; border-radius: 6px; border-left: 3px solid #059669;">
+                <div style="font-weight: 700; font-size: 13px; color: #059669; margin-bottom: 6px;">Couplet 2</div>
+                <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #334155; font-style: italic;">
+                  I sent thee late a rosy wreath,<br>
+                  Not so much hon'ring thee<br>
+                  As giving it a hope, that there<br>
+                  It could not wither'd be.<br>
+                  But thou thereon didst only breathe,<br>
+                  And sent'st it back to me;<br>
+                  Since when it looks, and smells, I swear,<br>
+                  Not of itself, but thee.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      `
     }
   };
 
@@ -1144,8 +1330,9 @@ const ScoreViewer = (() => {
         drawMeasureNumbers: true,
         drawMetronomeMarks: false,
         drawLyrics: true,
+        defaultFontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         fillEmptyMeasuresWithWholeRests: true,
-        followCursor: true
+        followCursor: false
       });
     } else {
       osmdInstance.setOptions({
@@ -1154,8 +1341,18 @@ const ScoreViewer = (() => {
         drawSubtitle: false,
         drawComposer: false,
         drawPartNames: false,
-        drawPartAbbreviations: false
+        drawPartAbbreviations: false,
+        defaultFontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        followCursor: false
       });
+    }
+
+    // Graveerregels optimaliseren voor grotere, duidelijk leesbare liedteksten
+    if (osmdInstance.EngravingRules) {
+      osmdInstance.EngravingRules.LyricsHeight = 2.85; // ~42% grotere letterhoogte (standaard is 2.0)
+      osmdInstance.EngravingRules.VerticalBetweenLyricsDistance = 0.55; // Ruimere afstand tussen meerdere stroferegels
+      osmdInstance.EngravingRules.LyricsYMarginToBottomLine = 0.35;
+      osmdInstance.EngravingRules.DefaultFontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     }
 
     const xmlPromise = (typeof musicXmlUrlOrText === 'string' && musicXmlUrlOrText.trim().startsWith('<'))
@@ -1231,7 +1428,7 @@ const ScoreViewer = (() => {
     }
 
     if (deleteBtn) {
-      deleteBtn.style.display = (scoreData && (scoreData.isCustom || key === 'befiehl-du-deine-wege' || key === 'komt-vrienden')) ? 'inline-flex' : 'none';
+      deleteBtn.style.display = (scoreData && (scoreData.isCustom || key === 'befiehl-du-deine-wege' || key === 'komt-vrienden' || key === 'drink-to-me-only')) ? 'inline-flex' : 'none';
     }
 
     if (scoreData) {
@@ -1273,6 +1470,45 @@ const ScoreViewer = (() => {
     }
   }
 
+  // Helper om de cursor exact naar een specifieke maat te sturen (bijvoorbeeld na een herhaling)
+  function jumpCursorToMeasure(targetMeasureIndex) {
+    if (!osmdInstance || !osmdInstance.cursor) return;
+    try {
+      osmdInstance.cursor.show();
+      osmdInstance.cursor.reset();
+      while (!osmdInstance.cursor.iterator.EndReached && osmdInstance.cursor.iterator.CurrentMeasureIndex < targetMeasureIndex) {
+        osmdInstance.cursor.next();
+      }
+    } catch (e) {
+      console.warn('Fout bij springen naar maat:', targetMeasureIndex, e);
+    }
+  }
+
+  // Geïsoleerde scroll-helper: scrolt UITSLUITEND de partituurbak (#score-container), nooit het hele venster!
+  function scrollScoreContainerToCursor() {
+    const container = document.getElementById('score-container');
+    if (!container || !osmdInstance || !osmdInstance.cursor || !osmdInstance.cursor.cursorElement) return;
+    const cursorEl = osmdInstance.cursor.cursorElement;
+    if (!cursorEl || cursorEl.style.display === 'none') return;
+
+    try {
+      const containerRect = container.getBoundingClientRect();
+      const cursorRect = cursorEl.getBoundingClientRect();
+
+      // Bereken cursor Y relatief tot de scrollbare inhoud van #score-container
+      const relativeTop = cursorRect.top - containerRect.top + container.scrollTop;
+      // Houd de actieve balk comfortabel in beeld op circa 35% vanaf de bovenrand
+      const targetScrollTop = relativeTop - (container.clientHeight * 0.35);
+
+      container.scrollTo({
+        top: Math.max(0, Math.round(targetScrollTop)),
+        behavior: 'smooth'
+      });
+    } catch (e) {
+      console.warn('Fout bij scrollen naar cursor:', e);
+    }
+  }
+
   // Play synthesized companion track
   function playNextCompanionNote() {
     if (!isPlayingCompanion) return;
@@ -1288,7 +1524,7 @@ const ScoreViewer = (() => {
     const duration = stepDur * (60 / currentBpm);
 
     if (currentNote.notes && Array.isArray(currentNote.notes)) {
-      // Tutti Chord: play all 4 choral voices simultaneously
+      // Tutti Chord: play all choral voices simultaneously
       currentNote.notes.forEach(n => {
         if (n && n !== 'REST') {
           AudioEngine.playNote(n, Math.min(duration * 1.15, 2.2));
@@ -1310,18 +1546,21 @@ const ScoreViewer = (() => {
     if (osmdInstance && osmdInstance.cursor && activeViewMode === 'musicxml') {
       try {
         if (currentStep > 0) {
-          osmdInstance.cursor.next();
+          const prevNote = notes[currentStep - 1];
+          if (prevNote && currentNote.measureIndex !== undefined && prevNote.measureIndex !== undefined && currentNote.measureIndex < prevNote.measureIndex) {
+            // Muzikale herhaling: spring direct terug naar de herhaalde maat
+            jumpCursorToMeasure(currentNote.measureIndex);
+          } else {
+            osmdInstance.cursor.next();
+          }
         }
-        const cursorEl = osmdInstance.cursor.cursorElement;
-        if (cursorEl && typeof cursorEl.scrollIntoView === 'function') {
-          cursorEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-        }
+        scrollScoreContainerToCursor();
       } catch (e) {}
     }
 
     currentStep++;
     if (currentStep >= notes.length) {
-      // Laatste noot klinkt uit en daarna stopt de speler automatisch zonder herhaling!
+      // Laatste noot klinkt uit en daarna stopt de speler automatisch
       companionInterval = setTimeout(() => {
         stopCompanion();
       }, duration * 1000);
@@ -1338,10 +1577,7 @@ const ScoreViewer = (() => {
       try {
         osmdInstance.cursor.show();
         osmdInstance.cursor.reset();
-        const cursorEl = osmdInstance.cursor.cursorElement;
-        if (cursorEl && typeof cursorEl.scrollIntoView === 'function') {
-          cursorEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-        }
+        scrollScoreContainerToCursor();
       } catch (e) {
         console.warn('OSMD Cursor start issue:', e);
       }
@@ -1374,6 +1610,11 @@ const ScoreViewer = (() => {
         osmdInstance.cursor.hide();
         osmdInstance.cursor.reset();
       } catch (e) {}
+    }
+
+    const container = document.getElementById('score-container');
+    if (container) {
+      container.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     const btn = document.getElementById('btn-play-companion');

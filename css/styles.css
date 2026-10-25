@@ -1644,6 +1644,14 @@ body::before {
   border: none;
 }
 
+#score-container {
+  max-height: 68vh;
+  overflow-y: auto;
+  overflow-x: auto;
+  position: relative;
+  scroll-behavior: smooth;
+}
+
 #osmd-container {
   width: 100%;
   min-height: 480px;
@@ -1656,6 +1664,12 @@ body::before {
   margin: 0 auto;
   max-width: 100%;
   height: auto;
+}
+
+#osmd-container svg text {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em;
 }
 
 .view-toggle-btn.active {

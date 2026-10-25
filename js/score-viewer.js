@@ -24,22 +24,45 @@ const ScoreViewer = (() => {
   }
 
   // Helper to build Tutti chords from synchronized choral parts (2, 3 (SAB) or 4 (SATB) voices)
-  function buildTutti(voiceMap) {
-    if (!voiceMap) return [];
-    const keys = Object.keys(voiceMap).filter(k => k !== 'tutti');
-    if (keys.length === 0) return [];
-    if (keys.length === 1) return voiceMap[keys[0]] || [];
+  // Accepts either an object map { sopraan: [...], alt: [...] } or separate voice arrays
+  function buildTutti(voiceMapOrSoprano, ...restVoices) {
+    if (!voiceMapOrSoprano) return [];
 
-    const baseVoice = voiceMap[keys[0]] || [];
-    return baseVoice.map((baseNote, idx) => {
-      const chord = keys
-        .map(k => voiceMap[k] && voiceMap[k][idx] ? voiceMap[k][idx].note : null)
-        .filter(n => n && n !== 'REST');
-      return {
-        notes: chord.length > 0 ? chord : ['REST'],
-        dur: baseNote.dur
-      };
-    });
+    // Formaat 1: Losse arrays als argumenten: buildTutti(sopraan, alt, tenor, bas)
+    if (Array.isArray(voiceMapOrSoprano)) {
+      const allVoices = [voiceMapOrSoprano, ...restVoices].filter(v => Array.isArray(v) && v.length > 0);
+      if (allVoices.length === 0) return [];
+      const baseVoice = allVoices[0];
+      return baseVoice.map((baseNote, idx) => {
+        const chord = allVoices
+          .map(voice => (voice[idx] ? voice[idx].note : null))
+          .filter(n => n && n !== 'REST');
+        return {
+          notes: chord.length > 0 ? chord : ['REST'],
+          dur: baseNote.dur
+        };
+      });
+    }
+
+    // Formaat 2: Object-map met partijnamen: { sopraan: [...], alt: [...] }
+    if (typeof voiceMapOrSoprano === 'object') {
+      const keys = Object.keys(voiceMapOrSoprano).filter(k => k !== 'tutti' && Array.isArray(voiceMapOrSoprano[k]));
+      if (keys.length === 0) return [];
+      if (keys.length === 1) return voiceMapOrSoprano[keys[0]] || [];
+
+      const baseVoice = voiceMapOrSoprano[keys[0]] || [];
+      return baseVoice.map((baseNote, idx) => {
+        const chord = keys
+          .map(k => voiceMapOrSoprano[k] && voiceMapOrSoprano[k][idx] ? voiceMapOrSoprano[k][idx].note : null)
+          .filter(n => n && n !== 'REST');
+        return {
+          notes: chord.length > 0 ? chord : ['REST'],
+          dur: baseNote.dur
+        };
+      });
+    }
+
+    return [];
   }
 
   // Dynamische MusicXML 3.1 Parser: laadt elk .musicxml bestand in en bouwt automatisch de stempartijen (SATB, SAB of solo)
@@ -1498,6 +1521,11 @@ const ScoreViewer = (() => {
     setBpm,
     toggleCompanion,
     stopCompanion,
-    setTempo
   };
 })();
+
+// Explicitly bind to window for global access
+if (typeof window !== 'undefined') {
+  window.ScoreViewer = ScoreViewer;
+}
+

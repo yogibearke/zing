@@ -415,15 +415,15 @@
   <script src="js/pitch-detector.js?v=26"></script>
   <script src="js/breathing-trainer.js?v=26"></script>
   <script src="js/lib/opensheetmusicdisplay.min.js?v=26"></script>
-  <script src="js/score-storage.js?v=31"></script>
-  <script src="js/score-viewer.js?v=31"></script>
-  <script src="js/app.js?v=31"></script>
+  <script src="js/score-storage.js?v=32"></script>
+  <script src="js/score-viewer.js?v=32"></script>
+  <script src="js/app.js?v=32"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=31')
+        navigator.serviceWorker.register('./sw.js?v=32')
           .then(reg => {
             reg.update();
             console.log('ServiceWorker registered & updated:', reg.scope);

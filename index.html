@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="assets/icons/icon.svg">
 
   <!-- Modern Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=30">
+  <link rel="stylesheet" href="css/styles.css?v=31">
 </head>
 <body>
 
@@ -94,19 +94,6 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
           <span class="btn-back-label">Terug naar Zing!</span>
         </button>
-
-        <!-- Top score player controls (Speel & BPM slider) -->
-        <div id="score-top-controls" class="score-top-controls" style="display: none;">
-          <button id="btn-play-companion" class="btn-score-play" title="Speel / Pauzeer">
-            <span id="play-btn-icon">▶️</span> <span id="play-btn-label">Speel</span>
-          </button>
-
-          <div class="score-bpm-control" title="Tempo aanpassen (BPM)">
-            <input type="range" id="score-bpm-slider" min="40" max="220" value="80" step="1" aria-label="Tempo BPM">
-            <span id="score-bpm-display">80 BPM</span>
-          </div>
-        </div>
-
         <div class="screen-current-title" id="screen-active-title">Gereedschap</div>
       </div>
 
@@ -264,10 +251,21 @@
         <div id="screen-scores" class="tool-content-block">
           <div class="score-viewer-container">
             
-            <!-- Lijn 2: Oefenstemmen (Voice Pills) -->
-            <div class="score-toolbar voice-toolbar-compact">
-              <div class="voice-picker-wrapper" id="voice-picker-container">
-                <span class="voice-picker-label">Oefenstem:</span>
+            <!-- Lijn 1: Speel links & Tempo slider uiterst rechts (verticaal perfect uitgelijnd) -->
+            <div class="score-top-controls" id="score-top-controls">
+              <button id="btn-play-companion" class="btn-score-play" title="Speel / Pauzeer">
+                <span id="play-btn-icon">▶️</span> <span id="play-btn-label">Speel</span>
+              </button>
+
+              <div class="score-bpm-control" title="Tempo aanpassen (BPM)">
+                <input type="range" id="score-bpm-slider" min="40" max="220" value="80" step="1" aria-label="Tempo BPM">
+                <span id="score-bpm-display">80 BPM</span>
+              </div>
+            </div>
+
+            <!-- Lijn 2: Stemmen (Voice Pills) - enkel getoond bij meerstemmig koor -->
+            <div class="score-toolbar voice-toolbar-compact" id="voice-picker-container">
+              <div class="voice-picker-wrapper">
                 <div class="voice-pills-bar" id="voice-pills-bar">
                   <button class="voice-pill active" data-voice="sopraan">🔵 Sopraan</button>
                   <button class="voice-pill" data-voice="alt">🟢 Alt</button>
@@ -417,15 +415,15 @@
   <script src="js/pitch-detector.js?v=26"></script>
   <script src="js/breathing-trainer.js?v=26"></script>
   <script src="js/lib/opensheetmusicdisplay.min.js?v=26"></script>
-  <script src="js/score-storage.js?v=30"></script>
-  <script src="js/score-viewer.js?v=30"></script>
-  <script src="js/app.js?v=30"></script>
+  <script src="js/score-storage.js?v=31"></script>
+  <script src="js/score-viewer.js?v=31"></script>
+  <script src="js/app.js?v=31"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=30')
+        navigator.serviceWorker.register('./sw.js?v=31')
           .then(reg => {
             reg.update();
             console.log('ServiceWorker registered & updated:', reg.scope);

@@ -1,5 +1,5 @@
 // Zing! Service Worker - Network First Strategy
-const CACHE_NAME = 'zing-v30';
+const CACHE_NAME = 'zing-v31';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

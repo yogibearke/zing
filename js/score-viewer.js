@@ -23,21 +23,26 @@ const ScoreViewer = (() => {
     }
   }
 
-  // Helper to build Tutti chords from synchronized SATB parts
-  function buildTutti(soprano, alto, tenor, bass) {
-    return soprano.map((s, idx) => {
-      const a = alto[idx] ? alto[idx].note : null;
-      const t = tenor[idx] ? tenor[idx].note : null;
-      const b = bass[idx] ? bass[idx].note : null;
-      const chord = [b, t, a, s.note].filter(n => n && n !== 'REST');
+  // Helper to build Tutti chords from synchronized choral parts (2, 3 (SAB) or 4 (SATB) voices)
+  function buildTutti(voiceMap) {
+    if (!voiceMap) return [];
+    const keys = Object.keys(voiceMap).filter(k => k !== 'tutti');
+    if (keys.length === 0) return [];
+    if (keys.length === 1) return voiceMap[keys[0]] || [];
+
+    const baseVoice = voiceMap[keys[0]] || [];
+    return baseVoice.map((baseNote, idx) => {
+      const chord = keys
+        .map(k => voiceMap[k] && voiceMap[k][idx] ? voiceMap[k][idx].note : null)
+        .filter(n => n && n !== 'REST');
       return {
-        notes: chord,
-        dur: s.dur
+        notes: chord.length > 0 ? chord : ['REST'],
+        dur: baseNote.dur
       };
     });
   }
 
-  // Dynamische MusicXML 3.1 Parser: laadt elk .musicxml bestand in en bouwt automatisch de SATB stempartijen
+  // Dynamische MusicXML 3.1 Parser: laadt elk .musicxml bestand in en bouwt automatisch de stempartijen (SATB, SAB of solo)
   async function loadMusicXML(xmlUrlOrText) {
     try {
       let xmlText = xmlUrlOrText;
@@ -58,8 +63,27 @@ const ScoreViewer = (() => {
       const parts = xmlDoc.querySelectorAll('score-partwise > part');
       if (!parts || parts.length === 0) return null;
 
+      // Detecteer part-namen uit de part-list
+      const partListEls = xmlDoc.querySelectorAll('part-list > score-part');
+      const partNameMap = {};
+      if (partListEls && partListEls.length > 0) {
+        partListEls.forEach(sp => {
+          const id = sp.getAttribute('id');
+          const nameEl = sp.querySelector('part-name');
+          const rawName = (nameEl ? nameEl.textContent.trim() : '').toLowerCase();
+          let key = null;
+          if (rawName.includes('sopraan') || rawName.includes('sopran')) key = 'sopraan';
+          else if (rawName.includes('alt') || rawName.includes('alto')) key = 'alt';
+          else if (rawName.includes('tenor')) key = 'tenor';
+          else if (rawName.includes('bariton') || rawName.includes('baritone')) key = 'bariton';
+          else if (rawName.includes('bas') || rawName.includes('bass')) key = 'bas';
+          if (id && key) partNameMap[id] = key;
+        });
+      }
+
       const parsedVoices = {};
-      const partMap = { 0: 'sopraan', 1: 'alt', 2: 'tenor', 3: 'bas' };
+      const defaultPartMap3 = { 0: 'sopraan', 1: 'alt', 2: 'bariton' };
+      const defaultPartMap4 = { 0: 'sopraan', 1: 'alt', 2: 'tenor', 3: 'bas' };
 
       // Lees globale divisions uit
       let defaultDivisions = 4;
@@ -69,7 +93,18 @@ const ScoreViewer = (() => {
       }
 
       parts.forEach((partEl, idx) => {
-        const voiceKey = partMap[idx] || `stem_${idx + 1}`;
+        const partId = partEl.getAttribute('id');
+        let voiceKey = partNameMap[partId];
+        if (!voiceKey) {
+          if (parts.length === 3) {
+            voiceKey = defaultPartMap3[idx] || `stem_${idx + 1}`;
+          } else if (parts.length === 4) {
+            voiceKey = defaultPartMap4[idx] || `stem_${idx + 1}`;
+          } else {
+            voiceKey = idx === 0 ? 'sopraan' : `stem_${idx + 1}`;
+          }
+        }
+
         const notes = [];
         let currentDivisions = defaultDivisions;
         const measures = partEl.querySelectorAll('measure');
@@ -126,14 +161,10 @@ const ScoreViewer = (() => {
         }
       }
 
-      // Bouw automatische Tutti akkoorden indien 4 stemmen aanwezig zijn
-      if (parsedVoices.sopraan && parsedVoices.alt && parsedVoices.tenor && parsedVoices.bas) {
-        parsedVoices.tutti = buildTutti(
-          parsedVoices.sopraan,
-          parsedVoices.alt,
-          parsedVoices.tenor,
-          parsedVoices.bas
-        );
+      // Bouw automatische Tutti akkoorden enkel indien meerstemmig (> 1 stem)
+      const voiceKeys = Object.keys(parsedVoices);
+      if (voiceKeys.length > 1) {
+        parsedVoices.tutti = buildTutti(parsedVoices);
       }
       return { voices: parsedVoices, bpm: detectedBpm };
     } catch (err) {
@@ -838,15 +869,63 @@ const ScoreViewer = (() => {
 
   let activeScoreKey = 'komt-vrienden';
 
+  const VOICE_CONFIG = {
+    'sopraan': { label: '🔵 Sopraan', name: 'Sopraan (Melodie)' },
+    'alt': { label: '🟢 Alt', name: 'Alt (2e stem)' },
+    'tenor': { label: '🟠 Tenor', name: 'Tenor (Hoge mannenstem)' },
+    'bariton': { label: '🟤 Bariton', name: 'Bariton (Mannenstem)' },
+    'bas': { label: '🔴 Bas', name: 'Bas (Lage mannenstem)' },
+    'tutti': { label: '🟣 Tutti', name: 'Tutti (Volledig Koor)' }
+  };
+
   function getVoiceLabel(voiceKey) {
-    switch (voiceKey) {
-      case 'sopraan': return 'Sopraan (Melodie)';
-      case 'alt': return 'Alt (2e stem)';
-      case 'tenor': return 'Tenor (Hoge mannenstem)';
-      case 'bas': return 'Bas (Lage mannenstem)';
-      case 'tutti': return 'Tutti (Volledig Koor / 4-stemmig)';
-      default: return voiceKey;
+    if (VOICE_CONFIG[voiceKey]) return VOICE_CONFIG[voiceKey].name;
+    return voiceKey;
+  }
+
+  function renderVoicePills(voices) {
+    const container = document.getElementById('voice-picker-container');
+    const pillsBar = document.getElementById('voice-pills-bar');
+    if (!container || !pillsBar) return;
+
+    if (!voices) {
+      container.style.display = 'none';
+      return;
     }
+
+    const voiceKeys = Object.keys(voices);
+    const nonTuttiKeys = voiceKeys.filter(k => k !== 'tutti');
+
+    // 1-stemmig lied (zoals Calypso): verberg de hele balk!
+    if (nonTuttiKeys.length <= 1) {
+      container.style.display = 'none';
+      pillsBar.innerHTML = '';
+      return;
+    }
+
+    // Meerstemmig lied: toon balk en genereer knoppen
+    container.style.display = 'flex';
+    pillsBar.innerHTML = '';
+
+    const order = ['sopraan', 'alt', 'tenor', 'bariton', 'bas', 'tutti'];
+    const sortedKeys = order.filter(k => voiceKeys.includes(k));
+
+    if (!sortedKeys.includes(selectedVoice)) {
+      selectedVoice = sortedKeys[0];
+    }
+
+    sortedKeys.forEach(key => {
+      const info = VOICE_CONFIG[key] || { label: key, name: key };
+      const btn = document.createElement('button');
+      btn.className = `voice-pill ${key === selectedVoice ? 'active' : ''}`;
+      btn.dataset.voice = key;
+      btn.textContent = info.label;
+      btn.title = info.name;
+      btn.addEventListener('click', () => {
+        setVoicePart(key);
+      });
+      pillsBar.appendChild(btn);
+    });
   }
 
   function getActiveNotes() {
@@ -972,7 +1051,8 @@ const ScoreViewer = (() => {
       'sopraan': 0,
       'alt': 1,
       'tenor': 2,
-      'bas': 3
+      'bariton': (instruments.length === 3 ? 2 : 2),
+      'bas': (instruments.length - 1)
     };
 
     instruments.forEach((inst, idx) => {
@@ -1137,7 +1217,8 @@ const ScoreViewer = (() => {
         loadMusicXML(scoreData.musicXmlUrl).then(result => {
           if (result && result.voices) {
             scoreData.voices = result.voices;
-            scoreData.notes = result.voices[selectedVoice] || result.voices.sopraan || Object.values(result.voices)[0];
+            renderVoicePills(scoreData.voices);
+            scoreData.notes = scoreData.voices[selectedVoice] || scoreData.voices.sopraan || Object.values(result.voices)[0];
             if (result.bpm) {
               setBpm(result.bpm);
             } else if (scoreData.bpm) {
@@ -1161,8 +1242,10 @@ const ScoreViewer = (() => {
 
       updateTrackLabels();
 
-      if (voicePickerContainer) {
-        voicePickerContainer.style.display = 'flex';
+      if (scoreData.voices) {
+        renderVoicePills(scoreData.voices);
+      } else {
+        renderVoicePills(null);
       }
     }
   }

@@ -856,39 +856,19 @@ body::before {
   color: var(--text-muted);
 }
 
-/* Ultra-compact top bar when viewing a score */
+/* Hide top bar on score screen (Zing! logo header is used to return) */
 #view-screen.is-score-screen .screen-top-bar {
+  display: none !important;
+}
+
+/* Lijn 1: Speel links & Tempo slider rechts - perfect verticaal uitgelijnd met de rijen eronder */
+.score-top-controls {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0.5rem;
-  padding: 0.35rem 0.25rem 0.45rem 0.25rem;
-  margin-bottom: 0.35rem;
-}
-#view-screen.is-score-screen .screen-current-title {
-  display: none;
-}
-#view-screen.is-score-screen .btn-back {
-  padding: 0.4rem 0.55rem;
-  min-width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.84rem;
-}
-#view-screen.is-score-screen .btn-back .btn-back-label {
-  display: none;
-}
-.score-top-controls {
-  display: none;
-}
-#view-screen.is-score-screen .score-top-controls {
-  display: inline-flex !important;
-  align-items: center;
-  gap: 0.45rem;
-  flex: 1;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  margin: 0.15rem 0 0.35rem 0;
 }
 
 /* Play button on top score bar */
@@ -925,6 +905,7 @@ body::before {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
   padding: 0.2rem 0.6rem;
+  margin-left: auto;
 }
 #score-bpm-slider {
   -webkit-appearance: none;
@@ -970,30 +951,24 @@ body::before {
   font-variant-numeric: tabular-nums;
 }
 
-/* Lijn 2: Voice Toolbar Compact */
+/* Lijn 2: Voice Toolbar Compact (enkel zichtbaar bij meerstemmig koor) */
 .voice-toolbar-compact {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 0.35rem;
-}
-.voice-picker-label {
-  font-weight: 700;
-  font-size: 0.78rem;
-  color: var(--accent-indigo);
+  margin: 0.15rem 0 0.35rem 0;
+  width: 100%;
+  padding: 0;
 }
 
 /* Lijn 3: Weergave en Download knop */
 .score-view-mode-bar {
   display: flex;
-  gap: 0.35rem;
-  margin-top: 0.15rem;
-  margin-bottom: 0.35rem;
+  margin: 0.15rem 0 0.35rem 0;
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  padding: 0;
 }
 .score-mode-toggles {
   display: inline-flex;
@@ -1692,18 +1667,21 @@ body::before {
 /* Voice Selector Pills (SATB & Tutti) */
 .voice-pills-bar {
   display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
   align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .voice-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.75rem;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.4rem;
   border-radius: 99px;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 600;
   border: 1px solid var(--border-subtle);
   background: var(--bg-surface-elevated);
@@ -1711,6 +1689,9 @@ body::before {
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .voice-pill:hover {
@@ -1740,6 +1721,10 @@ body::before {
 
 .voice-pill[data-voice="tenor"].active {
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.voice-pill[data-voice="bariton"].active {
+  background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
 }
 
 .voice-pill[data-voice="bas"].active {

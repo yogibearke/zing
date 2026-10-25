@@ -162,8 +162,8 @@ def build_drink_to_me_only_musicxml(single_voice_id=None):
                 ('F3', 2, [('Drink', 'single', 1), ('I', 'single', 2)]),
                 ('F3', 2, [('to', 'single', 1), ('sent', 'single', 2)]),
                 ('F3', 2, [('me', 'single', 1), ('thee', 'single', 2)]),
-                ('C3', 4, [('on-', 'begin', 1), ('late', 'single', 2)]),
-                ('C3', 2, [('-ly', 'end', 1), ('a', 'single', 2)]),
+                ('G3', 4, [('on-', 'begin', 1), ('late', 'single', 2)]),
+                ('G3', 2, [('-ly', 'end', 1), ('a', 'single', 2)]),
             ]
         },
         # M2 (with thine eyes, and / ro-sy wreath, Not)
@@ -255,8 +255,8 @@ def build_drink_to_me_only_musicxml(single_voice_id=None):
                 ('F3', 2, [('Or', 'single', 1), ('As', 'single', 2)]),
                 ('F3', 2, [('leave', 'single', 1), ('giv-', 'begin', 2)]),
                 ('F3', 2, [('a', 'single', 1), ('-ing', 'end', 2)]),
-                ('C3', 4, [('kiss', 'single', 1), ('it', 'single', 2)]),
-                ('C3', 2, [('with-', 'begin', 1), ('a', 'single', 2)]),
+                ('G3', 4, [('kiss', 'single', 1), ('it', 'single', 2)]),
+                ('G3', 2, [('with-', 'begin', 1), ('a', 'single', 2)]),
             ]
         },
         # M6 (-in the cup and / hope that there: It)
@@ -438,8 +438,8 @@ def build_drink_to_me_only_musicxml(single_voice_id=None):
                 ('F3', 2, [('But', 'single', 1), ('Since', 'single', 2)]),
                 ('F3', 2, [('might', 'single', 1), ('when', 'single', 2)]),
                 ('F3', 2, [('I', 'single', 1), ('it', 'single', 2)]),
-                ('C3', 4, [('of', 'single', 1), ('looks', 'single', 2)]),
-                ('C3', 2, [("Jove's", 'single', 1), ('and', 'single', 2)]),
+                ('G3', 4, [('of', 'single', 1), ('looks', 'single', 2)]),
+                ('G3', 2, [("Jove's", 'single', 1), ('and', 'single', 2)]),
             ]
         },
         # M14 (nec- -tar sup; I / smells, I swear: Not)

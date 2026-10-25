@@ -171,24 +171,14 @@ const ContentData = {
           desc: 'Klassiek 4-stemmig koraal BWV 244 in D-groot (4/4 maat met 1/4 opmaat). Oefen Sopraan, Alt, Tenor, Bas of Tutti.'
         },
         {
-          id: 'score-vader-jacob',
-          title: 'Vader Jacob (Koor Canon - 4 stemmig)',
+          id: 'score-calypso',
+          title: 'Calypso (Jan Holstock)',
           type: 'builtin',
           targetScreen: 'screen-scores',
-          scoreKey: 'vader-jacob',
-          badge: 'Canon',
+          scoreKey: 'calypso',
+          badge: 'Koorlied',
           badgeClass: 'badge-purple',
-          desc: 'Klassieke 4-stemmige canon in F-groot met meespeelbare pianobegeleiding.'
-        },
-        {
-          id: 'score-dona-nobis',
-          title: 'Dona Nobis Pacem (Klassieke Canon)',
-          type: 'builtin',
-          targetScreen: 'screen-scores',
-          scoreKey: 'dona-nobis',
-          badge: '3-Stemmig',
-          badgeClass: 'badge-purple',
-          desc: 'Traditionele Latijnse canon in 3/4 maat voor zachte klankversmelting.'
+          desc: 'Vrolijk 4/4 koorlied van Jan Holstock. Oefen melodie, tempo en zangbegeleiding.'
         }
       ]
     },

@@ -662,49 +662,92 @@ document.addEventListener('DOMContentLoaded', () => {
   // 8. Score Management, Upload (tatjana01) & Catalog Sync
   // --------------------------------------------------------------------------
   async function refreshScoresCatalog() {
-    if (typeof ScoreStorage === 'undefined') return;
-
     try {
-      const localScores = await ScoreStorage.getAllLocalScores();
+      // 1. Haal de centrale koorcatalogus live op (altijd vers, nooit uit cache)
+      let serverScores = [];
+      try {
+        const res = await fetch('./assets/sample-scores/scores-index.json?_t=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          serverScores = await res.json();
+        }
+      } catch (err) {
+        console.warn('Kon scores-index.json niet live ophalen, gebruik offline fallback:', err);
+      }
+
+      // 2. Haal eventuele lokaal ingeladen oefenpartituren op uit IndexedDB
+      let localScores = [];
+      if (typeof ScoreStorage !== 'undefined') {
+        localScores = await ScoreStorage.getAllLocalScores();
+      }
+
       const scoreSelect = document.getElementById('score-select');
-      const pillar5 = ContentData.pillars.find(p => p.id === 'partituren');
+      const pillarPartituren = ContentData.pillars.find(p => p.id === 'partituren');
 
-      if (pillar5) {
-        // Behoud standaard tools, filter oude custom tools weg
-        pillar5.tools = pillar5.tools.filter(t => !t.isCustomScore);
+      if (pillarPartituren) {
+        const newTools = [];
 
-        localScores.forEach(ls => {
-          pillar5.tools.splice(2, 0, {
-            id: `score-${ls.key}`,
-            title: ls.title,
+        // Voeg officiële koorpartituren toe uit scores-index.json
+        serverScores.forEach(s => {
+          newTools.push({
+            id: `score-${s.key}`,
+            title: s.title,
             type: 'builtin',
             targetScreen: 'screen-scores',
-            scoreKey: ls.key,
-            badge: ls.isServerScore ? 'Koor Server' : 'Lokaal',
-            badgeClass: ls.isServerScore ? 'badge-gold' : 'badge-purple',
-            desc: `${ls.composer ? ls.composer + ' • ' : ''}Geüploade partituur. Oefen Sopraan, Alt, Tenor, Bas of Tutti.`,
-            isCustomScore: true
+            scoreKey: s.key,
+            badge: s.badge || 'Koor Partituur',
+            badgeClass: s.badgeClass || 'badge-green',
+            desc: s.desc || `${s.composer ? s.composer + ' • ' : ''}Officiële koorpartituur. Oefen Sopraan, Alt, Tenor, Bas of Tutti.`
           });
         });
 
-        renderPillarTools(pillar5, getPillarTools(pillar5));
+        // Voeg eventuele lokale oefenpartituren toe (indien niet al op de server)
+        const serverKeys = serverScores.map(s => s.key);
+        localScores.forEach(ls => {
+          if (!serverKeys.includes(ls.key)) {
+            newTools.push({
+              id: `score-${ls.key}`,
+              title: ls.title,
+              type: 'builtin',
+              targetScreen: 'screen-scores',
+              scoreKey: ls.key,
+              badge: 'Mijn Oefenpartituur',
+              badgeClass: 'badge-purple',
+              desc: `${ls.composer ? ls.composer + ' • ' : ''}Lokaal ingeladen partituur op dit apparaat.`,
+              isCustomScore: true,
+              isDeletable: true
+            });
+          }
+        });
+
+        pillarPartituren.tools = newTools;
+        renderPillarTools(pillarPartituren, getPillarTools(pillarPartituren));
       }
 
+      // Werk opties bij in score-select dropdown in de viewer
       if (scoreSelect) {
-        // Werk opties bij in score-select dropdown
         const currentVal = scoreSelect.value;
-        const existingKeys = Array.from(scoreSelect.options).map(o => o.value);
+        scoreSelect.innerHTML = '';
 
+        serverScores.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.key;
+          opt.textContent = `${s.title} (${s.composer || 'Koor'})`;
+          scoreSelect.appendChild(opt);
+        });
+
+        const serverKeys = serverScores.map(s => s.key);
         localScores.forEach(ls => {
-          if (!existingKeys.includes(ls.key)) {
+          if (!serverKeys.includes(ls.key)) {
             const opt = document.createElement('option');
             opt.value = ls.key;
-            opt.textContent = `${ls.title} (${ls.isServerScore ? 'Server' : 'Mijn Partituur'})`;
+            opt.textContent = `${ls.title} (Lokaal)`;
             scoreSelect.appendChild(opt);
           }
         });
 
-        if (currentVal) scoreSelect.value = currentVal;
+        if (currentVal && Array.from(scoreSelect.options).some(o => o.value === currentVal)) {
+          scoreSelect.value = currentVal;
+        }
       }
     } catch (e) {
       console.warn('Fout bij synchroniseren van scores catalogus:', e);
@@ -722,10 +765,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const titleInput = document.getElementById('upload-title');
     const compInput = document.getElementById('upload-composer');
     const fileInfo = document.getElementById('upload-file-info');
-    const chkServer = document.getElementById('chk-publish-server');
-    const boxPwd = document.getElementById('box-server-password');
-    const pwdInput = document.getElementById('upload-admin-password');
-    const chkRemember = document.getElementById('chk-remember-admin');
     const statusMsg = document.getElementById('upload-status-msg');
     const deleteBtn = document.getElementById('btn-delete-current-score');
 
@@ -738,12 +777,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (statusMsg) statusMsg.style.display = 'none';
         if (form) form.reset();
         currentParsedXml = null;
-
-        if (ScoreStorage.isAdminAuthenticated()) {
-          if (chkServer) chkServer.checked = true;
-          if (boxPwd) boxPwd.style.display = 'block';
-          if (pwdInput) pwdInput.value = 'tatjana01';
-        }
       });
     }
 
@@ -752,12 +785,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-
-    if (chkServer && boxPwd) {
-      chkServer.addEventListener('change', () => {
-        boxPwd.style.display = chkServer.checked ? 'block' : 'none';
-      });
-    }
 
     // MusicXML bestand selectie & metadata preview
     if (xmlInput) {
@@ -781,7 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Formulier versturen
+    // Formulier versturen: bewaart partituur lokaal op het apparaat
     if (form) {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -790,29 +817,11 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        const isServerPublish = chkServer && chkServer.checked;
-        if (isServerPublish) {
-          const pwd = pwdInput ? pwdInput.value.trim() : '';
-          const isValid = await ScoreStorage.verifyPassword(pwd);
-          if (!isValid) {
-            if (statusMsg) {
-              statusMsg.style.display = 'block';
-              statusMsg.style.background = 'rgba(239, 68, 68, 0.2)';
-              statusMsg.style.color = '#fca5a5';
-              statusMsg.textContent = '❌ Onjuist beheerderspaswoord. Paswoord is: tatjana01';
-            }
-            return;
-          }
-          if (chkRemember && chkRemember.checked) {
-            ScoreStorage.setAdminAuthenticated(true);
-          }
-        }
-
         if (statusMsg) {
           statusMsg.style.display = 'block';
           statusMsg.style.background = 'rgba(99, 102, 241, 0.2)';
           statusMsg.style.color = '#c7d2fe';
-          statusMsg.textContent = 'Bezig met opslaan en verwerken...';
+          statusMsg.textContent = 'Bezig met inladen...';
         }
 
         const meta = ScoreStorage.parseMusicXMLMetadata(currentParsedXml);
@@ -829,14 +838,14 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
 
-        // Bewaar in IndexedDB
+        // Bewaar in IndexedDB voor lokaal oefenen
         await ScoreStorage.saveScoreLocally({
           key: meta.key,
           title: finalTitle,
           composer: finalComp,
           musicXml: currentParsedXml,
           pdfDataUrl,
-          isServerScore: isServerPublish,
+          isCustom: true,
           updatedAt: Date.now()
         });
 
@@ -859,19 +868,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isConfirm) return;
 
         const localScore = await ScoreStorage.getScoreLocally(activeKey);
-        const isServer = localScore ? localScore.isServerScore : (activeKey === 'befiehl-du-deine-wege' || activeKey === 'komt-vrienden');
-
-        if (isServer) {
-          const inputPwd = prompt('Voer het beheerderspaswoord in om deze partituur van de server te verwijderen:');
-          const isOk = await ScoreStorage.verifyPassword(inputPwd);
-          if (!isOk) {
-            alert('❌ Onjuist paswoord. Verwijdering geannuleerd.');
-            return;
-          }
+        if (!localScore) {
+          alert('Officiële koorpartituren worden centraal beheerd via GitHub. Je kunt wel je eigen lokaal ingeladen partituren verwijderen.');
+          return;
         }
 
         await ScoreStorage.deleteScoreLocally(activeKey);
-        alert('✅ Partituur succesvol verwijderd!');
+        alert('✅ Partituur verwijderd van dit apparaat.');
         await refreshScoresCatalog();
         if (select) {
           select.value = 'komt-vrienden';

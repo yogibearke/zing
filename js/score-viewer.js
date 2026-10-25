@@ -801,72 +801,11 @@ const ScoreViewer = (() => {
         </div>
       `
     },
-    'vader-jacob': {
-      title: 'Vader Jacob (Koor Canon - 4 stemmig)',
-      subtitle: 'Toonsoort: F-groot | 4/4 maat | Eenvoudige canon',
-      pdfUrl: './assets/sample-scores/vader-jacob.pdf',
-      notes: [
-        { note: 'F3', dur: 1 }, { note: 'G3', dur: 1 }, { note: 'A3', dur: 1 }, { note: 'F3', dur: 1 },
-        { note: 'F3', dur: 1 }, { note: 'G3', dur: 1 }, { note: 'A3', dur: 1 }, { note: 'F3', dur: 1 },
-        { note: 'A3', dur: 1 }, { note: 'A#3', dur: 1 }, { note: 'C4', dur: 2 },
-        { note: 'A3', dur: 1 }, { note: 'A#3', dur: 1 }, { note: 'C4', dur: 2 },
-        { note: 'C4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'C4', dur: 0.5 }, { note: 'A#3', dur: 0.5 }, { note: 'A3', dur: 1 }, { note: 'F3', dur: 1 },
-        { note: 'C4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'C4', dur: 0.5 }, { note: 'A#3', dur: 0.5 }, { note: 'A3', dur: 1 }, { note: 'F3', dur: 1 },
-        { note: 'F3', dur: 1 }, { note: 'C3', dur: 1 }, { note: 'F3', dur: 2 },
-        { note: 'F3', dur: 1 }, { note: 'C3', dur: 1 }, { note: 'F3', dur: 2 }
-      ],
-      htmlScore: `
-        <div style="font-family: serif; padding: 25px; color: #1e293b; max-width: 800px; margin: 0 auto; background: #fff;">
-          <h2 style="text-align: center; margin-bottom: 5px; font-size: 24px;">Vader Jacob (Frère Jacques)</h2>
-          <p style="text-align: center; color: #64748b; font-size: 14px; margin-bottom: 25px;">Koorcanon voor 4 stemmen (Sopranen, Alten, Tenoren, Bassen)</p>
-          
-          <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; background: #f8fafc; margin-bottom: 20px;">
-            <div style="font-weight: bold; margin-bottom: 8px; color: #4338ca;">Partituur Overzicht & Liedtekst:</div>
-            <p style="line-height: 2; font-size: 16px;">
-              <strong>(1)</strong> Vader Jacob, Vader Jacob,<br>
-              <strong>(2)</strong> Slaapt gij nog? Slaapt gij nog?<br>
-              <strong>(3)</strong> Alle klokken luiden, alle klokken luiden,<br>
-              <strong>(4)</strong> Bim, bam, bom! Bim, bam, bom!
-            </p>
-          </div>
-
-          <div style="margin-top: 15px; background: #e0e7ff; padding: 12px 18px; border-radius: 6px; font-size: 14px; color: #3730a3;">
-            🎵 <strong>Oefentip:</strong> Gebruik de audiospeler hieronder om de melodie rustig mee te zingen en instelbaar te vertragen!
-          </div>
-        </div>
-      `
-    },
-    'dona-nobis': {
-      title: 'Dona Nobis Pacem',
-      subtitle: 'Toonsoort: F-groot | 3/4 maat | Klassieke Latijnse canon',
-      notes: [
-        { note: 'F3', dur: 1.5 }, { note: 'C4', dur: 0.5 }, { note: 'A3', dur: 1 },
-        { note: 'F3', dur: 1.5 }, { note: 'A3', dur: 0.5 }, { note: 'C4', dur: 1 },
-        { note: 'D4', dur: 2 }, { note: 'C4', dur: 1 },
-        { note: 'A#3', dur: 2 }, { note: 'A3', dur: 1 },
-        { note: 'G3', dur: 3 },
-        { note: 'C4', dur: 1.5 }, { note: 'A#3', dur: 0.5 }, { note: 'A3', dur: 1 },
-        { note: 'G3', dur: 2 }, { note: 'F3', dur: 1 }
-      ],
-      htmlScore: `
-        <div style="font-family: serif; padding: 25px; color: #1e293b; max-width: 800px; margin: 0 auto; background: #fff;">
-          <h2 style="text-align: center; margin-bottom: 5px; font-size: 24px;">Dona Nobis Pacem</h2>
-          <p style="text-align: center; color: #64748b; font-size: 14px; margin-bottom: 25px;">Traditionele Koorcanon - 3 Stemmig (3/4 Maat)</p>
-          
-          <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; background: #f8fafc; margin-bottom: 20px;">
-            <div style="font-weight: bold; margin-bottom: 8px; color: #4338ca;">Liedtekst per Inzet:</div>
-            <p style="line-height: 2; font-size: 16px;">
-              <strong>Stem 1:</strong> Do - na no - bis pa - cem, pa - cem...<br>
-              <strong>Stem 2:</strong> Do - na no - bis pa - cem...<br>
-              <strong>Stem 3:</strong> Do - na no - bis pa - cem, do - na no - bis pa - cem.
-            </p>
-          </div>
-
-          <div style="margin-top: 15px; background: #fef3c7; padding: 12px 18px; border-radius: 6px; font-size: 14px; color: #92400e;">
-            ✨ <strong>Ademhalingstip:</strong> Adem diep in vóór elke "Dona", ontspan je schouders en laat de tonen zacht in elkaar overvloeien (legato).
-          </div>
-        </div>
-      `
+    'calypso': {
+      title: 'Calypso',
+      subtitle: 'Jan Holstock • 4/4 Maat • Koorlied',
+      musicXmlUrl: './assets/sample-scores/calypso.musicxml',
+      pdfUrl: './assets/sample-scores/calypso.pdf'
     },
     'toonladder-oefening': {
       title: 'Toonladder & 5-Toons Vocalise',
@@ -1149,6 +1088,26 @@ const ScoreViewer = (() => {
     stopCompanion();
 
     let scoreData = SCORES[key];
+    if (!scoreData) {
+      try {
+        const res = await fetch('./assets/sample-scores/scores-index.json?_t=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const indexList = await res.json();
+          const found = indexList.find(s => s.key === key);
+          if (found) {
+            scoreData = {
+              title: found.title,
+              subtitle: `${found.composer || 'Koor'} • SATB Koor`,
+              musicXmlUrl: found.musicXmlUrl,
+              pdfUrl: found.pdfUrl || null
+            };
+            SCORES[key] = scoreData;
+          }
+        }
+      } catch (e) {
+        console.warn('Kon server score niet opvragen:', e);
+      }
+    }
     if (!scoreData && typeof ScoreStorage !== 'undefined') {
       const local = await ScoreStorage.getScoreLocally(key);
       if (local) {

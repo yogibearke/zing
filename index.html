@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="assets/icons/icon.svg">
 
   <!-- Modern Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=28">
+  <link rel="stylesheet" href="css/styles.css?v=29">
 </head>
 <body>
 
@@ -357,7 +357,7 @@
       <div class="modal-card-custom">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
           <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
-            <span>🎼 Partituur Toevoegen / Overschrijven</span>
+            <span>🎼 Eigen Oefenpartituur Inladen</span>
           </h3>
           <button id="btn-close-upload-modal" class="btn-icon" style="width: 32px; height: 32px; font-size: 1.1rem;" title="Sluit venster">✕</button>
         </div>
@@ -392,27 +392,8 @@
             </div>
           </div>
 
-          <!-- Server Publicatie & Paswoord (tatjana01) -->
-          <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 0.85rem; margin-bottom: 1.25rem;">
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 700; font-size: 0.85rem; color: #f8fafc;">
-              <input type="checkbox" id="chk-publish-server" style="width: 16px; height: 16px; accent-color: var(--accent-indigo);" />
-              <span>🌐 Publiceren / overschrijven op server (voor alle koorleden)</span>
-            </label>
-            <p style="font-size: 0.72rem; color: var(--text-secondary); margin: 0.35rem 0 0.6rem 1.6rem;">
-              Vink aan om het lied direct op de server te zetten. Zonder vinkje blijft de partituur alleen privé op jouw eigen toestel bewaard.
-            </p>
-
-            <div id="box-server-password" style="display: none; margin-left: 1.6rem; margin-top: 0.5rem;">
-              <label style="display: block; font-size: 0.75rem; color: #f8fafc; font-weight: 600; margin-bottom: 0.25rem;">
-                Beheerderspaswoord:
-              </label>
-              <input type="password" id="upload-admin-password" placeholder="Voer paswoord in (tatjana01)" class="select-custom" style="width: 100%; max-width: 260px; font-size: 0.82rem;" />
-              
-              <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--text-secondary); margin-top: 0.4rem; cursor: pointer;">
-                <input type="checkbox" id="chk-remember-admin" checked style="accent-color: var(--accent-indigo);" />
-                <span>Onthoud paswoord op dit apparaat</span>
-              </label>
-            </div>
+          <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 0.75rem 0.85rem; margin-bottom: 1rem; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4;">
+            💡 <strong>Oefenen op dit toestel:</strong> De partituur wordt direct ingeladen in jouw browser om te repeteren met instelbaar tempo, de audiospeler en notenbalken.
           </div>
 
           <div id="upload-status-msg" style="display: none; padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.8rem; margin-bottom: 1rem;"></div>
@@ -436,15 +417,15 @@
   <script src="js/pitch-detector.js?v=26"></script>
   <script src="js/breathing-trainer.js?v=26"></script>
   <script src="js/lib/opensheetmusicdisplay.min.js?v=26"></script>
-  <script src="js/score-storage.js?v=26"></script>
-  <script src="js/score-viewer.js?v=27"></script>
-  <script src="js/app.js?v=27"></script>
+  <script src="js/score-storage.js?v=29"></script>
+  <script src="js/score-viewer.js?v=29"></script>
+  <script src="js/app.js?v=29"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=27')
+        navigator.serviceWorker.register('./sw.js?v=29')
           .then(reg => {
             reg.update();
             console.log('ServiceWorker registered & updated:', reg.scope);

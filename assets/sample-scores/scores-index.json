@@ -18,5 +18,15 @@
     "badge": "SATB Koraal",
     "badgeClass": "badge-gold",
     "desc": "Matthäus-Passion BWV 244 in D-groot (4/4 maat met 1/4 opmaat). Oefen Sopraan, Alt, Tenor, Bas of Tutti."
+  },
+  {
+    "key": "calypso",
+    "title": "Calypso",
+    "composer": "Jan Holstock",
+    "musicXmlUrl": "./assets/sample-scores/calypso.musicxml",
+    "pdfUrl": "./assets/sample-scores/calypso.pdf",
+    "badge": "Koorlied",
+    "badgeClass": "badge-purple",
+    "desc": "Calypso van Jan Holstock in 4/4 maat. Oefen melodie, tempo en koorbegeleiding."
   }
 ]

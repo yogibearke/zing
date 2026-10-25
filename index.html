@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="assets/icons/icon.svg">
 
   <!-- Modern Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=29">
+  <link rel="stylesheet" href="css/styles.css?v=30">
 </head>
 <body>
 
@@ -92,8 +92,21 @@
       <div class="screen-top-bar">
         <button id="btn-back-top" class="btn-back" title="Terug naar de 5 pijlers">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
-          <span>Terug naar Zing!</span>
+          <span class="btn-back-label">Terug naar Zing!</span>
         </button>
+
+        <!-- Top score player controls (Speel & BPM slider) -->
+        <div id="score-top-controls" class="score-top-controls" style="display: none;">
+          <button id="btn-play-companion" class="btn-score-play" title="Speel / Pauzeer">
+            <span id="play-btn-icon">▶️</span> <span id="play-btn-label">Speel</span>
+          </button>
+
+          <div class="score-bpm-control" title="Tempo aanpassen (BPM)">
+            <input type="range" id="score-bpm-slider" min="40" max="220" value="80" step="1" aria-label="Tempo BPM">
+            <span id="score-bpm-display">80 BPM</span>
+          </div>
+        </div>
+
         <div class="screen-current-title" id="screen-active-title">Gereedschap</div>
       </div>
 
@@ -251,10 +264,10 @@
         <div id="screen-scores" class="tool-content-block">
           <div class="score-viewer-container">
             
-            <!-- Clean, Ultra-Compact Score Toolbar: Voice Pills -->
-            <div class="score-toolbar" style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; justify-content: flex-start; margin-bottom: 0.25rem;">
-              <div class="voice-picker-wrapper" id="voice-picker-container" style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; width: 100%;">
-                <span style="font-weight: 700; font-size: 0.78rem; color: var(--accent-indigo);">Oefenstem:</span>
+            <!-- Lijn 2: Oefenstemmen (Voice Pills) -->
+            <div class="score-toolbar voice-toolbar-compact">
+              <div class="voice-picker-wrapper" id="voice-picker-container">
+                <span class="voice-picker-label">Oefenstem:</span>
                 <div class="voice-pills-bar" id="voice-pills-bar">
                   <button class="voice-pill active" data-voice="sopraan">🔵 Sopraan</button>
                   <button class="voice-pill" data-voice="alt">🟢 Alt</button>
@@ -276,34 +289,21 @@
               </div>
             </div>
 
-            <!-- Mode & Playback Toolbar: Play button, BPM stepper, Mode switcher, Download XML -->
-            <div class="score-view-mode-bar" style="display: flex; gap: 0.35rem; margin-top: 0.15rem; margin-bottom: 0.35rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
-              <!-- Left: Play/Pause and BPM Stepper -->
-              <div style="display: flex; gap: 0.35rem; align-items: center;">
-                <button id="btn-play-companion" class="btn-primary" style="padding: 0.3rem 0.75rem; font-size: 0.82rem; font-weight: 700; background: #10b981; border-color: #059669; display: inline-flex; align-items: center; gap: 0.35rem;">
-                  <span id="play-btn-icon">▶️</span> <span id="play-btn-label">Speel</span>
-                </button>
-
-                <!-- BPM Stepper -->
-                <div class="bpm-stepper-compact" style="display: inline-flex; align-items: center; background: rgba(255,255,255,0.08); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1px 4px;">
-                  <button id="btn-bpm-minus" class="btn-step" title="Langzamer (-5 BPM)" style="background: none; border: none; color: #fff; padding: 2px 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">−</button>
-                  <span id="score-bpm-display" style="font-size: 0.78rem; font-weight: 700; color: #e2e8f0; min-width: 50px; text-align: center;">80 BPM</span>
-                  <button id="btn-bpm-plus" class="btn-step" title="Sneller (+5 BPM)" style="background: none; border: none; color: #fff; padding: 2px 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">+</button>
-                </div>
-              </div>
-
-              <!-- Right: View Mode Toggle & Download XML -->
-              <div style="display: flex; gap: 0.3rem; align-items: center;">
-                <button id="btn-view-musicxml" class="btn-secondary view-toggle-btn active" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; font-weight: 600; background: var(--accent-indigo); color: white; border-color: var(--accent-indigo);">
+            <!-- Lijn 3: Weergavemodus links & Download XML rechts -->
+            <div class="score-view-mode-bar">
+              <div class="score-mode-toggles">
+                <button id="btn-view-musicxml" class="btn-secondary view-toggle-btn active" title="Interactieve MusicXML weergave">
                   <span>🎼 MusicXML</span>
                 </button>
-                <button id="btn-view-pdf" class="btn-secondary view-toggle-btn" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; font-weight: 600;">
+                <button id="btn-view-pdf" class="btn-secondary view-toggle-btn" title="Originele partituur scan">
                   <span>📄 Scan</span>
                 </button>
-                <a id="btn-download-musicxml" href="#" download class="btn-secondary" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;" title="Download MusicXML bestand">
-                  <span>⬇️ XML</span>
-                </a>
               </div>
+
+              <!-- Rechts: Download XML knop -->
+              <a id="btn-download-musicxml" href="#" download class="btn-secondary btn-score-dl" title="Download MusicXML bestand">
+                <span>⬇️ XML</span>
+              </a>
               <span id="score-rendering-status" style="display: none;"></span>
             </div>
 
@@ -417,15 +417,15 @@
   <script src="js/pitch-detector.js?v=26"></script>
   <script src="js/breathing-trainer.js?v=26"></script>
   <script src="js/lib/opensheetmusicdisplay.min.js?v=26"></script>
-  <script src="js/score-storage.js?v=29"></script>
-  <script src="js/score-viewer.js?v=29"></script>
-  <script src="js/app.js?v=29"></script>
+  <script src="js/score-storage.js?v=30"></script>
+  <script src="js/score-viewer.js?v=30"></script>
+  <script src="js/app.js?v=30"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=29')
+        navigator.serviceWorker.register('./sw.js?v=30')
           .then(reg => {
             reg.update();
             console.log('ServiceWorker registered & updated:', reg.scope);

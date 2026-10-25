@@ -17,6 +17,10 @@ const ScoreViewer = (() => {
     if (bpmDisplay) {
       bpmDisplay.textContent = `${currentBpm} BPM`;
     }
+    const bpmSlider = document.getElementById('score-bpm-slider');
+    if (bpmSlider && parseInt(bpmSlider.value, 10) !== currentBpm) {
+      bpmSlider.value = currentBpm;
+    }
   }
 
   // Helper to build Tutti chords from synchronized SATB parts
@@ -1038,7 +1042,7 @@ const ScoreViewer = (() => {
         drawMetronomeMarks: false,
         drawLyrics: true,
         fillEmptyMeasuresWithWholeRests: true,
-        followCursor: false
+        followCursor: true
       });
     } else {
       osmdInstance.setOptions({
@@ -1168,7 +1172,10 @@ const ScoreViewer = (() => {
     if (!isPlayingCompanion) return;
 
     const notes = getActiveNotes();
-    if (!notes || notes.length === 0) return;
+    if (!notes || notes.length === 0 || currentStep >= notes.length) {
+      stopCompanion();
+      return;
+    }
 
     const currentNote = notes[currentStep];
     const stepDur = currentNote.dur; // 1.0 = kwartnoot
@@ -1196,12 +1203,25 @@ const ScoreViewer = (() => {
 
     if (osmdInstance && osmdInstance.cursor && activeViewMode === 'musicxml') {
       try {
-        osmdInstance.cursor.next();
+        if (currentStep > 0) {
+          osmdInstance.cursor.next();
+        }
+        const cursorEl = osmdInstance.cursor.cursorElement;
+        if (cursorEl && typeof cursorEl.scrollIntoView === 'function') {
+          cursorEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        }
       } catch (e) {}
     }
 
-    currentStep = (currentStep + 1) % notes.length;
-    companionInterval = setTimeout(playNextCompanionNote, duration * 1000);
+    currentStep++;
+    if (currentStep >= notes.length) {
+      // Laatste noot klinkt uit en daarna stopt de speler automatisch zonder herhaling!
+      companionInterval = setTimeout(() => {
+        stopCompanion();
+      }, duration * 1000);
+    } else {
+      companionInterval = setTimeout(playNextCompanionNote, duration * 1000);
+    }
   }
 
   function startCompanion() {
@@ -1212,6 +1232,10 @@ const ScoreViewer = (() => {
       try {
         osmdInstance.cursor.show();
         osmdInstance.cursor.reset();
+        const cursorEl = osmdInstance.cursor.cursorElement;
+        if (cursorEl && typeof cursorEl.scrollIntoView === 'function') {
+          cursorEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        }
       } catch (e) {
         console.warn('OSMD Cursor start issue:', e);
       }
@@ -1232,6 +1256,7 @@ const ScoreViewer = (() => {
 
   function stopCompanion() {
     isPlayingCompanion = false;
+    currentStep = 0;
     if (companionInterval) {
       clearTimeout(companionInterval);
       companionInterval = null;
@@ -1241,6 +1266,7 @@ const ScoreViewer = (() => {
     if (osmdInstance && osmdInstance.cursor) {
       try {
         osmdInstance.cursor.hide();
+        osmdInstance.cursor.reset();
       } catch (e) {}
     }
 
@@ -1345,7 +1371,18 @@ const ScoreViewer = (() => {
       playBtn.addEventListener('click', toggleCompanion);
     }
 
-    // BPM +/- knoppen
+    // BPM Slider
+    const bpmSlider = document.getElementById('score-bpm-slider');
+    if (bpmSlider) {
+      bpmSlider.addEventListener('input', (e) => {
+        setBpm(parseInt(e.target.value, 10));
+      });
+      bpmSlider.addEventListener('change', (e) => {
+        setBpm(parseInt(e.target.value, 10));
+      });
+    }
+
+    // BPM +/- knoppen fallback
     const bpmMinusBtn = document.getElementById('btn-bpm-minus');
     const bpmPlusBtn = document.getElementById('btn-bpm-plus');
     if (bpmMinusBtn) {

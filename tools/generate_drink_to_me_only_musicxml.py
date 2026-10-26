@@ -331,11 +331,11 @@ def build_drink_to_me_only_musicxml(single_voice_id=None):
         {
             'num': '9',
             'S': [
-                ('E5', 2, [('thirst', 'single', 1), ('thou', 'single', 2)], 'start'),
-                ('D5', 2, None, 'stop'),
+                ('C5', 2, [('thirst', 'single', 1), ('thou', 'single', 2)], 'start'),
+                ('A4', 2, None, 'stop'),
                 ('C5', 2, [('that', 'single', 1), ('there-', 'begin', 2)]),
                 ('F5', 4, [('from', 'single', 1), ('-on', 'end', 2)]),
-                ('D5', 2, [('the', 'single', 1), ('didst', 'single', 2)]),
+                ('C5', 2, [('the', 'single', 1), ('didst', 'single', 2)]),
             ],
             'A': [
                 ('F4', 2, [('thirst', 'single', 1), ('thou', 'single', 2)], 'start'),
@@ -355,11 +355,11 @@ def build_drink_to_me_only_musicxml(single_voice_id=None):
         {
             'num': '10',
             'S': [
-                ('E5', 2, [('soul', 'single', 1), ('on-', 'begin', 2)], 'start'),
-                ('D5', 2, None, 'stop'),
+                ('C5', 2, [('soul', 'single', 1), ('on-', 'begin', 2)], 'start'),
+                ('A4', 2, None, 'stop'),
                 ('C5', 2, [('doth', 'single', 1), ('-ly', 'end', 2)]),
-                ('A4', 4, [('rise,', 'single', 1), ('breathe,', 'single', 2)]),
-                ('F4', 2, [('Doth', 'single', 1), ('And', 'single', 2)]),
+                ('C5', 4, [('rise,', 'single', 1), ('breathe,', 'single', 2)]),
+                ('C5', 2, [('Doth', 'single', 1), ('And', 'single', 2)]),
             ],
             'A': [
                 ('E4', 2, [('soul', 'single', 1), ('on-', 'begin', 2)], 'start'),

@@ -1,30 +1,48 @@
 #!/usr/bin/env python3
 """
-Zing! - Interactieve Partituur Auditor ("Pair-Auditing Tool")
-=============================================================
+Zing! - Gesproken Partituur Auditor ("Voice-Assisted Pair-Auditing Tool")
+========================================================================
 Hiermee controleren we samen noot voor noot elke partituur.
-Het programma toont noot per noot:
-  - Maatnummer en stemaanduiding (Sopraan, Alt, Tenor, Bas)
-  - Nootindex, duur (kwart, achtste, etc.)
-  - Toonhoogte in zowel Solfège (Do, Re, Mi...) als Notatienaam (C, D, E...)
-  - Bijbehorende liedtekst per couplet
+De computer SPREEKT elke noot direct hardop uit in Solfège (Do, Re, Mi, Fa, Sol, La, Si, Rust).
 
 Bediening:
+  - Luister naar de uitgesproken noot en kijk op de partituur.
   - Druk simpelweg op <ENTER> (of typ 'ok'): noot is goedgekeurd!
-  - Typ een correctie (bijv. 'C4' of 'Do4' of 'rust' of 'f'): markeert de noot als fout en registreert de correctie.
+  - Typ een correctie (bv. 'C4' of 'Do' of 'f' voor fout) als de noot niet klopt.
   - Typ 'b': ga één noot terug.
-  - Typ 'q': stop en toon het audit-rapport.
+  - Typ 'q': stop en bekijk het audit-rapport.
 """
 
 import sys
 import os
 import xml.etree.ElementTree as ET
+import subprocess
+import tempfile
+import atexit
 
 # Unicode ondersteuning voor Windows terminal
 if sys.platform.startswith('win'):
     try:
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
         sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+# Initialiseer Windows Speech Engine via wscript (werkt native zonder extra pip packages)
+SPEECH_VBS = os.path.join(tempfile.gettempdir(), "zing_speech_engine.vbs")
+try:
+    with open(SPEECH_VBS, "w", encoding="utf-8") as f:
+        f.write('CreateObject("SAPI.SpVoice").Speak WScript.Arguments(0)\n')
+except Exception:
+    pass
+
+def speak_solfege(text):
+    """Spreekt het solfège-woord (Do, Re, Mi...) asynchroon uit."""
+    if not text:
+        return
+    try:
+        if os.path.exists(SPEECH_VBS):
+            subprocess.Popen(["wscript", "//nologo", SPEECH_VBS, text], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
         pass
 
@@ -57,7 +75,7 @@ DUR_TYPES = {
 }
 
 def parse_musicxml(filepath):
-    """Parseert MusicXML en geeft een lijst met alle noten per part en measure terug."""
+    """Parseert MusicXML en geeft een gestructureerde lijst terug."""
     tree = ET.parse(filepath)
     root = tree.getroot()
     
@@ -66,7 +84,6 @@ def parse_musicxml(filepath):
     for part in root.findall('part'):
         part_id = part.get('id')
         
-        # Zoek part-name
         part_name = part_id
         for pinfo in root.findall('.//score-part'):
             if pinfo.get('id') == part_id:
@@ -95,9 +112,12 @@ def parse_musicxml(filepath):
                 
                 pitch_str = ''
                 solfege_str = ''
+                speech_word = ''
+                
                 if is_rest:
                     pitch_str = 'RUST'
                     solfege_str = 'Rust'
+                    speech_word = 'Rust'
                 else:
                     p = n.find('pitch')
                     if p is not None:
@@ -106,15 +126,20 @@ def parse_musicxml(filepath):
                         alter = p.find('alter')
                         alt_s = ''
                         alt_sol = ''
+                        alt_spoken = ''
                         if alter is not None:
                             if alter.text == '1':
                                 alt_s = '#'
                                 alt_sol = '-kruis'
+                                alt_spoken = ' kruis'
                             elif alter.text == '-1':
                                 alt_s = 'b'
                                 alt_sol = '-mol'
+                                alt_spoken = ' mol'
                         pitch_str = f"{step}{alt_s}{octave}"
-                        solfege_str = f"{STEP_TO_SOLFEGE.get(step, step)}{alt_sol}{octave}"
+                        base_sol = STEP_TO_SOLFEGE.get(step, step)
+                        solfege_str = f"{base_sol}{alt_sol}{octave}"
+                        speech_word = f"{base_sol}{alt_spoken}"
                         
                 lyrics = []
                 for lyr in n.findall('lyric'):
@@ -126,6 +151,7 @@ def parse_musicxml(filepath):
                 notes.append({
                     'pitch': pitch_str,
                     'solfege': solfege_str,
+                    'speech_word': speech_word,
                     'type': ntype,
                     'duration': dur_text,
                     'is_dot': is_dot,
@@ -142,7 +168,7 @@ def run_auditor(xml_file=None):
     if not xml_file:
         default_dir = os.path.join(os.path.dirname(__file__), '..', 'assets', 'sample-scores')
         scores = [f for f in os.listdir(default_dir) if f.endswith('.musicxml')]
-        print("\nZing! Partituur Pair-Auditor")
+        print("\n=== Zing! Gesproken Partituur Pair-Auditor ===")
         print("Beschikbare partituren:")
         for idx, s in enumerate(scores, 1):
             print(f"  [{idx}] {s}")
@@ -168,11 +194,9 @@ def run_auditor(xml_file=None):
     start_m = input("Starten vanaf maat [1]: ").strip()
     start_measure = int(start_m) if start_m.isdigit() else 1
     
-    # Bouw lineaire takenlijst van noten op
     work_items = []
     
     if selected_voice == 0:
-        # Per maat alle stemmen
         max_measures = max(len(p['measures']) for p in parts)
         for m_idx in range(max_measures):
             for p in parts:
@@ -190,7 +214,6 @@ def run_auditor(xml_file=None):
                                 'data': note
                             })
     else:
-        # Eén specifieke stem
         p = parts[selected_voice - 1]
         for m_data in p['measures']:
             m_num = int(m_data['measure']) if m_data['measure'].isdigit() else 1
@@ -206,10 +229,12 @@ def run_auditor(xml_file=None):
                     })
                     
     print("\n" + "="*65)
-    print("START PAIR-AUDITING")
+    print("START GESPROKEN PAIR-AUDITING")
+    print("  - De computer SPREEKT elke noot (Do, Re, Mi, Fa...) hardop uit!")
     print("  - Druk op <ENTER> om de noot GOED TE KEUREN (OK).")
-    print("  - Typ een correctie (bv. 'C4', 'Do4', of 'f' voor fout) bij een fout.")
+    print("  - Typ een correctie (bv. 'C4', 'Do', of 'f') als de noot fout is.")
     print("  - Typ 'b' om terug te gaan naar de vorige noot.")
+    print("  - Typ 'r' om de huidige noot OPNIEUW te laten uitspreken.")
     print("  - Typ 'q' om te stoppen en het rapport te bekijken.")
     print("="*65 + "\n")
     
@@ -221,33 +246,40 @@ def run_auditor(xml_file=None):
         item = work_items[idx]
         n = item['data']
         
+        # Spreek de noot hardop uit in Solfège!
+        speak_solfege(n['speech_word'])
+        
         dot_str = " (gepunct.)" if n['is_dot'] else ""
         type_nl = DUR_TYPES.get(n['type'], n['type']) + dot_str
         
         lyric_str = ""
         if n['lyrics']:
-            lyric_parts = [f"c{c}: \"{txt}\"" for c, txt in n['lyrics']]
+            lyric_parts = [f'"{txt}"' for c, txt in n['lyrics']]
             lyric_str = " | Tekst: " + ", ".join(lyric_parts)
             
         tie_str = f" [Tie: {n['tie']}]" if n['tie'] else ""
-        slur_str = f" [Boog: {n['slur']}]" if n['slur'] else ""
         
+        # Heldere, prominente weergave van de noot
+        solfege_display = n['speech_word'].upper()
         prompt_line = (
             f"[{item['voice']}] Maat {item['measure']}/{item['total_measures']} "
-            f"- Noot {item['note_idx']}/{item['total_notes']}: "
-            f"{n['solfege']} ({n['pitch']}) {type_nl}{tie_str}{slur_str}{lyric_str}"
+            f"(Noot {item['note_idx']}/{item['total_notes']}):  >>> {solfege_display} <<<  "
+            f"({n['pitch']} {type_nl}){tie_str}{lyric_str}"
         )
         
         print(f"\n{prompt_line}")
-        ans = input("  [ENTER=OK / 'f'=fout / Nieuwe noot / 'b'=terug]: ").strip()
+        ans = input("  [ENTER=OK | 'f'=fout | 'r'=herhaal | 'b'=terug]: ").strip()
         
         if ans.lower() == 'q':
             print("\nAudit onderbroken door gebruiker.")
             break
+        elif ans.lower() == 'r':
+            # Herhaal uitspraak, blijf op dezelfde noot
+            continue
         elif ans.lower() == 'b':
             if idx > 0:
                 idx -= 1
-                print("  ⬅ Terug naar vorige noot.")
+                print("  Terug naar vorige noot.")
             else:
                 print("  Eerste noot bereikt.")
             continue
@@ -255,9 +287,8 @@ def run_auditor(xml_file=None):
             approved_count += 1
             idx += 1
         else:
-            # Fout gemeld of correctie ingevoerd
             corr_note = ans
-            print(f"  [FOUT] Opgeslagen als correctie: '{corr_note}' (was {n['pitch']})")
+            print(f"  [GEREGISTREERD] Correctie voor maat {item['measure']}: '{corr_note}' (was {n['solfege']} / {n['pitch']})")
             corrections.append({
                 'voice': item['voice'],
                 'measure': item['measure'],
@@ -272,7 +303,7 @@ def run_auditor(xml_file=None):
     print("\n" + "="*65)
     print("AUDIT RESULTAAT")
     print(f"  [OK] Goedgekeurd: {approved_count} noten")
-    print(f"  [FOUT] Correcties:  {len(corrections)} noten")
+    print(f"  [!]  Correcties:  {len(corrections)} noten")
     print("="*65)
     
     if corrections:

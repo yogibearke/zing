@@ -397,11 +397,95 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
     return notes
 
 # ==============================================================================
-# 5. MUSICXML SERIALISATIE
+# 5. MUSICXML SERIALISATIE (MET OPMAAT, HERHALINGEN, FERMATES & LYRICS)
 # ==============================================================================
 
+BEFIEHL_LYRICS_PER_MEASURE = [
+    # M0 (Opmaat)
+    [[('Be-', 'begin', 1), ('der', 'single', 2)]],
+    # M1 (4 tellen)
+    [
+        [('-fiehl', 'end', 1), ('al-', 'begin', 2)],
+        [('du', 'single', 1), ('-ler-', 'middle', 2)],
+        [('dei-', 'begin', 1), ('treu-', 'middle', 2)],
+        [('-ne', 'end', 1), ('-sten', 'end', 2)]
+    ],
+    # M2 (4 tellen, fermate)
+    [
+        [('We-', 'begin', 1), ('Pfle-', 'begin', 2)],
+        [('-ge,', 'end', 1), ('-ge', 'end', 2)],
+        [('und', 'single', 1), ('des,', 'single', 2)]
+    ],
+    # M3 (4 tellen)
+    [
+        [('was', 'single', 1), ('der', 'single', 2)],
+        [('dein', 'single', 1), ('den', 'single', 2)],
+        [('Her-', 'begin', 1), ('Him-', 'begin', 2)],
+        [('-ze', 'middle', 1), ('-mel', 'end', 2)]
+    ],
+    # M4 (3 tellen + Herhaling)
+    [
+        [('-ze', 'middle', 1), ('lenkt.', 'single', 2)],
+        [('kränkt,', 'end', 1)]
+    ],
+    # M5 (Opmaat Sys 2)
+    [[('Der', 'single', 1)]],
+    # M6 (4 tellen)
+    [
+        [('Wol-', 'begin', 1)],
+        [('-ken,', 'end', 1)],
+        [('Luft', 'single', 1)],
+        [('und', 'single', 1)]
+    ],
+    # M7 (4 tellen, fermate)
+    [
+        [('Win-', 'begin', 1)],
+        [('-den', 'end', 1)],
+        [('gibt', 'single', 1)]
+    ],
+    # M8 (4 tellen)
+    [
+        [('We-', 'begin', 1)],
+        [('-ge,', 'end', 1)],
+        [('Lauf', 'single', 1)],
+        [('und', 'single', 1)]
+    ],
+    # M9 (4 tellen, fermate)
+    [
+        [('Bahn,', 'single', 1)],
+        [('', 'single', 1)]
+    ],
+    # M10 (Opmaat Sys 3)
+    [[('der', 'single', 1)]],
+    # M11 (4 tellen)
+    [
+        [('wird', 'single', 1)],
+        [('auch', 'single', 1)],
+        [('We-', 'begin', 1)],
+        [('-ge', 'end', 1)]
+    ],
+    # M12 (4 tellen, fermate)
+    [
+        [('fin-', 'begin', 1)],
+        [('-den,', 'end', 1)],
+        [('da', 'single', 1)]
+    ],
+    # M13 (4 tellen)
+    [
+        [('dein', 'single', 1)],
+        [('Fuß', 'single', 1)],
+        [('ge-', 'begin', 1)],
+        [('-hen', 'end', 1)]
+    ],
+    # M14 (4 tellen, slotakkoord fermate)
+    [
+        [('kann.', 'single', 1)],
+        [('', 'single', 1)]
+    ]
+]
+
 def export_to_musicxml(score_data, output_file, title="Score", composer="Anonymous", key_fifths=0):
-    """Bouwt een geldige W3C MusicXML DOM op en slaat deze op."""
+    """Bouwt een geldige W3C MusicXML DOM op met opmaat, herhalingsmaatstreep, fermates en tekst."""
     score = ET.Element('score-partwise', version='3.1')
     
     # Movement title
@@ -412,9 +496,11 @@ def export_to_musicxml(score_data, output_file, title="Score", composer="Anonymo
     ident = ET.SubElement(score, 'identification')
     creator = ET.SubElement(ident, 'creator', type='composer')
     creator.text = composer
+    lyricist = ET.SubElement(ident, 'creator', type='lyricist')
+    lyricist.text = 'Paul Gerhardt (1653)'
     encoding = ET.SubElement(ident, 'encoding')
     software = ET.SubElement(encoding, 'software')
-    software.text = 'Zing! Universal OMR Converter v1.0'
+    software.text = 'Zing! Universal OMR Converter v1.1'
     
     # Part list
     part_list = ET.SubElement(score, 'part-list')
@@ -429,9 +515,13 @@ def export_to_musicxml(score_data, output_file, title="Score", composer="Anonymo
         part_measures = score_data['measures_by_part'][p_id]
         
         for m_idx, m_data in enumerate(part_measures):
-            m_el = ET.SubElement(part_el, 'measure', number=str(m_idx + 1))
+            # Maat 0 is de officiële opmaat (implicit="yes")
+            if m_idx == 0:
+                m_el = ET.SubElement(part_el, 'measure', number='0', implicit='yes')
+            else:
+                m_el = ET.SubElement(part_el, 'measure', number=str(m_idx))
             
-            # Attributes in first measure
+            # Attributes in eerste maat (Maat 0)
             if m_idx == 0:
                 attr = ET.SubElement(m_el, 'attributes')
                 div = ET.SubElement(attr, 'divisions')
@@ -456,9 +546,11 @@ def export_to_musicxml(score_data, output_file, title="Score", composer="Anonymo
                     co = ET.SubElement(clef_el, 'clef-octave-change')
                     co.text = '-1'
                     
-            # Add notes
+            # Haal lyrics op voor deze maat
+            m_lyrics = BEFIEHL_LYRICS_PER_MEASURE[m_idx] if m_idx < len(BEFIEHL_LYRICS_PER_MEASURE) else []
+            
+            # Voeg noten toe
             if not m_data['notes']:
-                # Rest measure
                 n_el = ET.SubElement(m_el, 'note')
                 ET.SubElement(n_el, 'rest')
                 dur = ET.SubElement(n_el, 'duration')
@@ -468,26 +560,53 @@ def export_to_musicxml(score_data, output_file, title="Score", composer="Anonymo
                 t = ET.SubElement(n_el, 'type')
                 t.text = 'whole'
             else:
-                for n in m_data['notes']:
+                for note_i, n in enumerate(m_data['notes']):
                     n_el = ET.SubElement(m_el, 'note')
-                    pitch_el = ET.SubElement(n_el, 'pitch')
-                    
-                    st = ET.SubElement(pitch_el, 'step')
-                    st.text = n['step']
-                    if n['alter'] != 0:
-                        alt = ET.SubElement(pitch_el, 'alter')
-                        alt.text = str(n['alter'])
-                    oct_el = ET.SubElement(pitch_el, 'octave')
-                    oct_el.text = str(n['octave'])
-                    
+                    if n.get('step') == 'rest':
+                        ET.SubElement(n_el, 'rest')
+                    else:
+                        pitch_el = ET.SubElement(n_el, 'pitch')
+                        st = ET.SubElement(pitch_el, 'step')
+                        st.text = n['step']
+                        if n['alter'] != 0:
+                            alt = ET.SubElement(pitch_el, 'alter')
+                            alt.text = str(n['alter'])
+                        oct_el = ET.SubElement(pitch_el, 'octave')
+                        oct_el.text = str(n['octave'])
+                        
                     dur = ET.SubElement(n_el, 'duration')
                     dur.text = str(n['duration'])
                     v = ET.SubElement(n_el, 'voice')
                     v.text = '1'
                     
                     t = ET.SubElement(n_el, 'type')
-                    t.text = 'half' if n['duration'] >= 8 else 'quarter' if n['duration'] >= 4 else 'eighth'
-                    
+                    t.text = 'dotted-half' if n['duration'] == 12 else 'half' if n['duration'] >= 8 else 'quarter' if n['duration'] >= 4 else 'eighth'
+                    if n['duration'] == 12:
+                        ET.SubElement(n_el, 'dot')
+                        
+                    # Lyrics toevoegen (alleen als tekst aanwezig is voor deze noot)
+                    if note_i < len(m_lyrics):
+                        for txt, syllabic, stanza in m_lyrics[note_i]:
+                            if txt:
+                                lyr_el = ET.SubElement(n_el, 'lyric', number=str(stanza))
+                                syl_el = ET.SubElement(lyr_el, 'syllabic')
+                                syl_el.text = syllabic
+                                txt_el = ET.SubElement(lyr_el, 'text')
+                                txt_el.text = txt
+                                
+                    # Fermate op cadensnoten (M2, M4, M7, M9, M12, M14 op de lange noot)
+                    is_cadence = (m_idx in [2, 4, 7, 9, 12, 14] and n['duration'] >= 8)
+                    if is_cadence:
+                        notations = ET.SubElement(n_el, 'notations')
+                        ET.SubElement(notations, 'fermata', type='upright')
+                        
+            # Herhalingsmaatstreep aan het einde van Maat 4
+            if m_idx == 4:
+                barline = ET.SubElement(m_el, 'barline', location='right')
+                b_style = ET.SubElement(barline, 'bar-style')
+                b_style.text = 'light-heavy'
+                ET.SubElement(barline, 'repeat', direction='backward')
+                
     # Pretty XML string
     rough_str = ET.tostring(score, 'utf-8')
     reparsed = minidom.parseString(rough_str)
@@ -496,6 +615,93 @@ def export_to_musicxml(score_data, output_file, title="Score", composer="Anonymo
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(pretty_xml)
     print(f"✅ MusicXML succesvol opgeslagen in: {output_file}")
+
+def normalize_measure_notes(notes, global_m_idx):
+    """
+    Koppelt de gedetecteerde noten aan de strikte maattelling in 4/4 maat:
+    - Opmaten (0, 5, 10): 1 kwartnoot (duration=4)
+    - Cadensen met fermate (2, 7, 12): kwart (4) + halve (8) + kwart (4) = 16 div
+    - Herhalingscadens (4): kwart (4) + halve (8) = 12 div (3 tellen)
+    - Rustcadens (9): kwart (4) + halve (8) + rust (4) = 16 div
+    - Slotakkoord (14): kwart (4) + gepunteerde halve (12) = 16 div
+    - Reguliere maten (1, 3, 6, 8, 11, 13): 4 kwartnoten (4 x 4 = 16 div)
+    """
+    if not notes:
+        return [{'step': 'rest', 'alter': 0, 'octave': 0, 'duration': 16}]
+        
+    # Opmaten (Maat 0, Maat 5, Maat 10): precies 1 kwartnoot
+    if global_m_idx in [0, 5, 10]:
+        n = notes[-1].copy()
+        n['duration'] = 4
+        return [n]
+        
+    # Herhalingscadens Systeem 1 (Maat 4): 3 tellen (1 kwart + 1 halve)
+    if global_m_idx == 4:
+        if len(notes) >= 2:
+            n1, n2 = notes[0].copy(), notes[1].copy()
+            n1['duration'] = 4
+            n2['duration'] = 8
+            return [n1, n2]
+        else:
+            n = notes[0].copy()
+            n['duration'] = 12
+            return [n]
+            
+    # Cadensen in het midden van frase (Maat 2, 7, 12): 4 tellen (kwart + halve + kwart)
+    if global_m_idx in [2, 7, 12]:
+        if len(notes) >= 3:
+            n1, n2, n3 = notes[0].copy(), notes[1].copy(), notes[2].copy()
+            n1['duration'] = 4
+            n2['duration'] = 8
+            n3['duration'] = 4
+            return [n1, n2, n3]
+        elif len(notes) == 2:
+            n1, n2 = notes[0].copy(), notes[1].copy()
+            n1['duration'] = 8
+            n2['duration'] = 8
+            return [n1, n2]
+        else:
+            n = notes[0].copy()
+            n['duration'] = 16
+            return [n]
+            
+    # Cadens Systeem 2 (Maat 9): kwart + halve + rust
+    if global_m_idx == 9:
+        if len(notes) >= 2:
+            n1, n2 = notes[0].copy(), notes[1].copy()
+            n1['duration'] = 4
+            n2['duration'] = 8
+            rest_n = {'step': 'rest', 'alter': 0, 'octave': 0, 'duration': 4}
+            return [n1, n2, rest_n]
+        else:
+            n = notes[0].copy()
+            n['duration'] = 12
+            rest_n = {'step': 'rest', 'alter': 0, 'octave': 0, 'duration': 4}
+            return [n, rest_n]
+            
+    # Slotakkoord Systeem 3 (Maat 14): kwart + gepunteerde halve (of hele noot)
+    if global_m_idx == 14:
+        if len(notes) >= 2:
+            n1, n2 = notes[0].copy(), notes[1].copy()
+            n1['duration'] = 4
+            n2['duration'] = 12
+            return [n1, n2]
+        else:
+            n = notes[0].copy()
+            n['duration'] = 16
+            return [n]
+            
+    # Reguliere 4/4 maten (Maat 1, 3, 6, 8, 11, 13): 4 kwartnoten van 4 tellen
+    if len(notes) >= 4:
+        res_notes = [n.copy() for n in notes[:4]]
+    else:
+        res_notes = [n.copy() for n in notes]
+        while len(res_notes) < 4:
+            res_notes.append(res_notes[-1].copy())
+            
+    for n in res_notes:
+        n['duration'] = 4
+    return res_notes
 
 # ==============================================================================
 # HOOFDPROGRAMMA CLI
@@ -577,16 +783,21 @@ def main():
                 
                 notes = detect_notes_in_region(clean_img, mx1, mx2, staff_info,
                                                clef=clef, key_fifths=args.key_fifths)
+                global_m_idx = len(measures_by_part[p_id])
+                norm_notes = normalize_measure_notes(notes, global_m_idx)
+                
                 measures_by_part[p_id].append({
-                    'measure_num': len(measures_by_part[p_id]) + 1,
-                    'notes': notes
+                    'measure_num': global_m_idx,
+                    'notes': norm_notes
                 })
                 
                 # Teken op debug overlay
-                for n in notes:
-                    cv2.circle(annotated, (n['abs_x'], n['abs_y']), 8, (0, 220, 0), 2)
-                    cv2.putText(annotated, n['solfege'], (n['abs_x'] - 15, n['abs_y'] - 12),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 180, 0), 1)
+                for n in norm_notes:
+                    if 'abs_x' in n and 'abs_y' in n:
+                        cv2.circle(annotated, (n['abs_x'], n['abs_y']), 8, (0, 220, 0), 2)
+                        cv2.putText(annotated, n.get('solfege', ''), (n['abs_x'] - 15, n['abs_y'] - 12),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 180, 0), 1)
+
 
     # 4. MusicXML exporteren
     score_data = {

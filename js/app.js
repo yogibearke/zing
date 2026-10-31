@@ -15,16 +15,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedOrder) {
       try {
         const orderIds = JSON.parse(savedOrder);
-        // Sort tools matching saved IDs, append any new tools at the end
-        const sorted = [];
-        orderIds.forEach(id => {
-          const found = pillar.tools.find(t => t.id === id);
-          if (found) sorted.push(found);
-        });
-        pillar.tools.forEach(t => {
-          if (!sorted.includes(t)) sorted.push(t);
-        });
-        return sorted;
+        if (Array.isArray(orderIds) && orderIds.length > 0) {
+          const sorted = [];
+          orderIds.forEach(id => {
+            const found = pillar.tools.find(t => t.id === id);
+            if (found) sorted.push(found);
+          });
+          pillar.tools.forEach(t => {
+            if (!sorted.includes(t)) sorted.push(t);
+          });
+          if (sorted.length > 0) return sorted;
+        } else {
+          localStorage.removeItem(storageKey);
+        }
       } catch (err) {
         console.warn('Could not parse saved tool order for', pillar.id);
       }
@@ -661,17 +664,121 @@ document.addEventListener('DOMContentLoaded', () => {
   // --------------------------------------------------------------------------
   // 8. Score Management, Upload (tatjana01) & Catalog Sync
   // --------------------------------------------------------------------------
+  // Helper: Haalt metadata (titel, componist, bezetting) rechtstreeks uit de MusicXML
+  function parseMusicXmlMetadata(xmlString, filename) {
+    const defaultKey = filename.replace(/\.musicxml$/i, '').toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+    const fallbackTitle = filename.replace(/\.musicxml$/i, '').replace(/[-_]/g, ' ');
+    if (!xmlString) {
+      return {
+        key: defaultKey,
+        filename,
+        title: fallbackTitle,
+        composer: '',
+        badge: 'Koor',
+        badgeClass: 'badge-green',
+        desc: 'Interactieve koorpartituur.'
+      };
+    }
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+      const titleEl = xmlDoc.querySelector('movement-title') || xmlDoc.querySelector('work-title');
+      const title = (titleEl && titleEl.textContent.trim()) ? titleEl.textContent.trim() : fallbackTitle;
+      const compEl = xmlDoc.querySelector('identification > creator[type="composer"]') || xmlDoc.querySelector('creator');
+      const composer = (compEl && compEl.textContent.trim()) ? compEl.textContent.trim() : '';
+      const partEls = Array.from(xmlDoc.querySelectorAll('part-list > score-part > part-name'));
+      const partNames = partEls.map(pn => pn.textContent.trim()).filter(Boolean);
+      let badge = 'Koor';
+      let badgeClass = 'badge-green';
+      if (partNames.length === 4) {
+        badge = 'SATB Koor';
+        badgeClass = 'badge-gold';
+      } else if (partNames.length === 3) {
+        badge = 'SAB Koor';
+        badgeClass = 'badge-purple';
+      } else if (partNames.length === 2) {
+        badge = 'SA Koor';
+        badgeClass = 'badge-green';
+      } else if (partNames.length === 1) {
+        badge = 'Solostem';
+        badgeClass = 'badge-purple';
+      }
+      return {
+        key: defaultKey,
+        filename,
+        title,
+        composer,
+        badge,
+        badgeClass,
+        musicXmlUrl: `./assets/sample-scores/${filename}`,
+        pdfUrl: `./assets/sample-scores/${filename.replace(/\.musicxml$/i, '.pdf')}`,
+        desc: `${composer ? composer + ' • ' : ''}${partNames.length > 0 ? partNames.join(', ') : 'Koorpartituur'}. Oefen jouw stempartij of Tutti.`
+      };
+    } catch (e) {
+      return {
+        key: defaultKey,
+        filename,
+        title: fallbackTitle,
+        composer: '',
+        badge: 'Koor',
+        badgeClass: 'badge-green',
+        desc: 'Interactieve koorpartituur.'
+      };
+    }
+  }
+
   async function refreshScoresCatalog() {
     try {
-      // 1. Haal de centrale koorcatalogus live op (altijd vers, nooit uit cache)
-      let serverScores = [];
+      const DEFAULT_SCORE_FILES = [
+        "komt-vrienden-in-het-ronde.musicxml",
+        "befiehl-du-deine-wege.musicxml",
+        "calypso.musicxml",
+        "drink-to-me-only.musicxml"
+      ];
+
+      let fileList = [];
       try {
         const res = await fetch('./assets/sample-scores/scores-index.json?_t=' + Date.now(), { cache: 'no-store' });
         if (res.ok) {
-          serverScores = await res.json();
+          const raw = await res.json();
+          if (Array.isArray(raw) && raw.length > 0) {
+            fileList = raw.map(item => (typeof item === 'string') ? item : (item.musicXmlUrl ? item.musicXmlUrl.split('/').pop() : item.key + '.musicxml'));
+          }
         }
       } catch (err) {
-        console.warn('Kon scores-index.json niet live ophalen, gebruik offline fallback:', err);
+        console.warn('Kon scores-index.json niet live ophalen, gebruik default bestandenlijst:', err);
+      }
+
+      if (fileList.length === 0) {
+        fileList = DEFAULT_SCORE_FILES;
+      }
+
+      // 1. Sequentieel elke MusicXML inlezen en metadata dynamisch parsen
+      const serverScores = [];
+      for (const fname of fileList) {
+        let meta = null;
+        try {
+          const xmlRes = await fetch(`./assets/sample-scores/${fname}?_t=` + Date.now(), { cache: 'no-store' });
+          if (xmlRes.ok) {
+            const xmlText = await xmlRes.text();
+            meta = parseMusicXmlMetadata(xmlText, fname);
+          }
+        } catch (xmlErr) {
+          // Bij offline restricties
+        }
+        if (!meta) {
+          meta = parseMusicXmlMetadata(null, fname);
+        }
+        serverScores.push(meta);
+
+        if (typeof ScoreViewer !== 'undefined' && ScoreViewer.registerScore) {
+          ScoreViewer.registerScore(meta.key, {
+            title: meta.title,
+            subtitle: meta.desc,
+            musicXmlUrl: meta.musicXmlUrl,
+            pdfUrl: meta.pdfUrl
+          });
+        }
       }
 
       // 2. Haal eventuele lokaal ingeladen oefenpartituren op uit IndexedDB

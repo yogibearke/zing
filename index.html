@@ -258,8 +258,8 @@
               </button>
 
               <div class="score-bpm-control" title="Tempo aanpassen (BPM)">
-                <input type="range" id="score-bpm-slider" min="40" max="220" value="80" step="1" aria-label="Tempo BPM">
-                <span id="score-bpm-display">80 BPM</span>
+                <input type="range" id="score-bpm-slider" min="40" max="220" value="120" step="1" aria-label="Tempo BPM">
+                <span id="score-bpm-display">120 BPM</span>
               </div>
             </div>
 
@@ -410,20 +410,20 @@
   </main>
 
   <!-- Scripts -->
-  <script src="js/content-data.js?v=26"></script>
-  <script src="js/audio-engine.js?v=26"></script>
-  <script src="js/pitch-detector.js?v=26"></script>
-  <script src="js/breathing-trainer.js?v=26"></script>
-  <script src="js/lib/opensheetmusicdisplay.min.js?v=26"></script>
-  <script src="js/score-storage.js?v=32"></script>
-  <script src="js/score-viewer.js?v=32"></script>
-  <script src="js/app.js?v=32"></script>
+  <script src="js/content-data.js?v=34"></script>
+  <script src="js/audio-engine.js?v=34"></script>
+  <script src="js/pitch-detector.js?v=34"></script>
+  <script src="js/breathing-trainer.js?v=34"></script>
+  <script src="js/lib/opensheetmusicdisplay.min.js?v=34"></script>
+  <script src="js/score-storage.js?v=34"></script>
+  <script src="js/score-viewer.js?v=34"></script>
+  <script src="js/app.js?v=34"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=32')
+        navigator.serviceWorker.register('./sw.js?v=34')
           .then(reg => {
             reg.update();
             console.log('ServiceWorker registered & updated:', reg.scope);

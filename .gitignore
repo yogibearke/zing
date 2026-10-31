@@ -9,3 +9,10 @@ __pycache__/
 *$py.class
 *.tmp
 scratch/
+backups/
+debug_*/
+*.bak*
+test_output.musicxml
+*_clean.musicxml
+*_ref.musicxml
+tools/scan_to_musicxml_v1_backup.py

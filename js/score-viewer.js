@@ -7,7 +7,7 @@ const ScoreViewer = (() => {
   let isPlayingCompanion = false;
   let companionInterval = null;
   let currentTempo = 1.0;
-  let currentBpm = 80;
+  let currentBpm = 120;
   let currentStep = 0;
   let selectedVoice = 'sopraan'; // 'sopraan', 'alt', 'tenor', 'bas', 'tutti'
 
@@ -949,7 +949,7 @@ const ScoreViewer = (() => {
     },
     'calypso': {
       title: 'Calypso',
-      subtitle: 'Jan Holstock • 4/4 Maat • Koorlied',
+      subtitle: 'Jan Holdstock • 2/2 Maat (Alla Breve) • Koorlied',
       musicXmlUrl: './assets/sample-scores/calypso.musicxml',
       pdfUrl: './assets/sample-scores/calypso.pdf',
       htmlScore: `
@@ -961,16 +961,16 @@ const ScoreViewer = (() => {
               <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 6px;">
                 <span style="background: #7c3aed; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.5px;">Koorlied</span>
                 <span style="background: #f5f3ff; color: #7c3aed; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px;">Melodie &amp; Koor</span>
-                <span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px;">4/4 Maat</span>
+                <span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px;">2/2 Maat (Alla Breve)</span>
               </div>
               <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #0f172a;">Calypso</h2>
               <div style="font-size: 13px; color: #64748b; margin-top: 4px;">
-                Jan Holstock • Swingend ritme en koorbegeleiding
+                Jan Holdstock • Swingend ritme en koorbegeleiding
               </div>
             </div>
             <div style="text-align: right; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 14px; border-radius: 8px;">
               <div style="font-size: 12px; font-weight: 700; color: #0f172a;">C-groot (geen voortekens)</div>
-              <div style="font-size: 12px; color: #64748b;">4/4 Maat • Vivace / Calypso tempo</div>
+              <div style="font-size: 12px; color: #64748b;">2/2 Maat (Alla Breve) • Vivace / Calypso tempo</div>
             </div>
           </div>
 
@@ -1253,10 +1253,7 @@ const ScoreViewer = (() => {
       if (osmdContainer) osmdContainer.style.display = 'none';
       if (pdfFrame) {
         pdfFrame.style.display = 'block';
-        if (scoreData && scoreData.pdfUrl) {
-          pdfFrame.removeAttribute('srcdoc');
-          pdfFrame.src = scoreData.pdfUrl;
-        } else if (scoreData && scoreData.htmlScore) {
+        if (scoreData && scoreData.htmlScore) {
           pdfFrame.removeAttribute('src');
           pdfFrame.srcdoc = `
             <!DOCTYPE html>
@@ -1273,6 +1270,9 @@ const ScoreViewer = (() => {
             </body>
             </html>
           `;
+        } else if (scoreData && scoreData.pdfUrl) {
+          pdfFrame.removeAttribute('srcdoc');
+          pdfFrame.src = scoreData.pdfUrl;
         }
       }
       if (statusEl) statusEl.textContent = scoreData && scoreData.pdfUrl ? '📄 Originele PDF Scan' : '';
@@ -1294,6 +1294,10 @@ const ScoreViewer = (() => {
 
   function applyVoiceFilterToOSMD() {
     if (!osmdInstance || !osmdInstance.sheet) return;
+    const osmdContainer = document.getElementById('osmd-container');
+    if (!osmdContainer || osmdContainer.offsetWidth <= 0 || osmdContainer.offsetParent === null) {
+      return;
+    }
     const instruments = osmdInstance.sheet.Instruments;
     if (!instruments || instruments.length === 0) return;
 
@@ -1362,7 +1366,8 @@ const ScoreViewer = (() => {
       osmdInstance = new opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer, {
         autoResize: true,
         backend: 'svg',
-        drawingParameters: 'compact',
+        drawingParameters: 'default',
+        newSystemFromXML: true,
         drawTitle: false,
         drawSubtitle: false,
         drawComposer: false,
@@ -1377,7 +1382,8 @@ const ScoreViewer = (() => {
       });
     } else {
       osmdInstance.setOptions({
-        drawingParameters: 'compact',
+        drawingParameters: 'default',
+        newSystemFromXML: true,
         drawTitle: false,
         drawSubtitle: false,
         drawComposer: false,
@@ -1388,10 +1394,14 @@ const ScoreViewer = (() => {
       });
     }
 
-    // Graveerregels optimaliseren voor grotere, duidelijk leesbare liedteksten
+    // Graveerregels: noten plaatsen in functie van de tekst (Behind Bars regel voor vocale muziek)
     if (osmdInstance.EngravingRules) {
-      osmdInstance.EngravingRules.LyricsHeight = 2.85; // ~42% grotere letterhoogte (standaard is 2.0)
-      osmdInstance.EngravingRules.VerticalBetweenLyricsDistance = 0.55; // Ruimere afstand tussen meerdere stroferegels
+      osmdInstance.EngravingRules.NewSystemAtXMLNewSystemAttribute = true;
+      osmdInstance.EngravingRules.LyricsHeight = 2.0; // Standaard leesbare letterhoogte
+      osmdInstance.EngravingRules.LyricsUseXPaddingForLongLyrics = true;
+      osmdInstance.EngravingRules.LyricsXPaddingFactorForLongLyrics = 1.25; // Duwt noten uit elkaar bij langere woorden
+      osmdInstance.EngravingRules.HorizontalBetweenLyricsDistance = 0.8; // Garandeert vrije ruimte tussen lettergrepen
+      osmdInstance.EngravingRules.VerticalBetweenLyricsDistance = 0.5;
       osmdInstance.EngravingRules.LyricsYMarginToBottomLine = 0.35;
       osmdInstance.EngravingRules.DefaultFontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     }
@@ -1438,13 +1448,34 @@ const ScoreViewer = (() => {
         const res = await fetch('./assets/sample-scores/scores-index.json?_t=' + Date.now(), { cache: 'no-store' });
         if (res.ok) {
           const indexList = await res.json();
-          const found = indexList.find(s => s.key === key);
-          if (found) {
+          let foundFile = null;
+          let foundObj = null;
+          for (const item of indexList) {
+            if (typeof item === 'string') {
+              const itemKey = item.replace(/\.musicxml$/i, '').toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+              if (itemKey === key) {
+                foundFile = item;
+                break;
+              }
+            } else if (item && item.key === key) {
+              foundObj = item;
+              break;
+            }
+          }
+          if (foundFile) {
             scoreData = {
-              title: found.title,
-              subtitle: `${found.composer || 'Koor'} • SATB Koor`,
-              musicXmlUrl: found.musicXmlUrl,
-              pdfUrl: found.pdfUrl || null
+              title: foundFile.replace(/\.musicxml$/i, ''),
+              subtitle: 'Koorpartituur',
+              musicXmlUrl: `./assets/sample-scores/${foundFile}`,
+              pdfUrl: `./assets/sample-scores/${foundFile.replace(/\.musicxml$/i, '.pdf')}`
+            };
+            SCORES[key] = scoreData;
+          } else if (foundObj) {
+            scoreData = {
+              title: foundObj.title,
+              subtitle: `${foundObj.composer || 'Koor'} • SATB Koor`,
+              musicXmlUrl: foundObj.musicXmlUrl,
+              pdfUrl: foundObj.pdfUrl || null
             };
             SCORES[key] = scoreData;
           }
@@ -1793,7 +1824,12 @@ const ScoreViewer = (() => {
 
   function init() {
     setupEventListeners();
-    displayScore('komt-vrienden');
+  }
+
+  function registerScore(key, data) {
+    if (key && data) {
+      SCORES[key] = Object.assign(SCORES[key] || {}, data);
+    }
   }
 
   return {
@@ -1803,6 +1839,7 @@ const ScoreViewer = (() => {
     setBpm,
     toggleCompanion,
     stopCompanion,
+    registerScore,
   };
 })();
 

@@ -219,6 +219,11 @@ body::before {
   padding: calc(var(--header-height) + 0.5rem) 0.75rem 0.75rem 0.75rem;
   max-width: var(--container-max-width);
   margin: 0 auto;
+  transition: max-width 0.2s ease;
+}
+
+.main-wrapper:has(#screen-scores.active) {
+  max-width: 1160px;
 }
 
 .view-active {

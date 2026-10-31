@@ -1,42 +1,6 @@
 [
-  {
-    "key": "komt-vrienden",
-    "title": "1. Komt vrienden in het ronde (Het Slijperslied)",
-    "composer": "Traditioneel / Koorarrangement SATB",
-    "musicXmlUrl": "./assets/sample-scores/komt-vrienden-in-het-ronde.musicxml",
-    "pdfUrl": "./assets/sample-scores/komt-vrienden-in-het-ronde.pdf",
-    "badge": "SATB Koor",
-    "badgeClass": "badge-green",
-    "desc": "Originele partituur in d-mineur (2/4 maat met 1/8 opmaat). Oefen Sopraan, Alt, Tenor, Bas of Tutti."
-  },
-  {
-    "key": "befiehl-du-deine-wege",
-    "title": "44. Choral: Befiehl du deine Wege",
-    "composer": "Johann Sebastian Bach (1685–1750)",
-    "musicXmlUrl": "./assets/sample-scores/befiehl-du-deine-wege.musicxml",
-    "pdfUrl": "./assets/sample-scores/befiehl-du-deine-wege.pdf",
-    "badge": "SATB Koraal",
-    "badgeClass": "badge-gold",
-    "desc": "Matthäus-Passion BWV 244 in D-groot (4/4 maat met 1/4 opmaat). Oefen Sopraan, Alt, Tenor, Bas of Tutti."
-  },
-  {
-    "key": "calypso",
-    "title": "Calypso",
-    "composer": "Jan Holstock",
-    "musicXmlUrl": "./assets/sample-scores/calypso.musicxml",
-    "pdfUrl": "./assets/sample-scores/calypso.pdf",
-    "badge": "Koorlied",
-    "badgeClass": "badge-purple",
-    "desc": "Calypso van Jan Holstock in 4/4 maat. Oefen melodie, tempo en koorbegeleiding."
-  },
-  {
-    "key": "drink-to-me-only",
-    "title": "Drink To Me Only With Thine Eyes",
-    "composer": "Traditioneel / Arr. John Reager",
-    "musicXmlUrl": "./assets/sample-scores/drink-to-me-only.musicxml",
-    "pdfUrl": "./assets/sample-scores/drink-to-me-only.pdf",
-    "badge": "SAB Koor",
-    "badgeClass": "badge-green",
-    "desc": "Engelse traditional in F-groot (6/8 maat) voor Sopraan, Alt en Bariton (SAB) met 2 coupletten."
-  }
+  "komt-vrienden-in-het-ronde.musicxml",
+  "befiehl-du-deine-wege.musicxml",
+  "calypso.musicxml",
+  "drink-to-me-only.musicxml"
 ]

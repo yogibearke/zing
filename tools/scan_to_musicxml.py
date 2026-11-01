@@ -1179,9 +1179,50 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
 
     
 
-    # STAP 4A: STEM-FIRST DETECTIE (Conform AGENTS.md Sectie 5)
-    # 1. Verticale stokisolatie direct op inv (zonder balklijnen eerst te knippen)
-    min_stem_h = int(sp * 0.95)
+    # STAP 4A: NOOTKOP- & STOKKOPPELING (Bipartite Head-Stem Binding conform AGENTS.md Sectie 5)
+    # 1. Verzameling A: Alle Nootkoppen (2D Elliptisch & Cavity-filter)
+    ew = max(10, int(sp * 0.70))
+    eh = max(8, int(sp * 0.50))
+    head_k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ew, eh))
+    opened_heads = cv2.morphologyEx(inv, cv2.MORPH_OPEN, head_k)
+    n_heads, _, h_stats, h_cents = cv2.connectedComponentsWithStats(opened_heads)
+
+    raw_heads = []
+    for hi in range(1, n_heads):
+        hw, hh, harea = h_stats[hi, 2], h_stats[hi, 3], h_stats[hi, 4]
+        aspect = hw / max(1, hh)
+        if harea >= 70 and aspect < 2.5:
+            hrx, hry = h_stats[hi, 0], h_stats[hi, 1]
+            hcx, hcy = h_cents[hi][0], h_cents[hi][1]
+            abs_hy = y_top + hcy
+            if (lines[0] - sp * 1.5) <= abs_hy <= (lines[4] + sp * 1.5):
+                raw_heads.append({
+                    'rx': hrx, 'ry': hry, 'rw': hw, 'rh': hh, 'area': harea,
+                    'cx': int(hcx), 'cy': int(hcy),
+                    'abs_x': mx1 + hcx, 'abs_y': abs_hy,
+                    'is_open': False
+                })
+
+    # Integreer ingesloten witte holtes (open nootkoppen) uit cavities
+    for cav in cavities:
+        cav_asp = cav['rw'] / max(1, cav['rh'])
+        matched_h = [h for h in raw_heads if abs(h['cx'] - cav['cx']) <= int(sp * 0.70) and abs(h['cy'] - cav['cy']) <= int(sp * 0.70)]
+        if matched_h and cav_asp >= 0.80:
+            for mh in matched_h:
+                mh['is_open'] = True
+        elif not matched_h and cav_asp >= 1.05 and cav['area'] >= 100:
+            if (lines[0] - sp * 0.8) <= cav['abs_y'] <= (lines[4] + sp * 0.8):
+                raw_heads.append({
+                    'rx': cav['rx'], 'ry': cav['ry'], 'rw': cav['rw'], 'rh': cav['rh'],
+                    'area': cav['area'], 'cx': int(cav['cx']), 'cy': int(cav['cy']),
+                    'abs_x': cav['abs_x'], 'abs_y': cav['abs_y'],
+                    'is_open': True, 'is_whole_note': True
+                })
+
+    raw_heads.sort(key=lambda h: h['abs_x'])
+
+    # 2. Verzameling B: Alle Stokken (1D Verticaal Lijnfilter met Voortekenfiltering)
+    min_stem_h = int(sp * 1.6)
     stem_k = cv2.getStructuringElement(cv2.MORPH_RECT, (1, min_stem_h))
     opened_stems = cv2.morphologyEx(inv, cv2.MORPH_OPEN, stem_k)
     num_s, _, s_stats, _ = cv2.connectedComponentsWithStats(opened_stems)
@@ -1189,129 +1230,99 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
     raw_stems = []
     for si in range(1, num_s):
         sx, sy, sw, sh = s_stats[si, 0], s_stats[si, 1], s_stats[si, 2], s_stats[si, 3]
-        if sx <= 6 or (sx + sw) >= crop.shape[1] - 6:
+        if sx <= 12 or (sx + sw) >= crop.shape[1] - 12:
             continue
         if sh >= min_stem_h and sw <= int(sp * 0.45):
-            raw_stems.append((sx + sw // 2, sy, sy + sh, sw, sh))
-    raw_stems.sort(key=lambda it: it[0])
+            raw_stems.append({'x': sx + sw // 2, 'y1': sy, 'y2': sy + sh, 'w': sw, 'h': sh, 'abs_x': mx1 + sx + sw // 2})
+    raw_stems.sort(key=lambda s: s['x'])
 
+    # Filter voorteken-beentjes: twee verticale lijnen binnen 0.65 * sp zijn een voorteken (# of ♮)
     stems = []
-    for st in raw_stems:
-        if not stems or st[0] - stems[-1][0] > 18:
-            stems.append(st)
+    si = 0
+    while si < len(raw_stems):
+        if si + 1 < len(raw_stems) and (raw_stems[si+1]['x'] - raw_stems[si]['x']) < int(sp * 0.65):
+            si += 2
         else:
-            prev = stems[-1]
-            stems[-1] = (int((prev[0] + st[0]) / 2), min(prev[1], st[1]), max(prev[2], st[2]), max(prev[3], st[3]), max(prev[4], st[4]))
+            stems.append(raw_stems[si])
+            si += 1
 
-    # 2. Kopdetectie aan de uiteinden van elke stok (Uiteinde A)
+    # 3. De Paarsgewijze Koppeling (Welke nootkop hoort bij welke stok?)
     candidates = []
-    for st_cx, st_y1, st_y2, st_w, st_h in stems:
-        abs_st_x = mx1 + st_cx
-        abs_top_y = y_top + st_y1
-        abs_bot_y = y_top + st_y2
-        loc_lines = track_local_staff_lines(img, staff_info, abs_st_x)
-        loc_sp = (loc_lines[4] - loc_lines[0]) / 4.0
+    used_stems = set()
 
-        bot_in_staff = (loc_lines[0] - loc_sp * 0.6 <= abs_bot_y <= loc_lines[4] + loc_sp * 0.6)
-        top_in_staff = (loc_lines[0] - loc_sp * 0.6 <= abs_top_y <= loc_lines[4] + loc_sp * 0.6)
+    for h in raw_heads:
+        hcx = h['cx']
+        hcy = h['cy']
+        
+        # Zoek een fysiek rakende stok aan de linker- of rechterrand van de nootkop
+        best_stem = None
+        best_dist = 9999
+        best_dir = None
+        best_tip_y = None
 
-        x_l = max(0, int(st_cx - loc_sp * 1.10))
-        x_r = min(inv.shape[1], int(st_cx + loc_sp * 1.10))
-        top_slice = inv[max(0, int(st_y1 - loc_sp * 0.40)):min(inv.shape[0], int(st_y1 + loc_sp * 0.70)), x_l:x_r]
-        bot_slice = inv[max(0, int(st_y2 - loc_sp * 0.70)):min(inv.shape[0], int(st_y2 + loc_sp * 0.40)), x_l:x_r]
-        w_top = int(np.max(np.sum(top_slice > 0, axis=1))) if top_slice.size > 0 else 0
-        w_bot = int(np.max(np.sum(bot_slice > 0, axis=1))) if bot_slice.size > 0 else 0
+        for s_idx, s in enumerate(stems):
+            dx = s['x'] - hcx
+            if abs(dx) <= int(sp * 0.70):
+                # Controleer aansluiting:
+                # Up-stem: stok staat rechts (dx >= -4) en reikt omhoog (s['y1'] < hcy)
+                # Down-stem: stok staat links (dx <= 4) en reikt omlaag (s['y2'] > hcy)
+                is_up_match = (dx >= -4 and s['y1'] < hcy and abs(s['y2'] - hcy) <= int(sp * 0.85))
+                is_dn_match = (dx <= 4 and s['y2'] > hcy and abs(s['y1'] - hcy) <= int(sp * 0.85))
+                
+                if is_up_match or is_dn_match:
+                    dist = abs(dx)
+                    if dist < best_dist:
+                        best_dist = dist
+                        best_stem = (s_idx, s)
+                        if is_up_match and not is_dn_match:
+                            best_dir = 'up'
+                            best_tip_y = y_top + s['y1']
+                        elif is_dn_match and not is_up_match:
+                            best_dir = 'down'
+                            best_tip_y = y_top + s['y2']
+                        else:
+                            # Beide mogelijk: kies op basis van dx (rechts = up, links = down)
+                            if dx >= 0:
+                                best_dir = 'up'
+                                best_tip_y = y_top + s['y1']
+                            else:
+                                best_dir = 'down'
+                                best_tip_y = y_top + s['y2']
 
-        if abs(w_bot - w_top) >= 5:
-            is_up = (w_bot > w_top)
-        elif bot_in_staff and not top_in_staff:
-            is_up = True
-        elif top_in_staff and not bot_in_staff:
-            is_up = False
+        has_stem = (best_stem is not None)
+        if best_stem:
+            used_stems.add(best_stem[0])
+            st_data = best_stem[1]
+            stem_cx = st_data['x']
+            stem_y1 = st_data['y1']
+            stem_y2 = st_data['y2']
+            stem_x = mx1 + stem_cx
         else:
-            is_up = (w_bot >= w_top)
+            stem_cx = None
+            stem_y1 = None
+            stem_y2 = None
+            stem_x = None
+            best_dir = 'up'
+            best_tip_y = h['abs_y']
 
-        if debug:
-            print(f"      STEM_DIR_DECISION: st_cx={st_cx}, st_y1={st_y1}, st_y2={st_y2}, bot_in={bot_in_staff}, top_in={top_in_staff} => is_up={is_up}")
-
-        if is_up:
-            ny1 = max(0, int(st_y2 - loc_sp * 0.55))
-            ny2 = min(inv.shape[0], int(st_y2 + loc_sp * 0.75))
-            nx1 = max(0, int(st_cx - loc_sp * 1.15))
-            nx2 = min(inv.shape[1], st_cx + 2)
-        else:
-            ny1 = max(0, int(st_y1 - loc_sp * 0.75))
-            ny2 = min(inv.shape[0], int(st_y1 + loc_sp * 0.55))
-            nx1 = max(0, st_cx - 2)
-            nx2 = min(inv.shape[1], int(st_cx + loc_sp * 1.15))
-
-        head_roi = inv[ny1:ny2, nx1:nx2]
-        head_mass = head_roi[:, :-4] if is_up else head_roi[:, 4:]
-        pts = np.where(head_mass > 0)
-        if len(pts[0]) < 20:
-            pts = np.where(head_roi > 0)
-            cx_offset = 0
-        else:
-            cx_offset = 0 if is_up else 4
-
-        if len(pts[0]) > 0:
-            cy_rel = float(np.mean(pts[0]))
-            cx_rel = float(np.mean(pts[1])) + cx_offset
-            head_cy = y_top + ny1 + cy_rel
-            head_cx = mx1 + nx1 + cx_rel
-        else:
-            head_cy = (abs_bot_y - loc_sp * 0.40) if is_up else (abs_top_y + loc_sp * 0.40)
-            head_cx = (abs_st_x - loc_sp * 0.45) if is_up else (abs_st_x + loc_sp * 0.45)
+        is_whole = h.get('is_whole_note') or (h.get('is_open') and not has_stem)
 
         candidates.append({
-            'rx': int(head_cx - mx1 - loc_sp * 0.45),
-            'ry': int(head_cy - y_top - loc_sp * 0.40),
-            'rw': int(loc_sp * 0.90),
-            'rh': int(loc_sp * 0.80),
-            'area': len(pts[0]) if len(pts[0]) > 0 else 200,
-            'aspect': 1.15,
-            'cx': int(head_cx - mx1),
-            'cy': int(head_cy - y_top),
-            'abs_x': head_cx,
-            'abs_y': head_cy,
+            'rx': h['rx'], 'ry': h['ry'], 'rw': h['rw'], 'rh': h['rh'],
+            'area': h['area'], 'aspect': h['rw'] / max(1, h['rh']),
+            'cx': hcx, 'cy': hcy,
+            'abs_x': h['abs_x'], 'abs_y': h['abs_y'],
             'label': len(candidates) + 1,
-            'is_open': False,
-            'stem_cx': st_cx,
-            'stem_y1': st_y1,
-            'stem_y2': st_y2,
-            'stem_dir': 'up' if is_up else 'down',
-            'has_stem': True
+            'is_open': h['is_open'],
+            'is_whole_note': is_whole,
+            'stem_cx': stem_cx,
+            'stem_y1': stem_y1,
+            'stem_y2': stem_y2,
+            'stem_x': stem_x,
+            'stem_tip_y': best_tip_y,
+            'stem_dir': best_dir,
+            'has_stem': has_stem
         })
-
-    # Aanvullend: verzamel ook eventuele elliptische kandidaten (kwartnoten zonder lange stok)
-    ew = int(sp * 0.70)
-    eh = int(sp * 0.50)
-    head_k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ew, eh))
-    opened = cv2.morphologyEx(inv, cv2.MORPH_OPEN, head_k)
-    n_labels, _, stats, cents = cv2.connectedComponentsWithStats(opened)
-
-    for i in range(1, n_labels):
-        w = stats[i, cv2.CC_STAT_WIDTH]
-        h = stats[i, cv2.CC_STAT_HEIGHT]
-        area = stats[i, cv2.CC_STAT_AREA]
-        aspect = w / max(1, h)
-        if area > 80 and aspect < 2.2:
-            rx = stats[i, cv2.CC_STAT_LEFT]
-            ry = stats[i, cv2.CC_STAT_TOP]
-            rw = stats[i, cv2.CC_STAT_WIDTH]
-            rh = stats[i, cv2.CC_STAT_HEIGHT]
-            cand_abs_x = mx1 + rx + rw // 2
-            if all(abs(cand_abs_x - sc['abs_x']) >= int(sp * 0.55) for sc in candidates):
-                candidates.append({
-                    'rx': rx, 'ry': ry, 'rw': rw, 'rh': rh,
-                    'area': area, 'aspect': aspect,
-                    'cx': rx + rw // 2, 'cy': ry + rh // 2,
-                    'abs_x': cand_abs_x,
-                    'abs_y': y_top + ry + rh // 2,
-                    'label': len(candidates) + 1,
-                    'is_open': False,
-                    'has_stem': False
-                })
 
     candidates.sort(key=lambda c: c['abs_x'])
 
@@ -1803,7 +1814,11 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
             'duration': dur,
             'solfege': solf,
             'rw': rw,
-            'rh': rh
+            'rh': rh,
+            'has_stem': c.get('has_stem', False),
+            'stem_dir': c.get('stem_dir', 'up'),
+            'stem_tip_y': c.get('stem_tip_y', abs_y),
+            'stem_x': c.get('stem_x', abs_x)
         }
         if debug:
             print(f"      CREATED NOTE: {solf} x={abs_x}, has_dot={has_dot}, dur={dur}")

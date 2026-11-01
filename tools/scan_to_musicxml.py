@@ -90,61 +90,42 @@ if sys.platform.startswith('win'):
 
 # ==============================================================================
 
-def load_or_render_image(input_path, dpi=500):
-
-    """Laadt een PNG/JPG of rendert pagina 1 van een PDF naar een 500 DPI grayscale array."""
-
+def load_or_render_images(input_path, dpi=500):
+    """Laadt een PNG/JPG of rendert alle pagina's van een PDF naar 500 DPI grayscale arrays."""
     p = Path(input_path).resolve()
-
     if not p.exists():
-
         raise FileNotFoundError(f"Bestand niet gevonden: {input_path}")
-
     if p.suffix.lower() == '.pdf':
-
         try:
-
             import pymupdf
-
         except ImportError:
-
             import fitz as pymupdf
-
             
-
         print(f"📄 PDF renderen naar {dpi} DPI: {p.name}")
-
         doc = pymupdf.open(str(p))
-
-        page = doc[0] # Eerste pagina
-
+        pages = []
         zoom = dpi / 72.0
-
         mat = pymupdf.Matrix(zoom, zoom)
-
-        pix = page.get_pixmap(matrix=mat, alpha=False)
-
+        for page_idx in range(len(doc)):
+            page = doc[page_idx]
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+            img_data = np.frombuffer(pix.samples, dtype=np.uint8).reshape((pix.height, pix.width, 3))
+            gray = cv2.cvtColor(img_data, cv2.COLOR_RGB2GRAY)
+            pages.append(gray)
+            out_img_name = f"{p.stem}_page_{page_idx+1}.png"
+            cv2.imwrite(str(p.parent / out_img_name), gray)
         doc.close()
-
-        
-
-        # Converteer pixmap naar numpy array
-
-        img_data = np.frombuffer(pix.samples, dtype=np.uint8).reshape((pix.height, pix.width, 3))
-
-        gray = cv2.cvtColor(img_data, cv2.COLOR_RGB2GRAY)
-
-        return gray
-
+        print(f"🖼️ {len(pages)} pagina('s) succesvol ingelezen.")
+        return pages
     else:
-
         gray = cv2.imread(str(p), cv2.IMREAD_GRAYSCALE)
-
         if gray is None:
-
             raise ValueError(f"Kon afbeelding niet inlezen: {input_path}")
+        return [gray]
 
-        return gray
+def load_or_render_image(input_path, dpi=500):
+    """Laadt een PNG/JPG of rendert pagina 1 van een PDF (backward compatibility)."""
+    return load_or_render_images(input_path, dpi=dpi)[0]
 
 def deskew_score(gray_img, angle_range=(-3.0, 3.0), step=0.05):
 
@@ -339,11 +320,11 @@ def find_all_staves_on_page(img, sp_est=27.0):
     scores = np.zeros(len(proj))
     for y in range(100, len(proj) - int(round(4 * best_sp)) - 10):
         teeth = [int(round(y + j * best_sp)) for j in range(5)]
-        scores[y] = sum(proj[t] for t in teeth)
+        scores[y] = sum(max(proj[max(0, t-2):min(len(proj), t+3)]) for t in teeth)
 
     cand_peaks = []
     max_score = np.max(scores)
-    thresh = max(1000.0, max_score * 0.40)
+    thresh = max(600.0, max_score * 0.20)
     for y in range(200, len(scores) - 200):
         if scores[y] >= thresh and scores[y] >= scores[y-1] and scores[y] >= scores[y+1]:
             cand_peaks.append((y, scores[y]))
@@ -374,7 +355,6 @@ def find_all_staves_on_page(img, sp_est=27.0):
                     best_sp_local = sp
 
         # Optimale 5-tands kamfilter piek
-
         staves.append({
             'center': int(np.mean(best_lines)),
             'top_y': best_lines[0],
@@ -384,139 +364,161 @@ def find_all_staves_on_page(img, sp_est=27.0):
         })
     return staves
 
+def group_staves_by_b0(img, staves):
+    """
+    Stap 1: Systeemgroepering via de initiële maatstreep (B0).
+    Controleert of opeenvolgende balken verbonden zijn door een verticale lijn
+    aan de linkerrand van de balken (B0).
+    Retourneert: list van systemen, waarbij elk systeem een dict is:
+      {
+        'staves': [s0, s1, ...],
+        'b0_x': int (positie van B0)
+      }
+    """
+    if not staves:
+        return []
+
+    st_starts = []
+    for s in staves:
+        l0, l4 = int(s['lines'][0]), int(s['lines'][4])
+        strip = img[l0:l4+1, :1200]
+        col_ink = np.sum(strip < 150, axis=0)
+        c_starts = np.where(col_ink >= 3)[0]
+        st_starts.append(int(c_starts[0]) if len(c_starts) > 0 else 300)
+
+    systems_staves = [[staves[0]]]
+    for i in range(len(staves) - 1):
+        s_top = staves[i]
+        s_bot = staves[i+1]
+        y_top = int(s_top['lines'][4]) + 4
+        y_bot = int(s_bot['lines'][0]) - 4
+        h_gap = y_bot - y_top
+
+        # Zoek naar B0 in de tussenruimte in de linkerzone
+        gap_strip = (img[y_top:y_bot, 100:1200] < 150).astype(np.uint8)
+        col_sums = np.sum(gap_strip, axis=0) if gap_strip.size > 0 else np.array([0])
+        max_idx = int(np.argmax(col_sums)) if len(col_sums) > 0 else 0
+        max_col = col_sums[max_idx]
+
+        is_connected = (h_gap > 0 and max_col >= 0.70 * h_gap)
+        if is_connected:
+            systems_staves[-1].append(s_bot)
+        else:
+            systems_staves.append([s_bot])
+
+    system_dicts = []
+    for sys_idx, sys_s in enumerate(systems_staves):
+        if len(sys_s) > 1:
+            y_t = int(sys_s[0]['lines'][4]) + 4
+            y_b = int(sys_s[1]['lines'][0]) - 4
+            strip_gap = (img[y_t:y_b, 100:1200] < 150).astype(np.uint8)
+            col_s = np.sum(strip_gap, axis=0)
+            b0_x = 100 + int(np.argmax(col_s))
+        else:
+            l0, l4 = int(sys_s[0]['lines'][0]), int(sys_s[0]['lines'][4])
+            strip_1 = img[l0:l4+1, :800]
+            col_1 = np.sum(strip_1 < 150, axis=0)
+            st_1 = np.where(col_1 >= 3)[0]
+            b0_x = int(st_1[0]) if len(st_1) > 0 else 300
+
+        system_dicts.append({
+            'staves': sys_s,
+            'b0_x': b0_x
+        })
+    return system_dicts
+
 # ==============================================================================
 
 # 3. MAATSTREEPDETECTIE (MULTI-STAFF 16-SPATIES CONSENSUS)
 
 # ==============================================================================
 
-def detect_measure_barlines(img, sys_staves, is_first_system=False, min_measure_w=280):
-
+def detect_measure_barlines(img, sys_staves, b0_x=None, is_first_system=False, min_measure_w=320, key_fifths=0):
     """
-
-    Universele maatstreepdetector:
-
-    - In meerbalkige systemen (SATB, piano): detecteert synchrone verticale continuïteit over alle balken.
-
-    - In 1-balkige systemen (solo, melodie): detecteert verticale lijnen die over minstens 85% van de balkhoogte
-
-      lopen, zuiver dun (w <= 8px) zijn in de tussenruimtes en geen nootkop vormen.
-
+    Universele maatstreepdetector (Barline-First conform AGENTS.md Stap 2):
+    - In meerbalkige systemen (SATB, SAB, piano): detecteert synchrone verticale continuïteit over alle balken.
+    - Begint pas NA de sleutels en voortekens (geen spookmaatstrepen in de headerzone).
+    - Minimale maatbreedte min_measure_w voorkomt dat losse nootstokken binnen een maat als maatstreep worden gezien.
     """
-
     num_staves = len(sys_staves)
+    sp_local = sys_staves[0]['spacing']
+    if b0_x is None:
+        l0, l4 = int(sys_staves[0]['lines'][0]), int(sys_staves[0]['lines'][4])
+        strip_0 = img[l0:l4+1, :800]
+        col_0 = np.sum(strip_0 < 150, axis=0)
+        c_st = np.where(col_0 >= 3)[0]
+        b0_x = int(c_st[0]) if len(c_st) > 0 else 300
+
+    # Start pas ruim ná sleutel en toonsoort
+    header_offset = int(180 + abs(key_fifths) * sp_local * 1.5) if not is_first_system else 180
+    x_start = int(b0_x + header_offset)
+    x_end = int(img.shape[1] * 0.98)
 
     if num_staves > 1:
-
-        x_start = 720 if is_first_system else 350
-
-        x_end = int(img.shape[1] * 0.94)
-
         hits = np.zeros(x_end - x_start)
 
-        
-
         for s in sys_staves:
-
             lines = s['lines']
-
             for j in range(4):
-
                 y_sp = int(round((lines[j] + lines[j+1]) / 2.0))
-
                 row = (img[y_sp, x_start:x_end] < 150)
-
-                dil = cv2.dilate(row.astype(np.uint8).reshape(1, -1), np.ones((1, 5), dtype=np.uint8)).ravel()
-
+                dil = cv2.dilate(row.astype(np.uint8).reshape(1, -1), np.ones((1, 19), dtype=np.uint8)).ravel()
                 hits += dil
 
-                
-
         total_spaces = num_staves * 4
-
-        if min_measure_w < 250:
-
-            min_hits = max(7, int(total_spaces * 0.55))
-
-            strong_threshold = max(8, int(total_spaces * 0.62))
-
-            min_x = 800 if is_first_system else 480
-
-        else:
-
-            min_hits = max(8, int(total_spaces * 0.75))
-
-            strong_threshold = max(9, int(round(total_spaces * 0.90)))
-
-            min_x = 1000 if is_first_system else 650
-
-            
+        ratio = 0.80
+        min_hits = max(6, int(round(total_spaces * 0.70)))
+        strong_threshold = max(6, int(round(total_spaces * ratio)))
+        min_x = int(b0_x + sp_local * 12) if is_first_system else (x_start + 20)
 
         peaks = np.where(hits >= min_hits)[0] + x_start
-
         clusters = []
-
         for p in peaks:
-
             if not clusters or p - clusters[-1][-1] > 25:
-
                 clusters.append([p])
-
             else:
-
                 clusters[-1].append(p)
 
-                
-
         raw_bars = []
-
         for cl in clusters:
-
             x_c = int(np.mean(cl))
-
             max_h = np.max(hits[np.array(cl) - x_start])
-
             if x_c < min_x:
-
                 continue
-
             raw_bars.append((x_c, max_h))
-
-            
 
         strong = [item for item in raw_bars if item[1] >= strong_threshold]
 
+        # Multi-staves validatie: Een echte maatstreep moet in minstens (num_staves - 1) balken
+        # door alle 4 de tussenruimtes (van lijn 0 naar lijn 4) lopen.
+        valid_bars = []
+        for x, h in strong:
+            st_4 = 0
+            for s in sys_staves:
+                sp_hit = sum(1 for j in range(4) if np.any(img[int((s['lines'][j] + s['lines'][j+1])/2), max(0, x-7):min(img.shape[1], x+8)] < 150))
+                if sp_hit == 4:
+                    st_4 += 1
+            is_end = (x > img.shape[1] - 220)
+            req_4 = max(2, num_staves - 1)
+            if st_4 >= req_4 or is_end:
+                valid_bars.append((x, h))
+
         strong_nms = []
-
-        for x, h in sorted(strong, key=lambda it: it[1], reverse=True):
-
+        for x, h in sorted(valid_bars, key=lambda it: it[1], reverse=True):
             if all(abs(x - sx) >= min_measure_w for sx, sh in strong_nms):
-
                 strong_nms.append((x, h))
-
         strong_nms.sort(key=lambda it: it[0])
-
         return [x for x, h in strong_nms]
-
     else:
-
         # 1-balkig systeem (solostem / melodie zoals Calypso)
-
         s = sys_staves[0]
-
         lines = s['lines']
-
         l0, l4 = int(lines[0]), int(lines[4])
-
         staff_h = l4 - l0
-
         sp = staff_h / 4.0
 
-        
-
-        x_start = 600 if is_first_system else 350
-
-        x_end = int(img.shape[1] * 0.96)
+        x_start = int(b0_x + 180) if is_first_system else int(b0_x + 80)
+        x_end = int(img.shape[1] * 0.98)
 
         
 
@@ -616,39 +618,26 @@ def detect_measure_barlines(img, sys_staves, is_first_system=False, min_measure_
 
         return [cx for cx, _ in nms]
 
-def analyze_system_header(clean_img, sys_staves, b1, key_fifths="auto"):
-
+def analyze_system_header(clean_img, sys_staves, b1, b0_x=None, key_fifths="auto"):
     """
-
     Universele optische analyse van de header-zone [x_left, b1] op Systeem 1:
-
     1. Sleuteldetectie per balk (G-sleutel vs F-sleutel).
-
-    2. Maatsoortdetectie (Common Time 4/4, Alla Breve 2/2, of gestapeld 2/4).
-
+    2. Maatsoortdetectie (Common Time 4/4, Alla Breve 2/2, 6/8 of 2/4).
     3. Start van de noten (x_notes_start).
-
     """
-
     s0 = sys_staves[0]
-
     lines0 = s0['lines']
-
     sp0 = s0['spacing']
-
     l0_0, l4_0 = int(lines0[0]), int(lines0[4])
 
-    
-
-    # 0. Zoek de linkerrand van de balklijnen
-
-    strip_left = clean_img[int(sys_staves[0]['lines'][0]):int(sys_staves[-1]['lines'][4])+1, :800] if len(sys_staves) > 1 else clean_img[l0_0:l4_0+1, :600]
-
-    col_ink = np.sum(strip_left < 150, axis=0)
-
-    staff_starts = np.where(col_ink >= (int( strip_left.shape[0] * 0.85 ) if len(sys_staves) > 1 else 3))[0]
-
-    x_staff_start = int(staff_starts[0]) if len(staff_starts) > 0 else 200
+    # 0. Startpositie van de balk (B0)
+    if b0_x is not None:
+        x_staff_start = b0_x
+    else:
+        strip_left = clean_img[int(sys_staves[0]['lines'][0]):int(sys_staves[-1]['lines'][4])+1, :800] if len(sys_staves) > 1 else clean_img[l0_0:l4_0+1, :600]
+        col_ink = np.sum(strip_left < 150, axis=0)
+        staff_starts = np.where(col_ink >= (int( strip_left.shape[0] * 0.85 ) if len(sys_staves) > 1 else 3))[0]
+        x_staff_start = int(staff_starts[0]) if len(staff_starts) > 0 else 200
 
     
 
@@ -694,7 +683,7 @@ def analyze_system_header(clean_img, sys_staves, b1, key_fifths="auto"):
 
     # 2. Maatsoort en Start van de noten bepalen via Glyphs vóór B1
 
-    crop_header = clean_img[l0_0:l4_0+1, x_staff_start:b1]
+    crop_header = clean_img[l0_0:l4_0+1, x_staff_start:min(b1, x_staff_start + int(sp0 * 16))]
 
     _, inv_h = cv2.threshold(crop_header, 160, 255, cv2.THRESH_BINARY_INV)
 
@@ -707,155 +696,118 @@ def analyze_system_header(clean_img, sys_staves, b1, key_fifths="auto"):
     num_e, _, stats_e, cents_e = cv2.connectedComponentsWithStats(no_lines_h)
 
     elements = []
-
     for i in range(1, num_e):
-
         x, y, w, h, a = stats_e[i, 0], stats_e[i, 1], stats_e[i, 2], stats_e[i, 3], stats_e[i, 4]
-
-        if a >= 50 and w >= 5:
-
+        if a >= 50 and w >= 5 and h >= int(sp0 * 0.40) and (w / max(1, h)) <= 2.8:
             elements.append((x, y, w, h, a))
 
     elements.sort(key=lambda it: it[0])
 
-    
-
     glyphs = []
-
     for el in elements:
-
-        if not glyphs or el[0] - (glyphs[-1]['x'] + glyphs[-1]['w']) > 15:
-
+        if not glyphs or el[0] - (glyphs[-1]['x'] + glyphs[-1]['w']) > 8:
             glyphs.append({
-
                 'x': el[0], 'w': el[2], 'y': el[1], 'h': el[3],
-
                 'area': el[4]
-
             })
-
         else:
-
             g = glyphs[-1]
-
             x_min = min(g['x'], el[0])
-
             x_max = max(g['x'] + g['w'], el[0] + el[2])
-
             y_min = min(g['y'], el[1])
-
             y_max = max(g['y'] + g['h'], el[1] + el[3])
-
             g['x'] = x_min
-
             g['w'] = x_max - x_min
-
             g['y'] = y_min
-
             g['h'] = y_max - y_min
-
             g['area'] += el[4]
 
-            
-
     time_sig = "4/4"
-
     x_notes_start = x_staff_start + 180
 
-    header_cand = [g for g in glyphs if 105 <= g['x'] < 330 and g['w'] >= 24 and g['area'] >= 240 and (g['h'] / max(1, g['w'])) < 2.40 and (g['y'] + g['h']) <= sp0 * 4.4]
+    # Clef end via clef bounding box
+    clef_glyph = None
+    for g in glyphs:
+        if g['x'] < int(sp0 * 6.0) and g['h'] >= 2.0 * sp0 and g['area'] >= 1200:
+            if clef_glyph is None or g['area'] > clef_glyph['area']:
+                clef_glyph = g
+    clef_end = (clef_glyph['x'] + clef_glyph['w']) if clef_glyph else int(sp0 * 4.0)
+
+    header_cand = []
+    for g in glyphs:
+        if g['x'] > clef_end and g['w'] >= 25 and g['area'] >= 450 and g['x'] < int(sp0 * 9.0) and (g['h'] / max(1, g['w'])) < 4.80:
+            header_cand.append(g)
 
     time_glyph = header_cand[-1] if header_cand else None
 
-    
-
-    print(f"🔍 DEBUG HEADER: time_glyph={time_glyph}, glyphs={[ (g['x'], g['w'], g['h'], g['area']) for g in glyphs ]}")
-
-    key_end_x = int(time_glyph['x']) if time_glyph else 220
-
-    key_start_x = 125
-
-    key_crop = no_lines_h[:, key_start_x:key_end_x]
-
-    
-
     if isinstance(key_fifths, str) and key_fifths.lower() == 'auto':
+        acc_end_x = int(time_glyph['x']) if time_glyph else int(sp0 * 8.0)
+        acc_glyphs = [g for g in glyphs if clef_end <= g['x'] < acc_end_x]
 
-        if key_crop.size == 0 or np.sum(key_crop > 0) < 250 or (key_end_x - key_start_x) < 20:
-
+        if not acc_glyphs or sum(g['area'] for g in acc_glyphs) < 300:
             det_key_fifths = 0
-
         else:
+            acc_x1 = min(g['x'] for g in acc_glyphs)
+            acc_x2 = max(g['x'] + g['w'] for g in acc_glyphs)
+            acc_crop = no_lines_h[:, acc_x1:acc_x2]
+            w_acc = acc_x2 - acc_x1
 
-            col_p = np.sum(key_crop > 0, axis=0)
+            col_p = np.sum(acc_crop > 0, axis=0)
+            k_max = np.max(col_p) if len(col_p) > 0 else 1
+            peaks = [ci for ci in range(1, len(col_p)-1) if col_p[ci] > col_p[ci-1] and col_p[ci] >= col_p[ci+1] and col_p[ci] >= k_max * 0.70]
+            nms_p = []
+            for p in sorted(peaks, key=lambda pi: col_p[pi], reverse=True):
+                if all(abs(p - op) >= 6 for op in nms_p):
+                    nms_p.append(p)
+            nms_p.sort()
 
-            max_p = np.max(col_p) if len(col_p) > 0 else 1
+            # Een kruis (#) heeft altijd twee parallelle verticale stokken met een vallei ertussen (afstand 8..20 px)
+            # Een mol (b) heeft slechts één enkele verticale stok
+            has_twin_stems = False
+            for i in range(len(nms_p) - 1):
+                dist = nms_p[i+1] - nms_p[i]
+                if 8 <= dist <= 20:
+                    dip = np.min(col_p[nms_p[i]:nms_p[i+1]])
+                    if dip < 0.60 * min(col_p[nms_p[i]], col_p[nms_p[i+1]]):
+                        has_twin_stems = True
+                        break
 
-            peaks = [ci for ci in range(1, len(col_p)-1) if col_p[ci] > col_p[ci-1] and col_p[ci] >= col_p[ci+1] and col_p[ci] > max_p * 0.40]
-
-            if len(peaks) >= 3:
-
-                det_key_fifths = max(1, int(round(len(peaks) / 2)))
-
+            if has_twin_stems:
+                count = max(1, int(round(w_acc / 28.0)))
+                det_key_fifths = count
             else:
-
-                det_key_fifths = max(1, int(round((key_end_x - key_start_x) / (sp0 * 1.05))))
-
-            det_key_fifths = abs(det_key_fifths)
-
+                count = max(1, len(nms_p))
+                det_key_fifths = -count
     else:
-
         det_key_fifths = int(key_fifths) if key_fifths is not None else 0
 
     key_fifths = det_key_fifths
 
-            
-
     if time_glyph is not None:
-
         gx, gw, gy, gh = time_glyph['x'], time_glyph['w'], time_glyph['y'], time_glyph['h']
-
         g_crop = no_lines_h[:, gx:gx+gw]
-
         gh_full, gw_full = g_crop.shape
-
         mid_y = gh_full // 2
 
-        
-
         y_prof = np.sum(g_crop > 0, axis=1)
-
         min_mid = np.min(y_prof[mid_y-3:mid_y+4]) if len(y_prof) > mid_y+4 else 0
-
         max_top = np.max(y_prof[:mid_y]) if mid_y > 0 else 1
-
         max_bot = np.max(y_prof[mid_y:]) if mid_y < gh_full else 1
-
         is_stacked = (gh_full >= sp0 * 2.35 and min_mid < 0.45 * min(max_top, max_bot))
 
-        
-
         if not is_stacked:
-
             time_sig = "4/4"
-
+        elif gh >= sp0 * 3.60:
+            time_sig = "6/8"
         else:
-
             top_half = g_crop[:mid_y-2, :]
-
             bot_half = g_crop[mid_y+2:, :]
-
             top_norm = cv2.resize((top_half > 0).astype(np.float32), (30, 30))
-
             bot_norm = cv2.resize((bot_half > 0).astype(np.float32), (30, 30))
-
             sim = cv2.matchTemplate(top_norm, bot_norm, cv2.TM_CCOEFF_NORMED)[0][0]
-
             if sim > 0.25:
-
                 time_sig = "2/2"
-
             else:
-
                 time_sig = "2/4"
 
                 
@@ -1017,11 +969,11 @@ class ScoreParams:
         self.min_head_h = int(round(self.sp * 0.65))
         self.min_head_area = int(round(self.sp * self.sp * 0.40))
         self.min_beam_th = max(10, int(round(self.sp * 0.38)))
-        self.fermata_min_w = int(round(self.sp * 1.25))
-        self.fermata_max_w = int(round(self.sp * 3.45))
-        self.fermata_min_h = int(round(self.sp * 0.60))
-        self.fermata_max_h = int(round(self.sp * 2.05))
-        self.fermata_min_area = int(round(self.sp * self.sp * 0.50))
+        self.fermata_min_w = int(round(self.sp * 1.80))
+        self.fermata_max_w = int(round(self.sp * 3.65))
+        self.fermata_min_h = int(round(self.sp * 0.45))
+        self.fermata_max_h = int(round(self.sp * 2.50))
+        self.fermata_min_area = int(round(self.sp * self.sp * 0.22))
 
 def track_local_staff_lines(img, staff_info, x):
     """
@@ -1143,7 +1095,7 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
 
         aspect = hw / max(1, hh)
 
-        if 25 <= harea <= 550 and 6 <= hw <= int(sp * 1.45) and 4 <= hh <= int(sp * 1.15) and 0.35 <= aspect <= 4.2 and hx > 2 and (hx + hw) < w_c - 2 and (lines[0] - sp * 0.65) <= (y_top + cents_h[hi][1]) <= (lines[4] + sp * 1.25):
+        if 25 <= harea <= 550 and 6 <= hw <= int(sp * 1.45) and 4 <= hh <= int(sp * 1.15) and 0.65 <= aspect <= 3.2 and hx > 2 and (hx + hw) < w_c - 2 and (lines[0] - sp * 0.65) <= (y_top + cents_h[hi][1]) <= (lines[4] + sp * 1.25):
 
             raw_cavs.append({
 
@@ -1227,202 +1179,294 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
 
     
 
-    # 1. Morfologische opening met ellips ter grootte van een nootkop
+    # STAP 4A: STEM-FIRST DETECTIE (Conform AGENTS.md Sectie 5)
+    # 1. Verticale stokisolatie direct op inv (zonder balklijnen eerst te knippen)
+    min_stem_h = int(sp * 0.95)
+    stem_k = cv2.getStructuringElement(cv2.MORPH_RECT, (1, min_stem_h))
+    opened_stems = cv2.morphologyEx(inv, cv2.MORPH_OPEN, stem_k)
+    num_s, _, s_stats, _ = cv2.connectedComponentsWithStats(opened_stems)
 
+    raw_stems = []
+    for si in range(1, num_s):
+        sx, sy, sw, sh = s_stats[si, 0], s_stats[si, 1], s_stats[si, 2], s_stats[si, 3]
+        if sx <= 6 or (sx + sw) >= crop.shape[1] - 6:
+            continue
+        if sh >= min_stem_h and sw <= int(sp * 0.45):
+            raw_stems.append((sx + sw // 2, sy, sy + sh, sw, sh))
+    raw_stems.sort(key=lambda it: it[0])
+
+    stems = []
+    for st in raw_stems:
+        if not stems or st[0] - stems[-1][0] > 18:
+            stems.append(st)
+        else:
+            prev = stems[-1]
+            stems[-1] = (int((prev[0] + st[0]) / 2), min(prev[1], st[1]), max(prev[2], st[2]), max(prev[3], st[3]), max(prev[4], st[4]))
+
+    # 2. Kopdetectie aan de uiteinden van elke stok (Uiteinde A)
+    candidates = []
+    for st_cx, st_y1, st_y2, st_w, st_h in stems:
+        abs_st_x = mx1 + st_cx
+        abs_top_y = y_top + st_y1
+        abs_bot_y = y_top + st_y2
+        loc_lines = track_local_staff_lines(img, staff_info, abs_st_x)
+        loc_sp = (loc_lines[4] - loc_lines[0]) / 4.0
+
+        bot_in_staff = (loc_lines[0] - loc_sp * 0.6 <= abs_bot_y <= loc_lines[4] + loc_sp * 0.6)
+        top_in_staff = (loc_lines[0] - loc_sp * 0.6 <= abs_top_y <= loc_lines[4] + loc_sp * 0.6)
+
+        x_l = max(0, int(st_cx - loc_sp * 1.10))
+        x_r = min(inv.shape[1], int(st_cx + loc_sp * 1.10))
+        top_slice = inv[max(0, int(st_y1 - loc_sp * 0.40)):min(inv.shape[0], int(st_y1 + loc_sp * 0.70)), x_l:x_r]
+        bot_slice = inv[max(0, int(st_y2 - loc_sp * 0.70)):min(inv.shape[0], int(st_y2 + loc_sp * 0.40)), x_l:x_r]
+        w_top = int(np.max(np.sum(top_slice > 0, axis=1))) if top_slice.size > 0 else 0
+        w_bot = int(np.max(np.sum(bot_slice > 0, axis=1))) if bot_slice.size > 0 else 0
+
+        if abs(w_bot - w_top) >= 5:
+            is_up = (w_bot > w_top)
+        elif bot_in_staff and not top_in_staff:
+            is_up = True
+        elif top_in_staff and not bot_in_staff:
+            is_up = False
+        else:
+            is_up = (w_bot >= w_top)
+
+        if debug:
+            print(f"      STEM_DIR_DECISION: st_cx={st_cx}, st_y1={st_y1}, st_y2={st_y2}, bot_in={bot_in_staff}, top_in={top_in_staff} => is_up={is_up}")
+
+        if is_up:
+            ny1 = max(0, int(st_y2 - loc_sp * 0.55))
+            ny2 = min(inv.shape[0], int(st_y2 + loc_sp * 0.75))
+            nx1 = max(0, int(st_cx - loc_sp * 1.15))
+            nx2 = min(inv.shape[1], st_cx + 2)
+        else:
+            ny1 = max(0, int(st_y1 - loc_sp * 0.75))
+            ny2 = min(inv.shape[0], int(st_y1 + loc_sp * 0.55))
+            nx1 = max(0, st_cx - 2)
+            nx2 = min(inv.shape[1], int(st_cx + loc_sp * 1.15))
+
+        head_roi = inv[ny1:ny2, nx1:nx2]
+        head_mass = head_roi[:, :-4] if is_up else head_roi[:, 4:]
+        pts = np.where(head_mass > 0)
+        if len(pts[0]) < 20:
+            pts = np.where(head_roi > 0)
+            cx_offset = 0
+        else:
+            cx_offset = 0 if is_up else 4
+
+        if len(pts[0]) > 0:
+            cy_rel = float(np.mean(pts[0]))
+            cx_rel = float(np.mean(pts[1])) + cx_offset
+            head_cy = y_top + ny1 + cy_rel
+            head_cx = mx1 + nx1 + cx_rel
+        else:
+            head_cy = (abs_bot_y - loc_sp * 0.40) if is_up else (abs_top_y + loc_sp * 0.40)
+            head_cx = (abs_st_x - loc_sp * 0.45) if is_up else (abs_st_x + loc_sp * 0.45)
+
+        candidates.append({
+            'rx': int(head_cx - mx1 - loc_sp * 0.45),
+            'ry': int(head_cy - y_top - loc_sp * 0.40),
+            'rw': int(loc_sp * 0.90),
+            'rh': int(loc_sp * 0.80),
+            'area': len(pts[0]) if len(pts[0]) > 0 else 200,
+            'aspect': 1.15,
+            'cx': int(head_cx - mx1),
+            'cy': int(head_cy - y_top),
+            'abs_x': head_cx,
+            'abs_y': head_cy,
+            'label': len(candidates) + 1,
+            'is_open': False,
+            'stem_cx': st_cx,
+            'stem_y1': st_y1,
+            'stem_y2': st_y2,
+            'stem_dir': 'up' if is_up else 'down',
+            'has_stem': True
+        })
+
+    # Aanvullend: verzamel ook eventuele elliptische kandidaten (kwartnoten zonder lange stok)
     ew = int(sp * 0.70)
-
     eh = int(sp * 0.50)
-
     head_k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ew, eh))
-
     opened = cv2.morphologyEx(inv, cv2.MORPH_OPEN, head_k)
-
-    
-
     n_labels, _, stats, cents = cv2.connectedComponentsWithStats(opened)
 
-    
-
-    notes = []
-
-    # 1. Verzamel alle blob-kandidaten in het maatvenster
-
-    candidates = []
-
     for i in range(1, n_labels):
-
         w = stats[i, cv2.CC_STAT_WIDTH]
-
         h = stats[i, cv2.CC_STAT_HEIGHT]
-
         area = stats[i, cv2.CC_STAT_AREA]
-
         aspect = w / max(1, h)
-
-        
-
-        # Filter te kleine spikkels en extreem brede balken weg
-
         if area > 80 and aspect < 2.2:
-
             rx = stats[i, cv2.CC_STAT_LEFT]
-
             ry = stats[i, cv2.CC_STAT_TOP]
-
             rw = stats[i, cv2.CC_STAT_WIDTH]
-
             rh = stats[i, cv2.CC_STAT_HEIGHT]
-
-            
-
-            # Sluit rand-snijdende maatstreepartefacten uit
-
-            is_touching_border = (rx <= 4 or (rx + rw) >= crop.shape[1] - 4)
-
-            if is_touching_border and (rw < 14 or aspect < 0.65):
-
-                continue
-
-                
-
-            candidates.append({
-
-                'rx': rx, 'ry': ry, 'rw': rw, 'rh': rh,
-
-                'area': area, 'aspect': aspect,
-
-                'cx': rx + rw // 2, 'cy': ry + rh // 2,
-
-                'abs_x': mx1 + rx + rw // 2,
-
-                'abs_y': y_top + ry + rh // 2,
-
-                'label': i,
-
-                'is_open': False
-
-            })
+            cand_abs_x = mx1 + rx + rw // 2
+            if all(abs(cand_abs_x - sc['abs_x']) >= int(sp * 0.55) for sc in candidates):
+                candidates.append({
+                    'rx': rx, 'ry': ry, 'rw': rw, 'rh': rh,
+                    'area': area, 'aspect': aspect,
+                    'cx': rx + rw // 2, 'cy': ry + rh // 2,
+                    'abs_x': cand_abs_x,
+                    'abs_y': y_top + ry + rh // 2,
+                    'label': len(candidates) + 1,
+                    'is_open': False,
+                    'has_stem': False
+                })
 
     candidates.sort(key=lambda c: c['abs_x'])
 
     
 
-    # 2. VOORTEKENS EERST: Detecteer toevallige tekens (#, b) links van een nootkop
-
+    # 2. VOORTEKENS EERST: Detecteer toevallige tekens (#, ♮, b) links van een nootkop
     # en koppel ze direct aan die nootkop zodat ze NOOIT een spooknoot kunnen worden.
-
     excluded_indices = set()
-
     for j in range(len(candidates)):
-
         c_note = candidates[j]
-
         for i in range(j):
-
             if i in excluded_indices:
-
                 continue
-
             c_acc = candidates[i]
-
             dx = c_note['abs_x'] - c_acc['abs_x']
-
             dy = abs(c_note['abs_y'] - c_acc['abs_y'])
-
             acc_w = c_acc['rw']
-
             acc_h = c_acc['rh']
-
-            is_valid_acc_shape = (int(sp * 0.25) <= acc_w <= int(sp * 1.35) and int(sp * 0.65) <= acc_h <= int(sp * 2.20))
-
-            if 8 <= dx <= int(sp * 2.2) and dy <= sp * 1.4 and is_valid_acc_shape:
-
+            is_valid_acc_shape = (int(sp * 0.20) <= acc_w <= int(sp * 1.50) and int(sp * 0.50) <= acc_h <= int(sp * 2.30))
+            if 6 <= dx <= int(sp * 2.2) and dy <= sp * 1.4 and is_valid_acc_shape:
                 excluded_indices.add(i)
-
-                c_note['accidental'] = 'sharp'
+                # Karakteristieke vorm van herstellingsteken (natural) vs kruis (sharp) met balklijn-maskering
+                cy_acc = c_acc['ry'] + c_acc['rh'] // 2
+                acc_y1 = max(0, int(cy_acc - sp * 0.95))
+                acc_y2 = min(crop.shape[0], int(cy_acc + sp * 0.95))
+                acc_x1 = max(0, int(c_acc['rx'] - 2))
+                acc_x2 = min(crop.shape[1], int(c_acc['rx'] + c_acc['rw'] + 2))
+                acc_crop = inv[acc_y1:acc_y2, acc_x1:acc_x2]
+                if acc_crop.size > 0:
+                    ll_acc = track_local_staff_lines(img, staff_info, mx1 + (acc_x1 + acc_x2) // 2)
+                    acc_clean = acc_crop.copy()
+                    for line_y in ll_acc:
+                        rel_ly = int(line_y - (y_top + acc_y1))
+                        if 0 <= rel_ly < acc_clean.shape[0]:
+                            acc_clean[max(0, rel_ly - 2):min(acc_clean.shape[0], rel_ly + 3), :] = 0
+                    acc_clean = cv2.morphologyEx(acc_clean, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (1, 5)))
+                    full_h = acc_crop.shape[0]
+                    full_w = acc_crop.shape[1]
+                    k_top = max(2, int(full_h * 0.35))
+                    k_bot = max(2, int(full_h * 0.35))
+                    top_rows = (acc_clean[:k_top, :] > 0)
+                    bot_rows = (acc_clean[-k_bot:, :] > 0)
+                    top_cols = np.where(top_rows)[1]
+                    bot_cols = np.where(bot_rows)[1]
+                    x_top = float(np.mean(top_cols)) / max(1, full_w) if len(top_cols) > 0 else 0.5
+                    x_bot = float(np.mean(bot_cols)) / max(1, full_w) if len(bot_cols) > 0 else 0.5
+                    if (x_bot - x_top) >= 0.10:
+                        c_note['accidental'] = 'natural'
+                    elif c_acc['rw'] >= int(sp * 0.45) and c_acc['rh'] >= int(sp * 1.1) and c_acc['area'] >= int(sp * sp * 0.35):
+                        c_note['accidental'] = 'sharp'
+                elif c_acc['rw'] >= int(sp * 0.45) and c_acc['rh'] >= int(sp * 1.1) and c_acc['area'] >= int(sp * sp * 0.35):
+                    c_note['accidental'] = 'sharp'
 
     valid_candidates = [c for idx, c in enumerate(candidates) if idx not in excluded_indices]
 
-    
-
     # Integreer ingesloten witte holtes (open nootkoppen) direct met de geldige kandidaten
-
     to_remove = set()
-
-    standalone_cavs = []
-
+    used_cavs = set()
     for cav in cavities:
+        cav_asp = cav['rw'] / max(1, cav['rh'])
         if debug:
-            print(f"      CAV in {clef}: x={int(cav['abs_x'])}, y={int(cav['abs_y'])}, area={cav['area']}, w={cav['rw']}, h={cav['rh']}")
-
-        matched = [c for c in valid_candidates if abs(c['cx'] - cav['cx']) < max(24, cav['rw'] * 1.0) and abs(c['cy'] - cav['cy']) < max(28, cav['rh'] * 1.5)]
-
-        if matched:
-
+            print(f"      CAV in {clef}: x={int(cav['abs_x'])}, y={int(cav['abs_y'])}, area={cav['area']}, w={cav['rw']}, h={cav['rh']}, asp={cav_asp:.2f}")
+        matched = [c for c in valid_candidates if abs(c['cx'] - cav['cx']) <= int(sp * 0.70) and abs(c['cy'] - cav['cy']) <= int(sp * 0.70) and c['area'] < 650]
+        if matched and cav_asp >= 0.80:
             primary = matched[0]
-
             primary['is_open'] = True
-
-            if cav['area'] >= 80:
+            used_cavs.add(id(cav))
+            if cav['area'] >= 60:
                 primary['has_big_cav'] = True
-
                 primary['cy'] = cav['cy']
-
                 primary['abs_y'] = cav['abs_y']
-
                 primary['cx'] = cav['cx']
-
                 primary['abs_x'] = cav['abs_x']
-
                 primary['rw'] = cav['rw']
-
                 primary['rh'] = cav['rh']
-
                 primary['rx'] = int(cav['cx'] - cav['rw'] // 2)
-
                 primary['ry'] = int(cav['cy'] - cav['rh'] // 2)
-
                 for other in matched[1:]:
-
                     to_remove.add(id(other))
-
             else:
-
                 for mc in matched:
-
                     mc['is_open'] = True
-
-        else:
-
-            # Standalone open nootkop (bv. in open tussenruimte onder de balk zoals D4)
-
-            cav_aspect = cav['rw'] / max(1, cav['rh'])
-            is_near_solid = any(abs(c['cx'] - cav['cx']) < sp * 1.1 and abs(c['cy'] - cav['cy']) < sp * 1.1 for c in valid_candidates)
-            if not is_near_solid and cav['area'] >= 45 and cav['rw'] >= int(sp * 0.60) and cav['rh'] >= int(sp * 0.35) and cav_aspect >= 0.85:
-
-                standalone_cavs.append({
-
-                    'rx': int(cav['cx'] - cav['rw'] // 2),
-
-                    'ry': int(cav['cy'] - cav['rh'] // 2),
-
-                    'rw': cav['rw'], 'rh': cav['rh'],
-
-                    'area': cav['area'], 'aspect': cav['rw'] / max(1, cav['rh']),
-
-                    'cx': cav['cx'], 'cy': cav['cy'],
-
-                    'abs_x': cav['abs_x'], 'abs_y': cav['abs_y'],
-
+        elif not matched and cav_asp >= 1.05 and cav['area'] >= 100:
+            # Ongekoppelde open holte binnen de balklijnen: Zelfstandige HELE NOOT of open nootkop!
+            if (lines[0] - sp * 0.8) <= cav['abs_y'] <= (lines[4] + sp * 0.8):
+                used_cavs.add(id(cav))
+                valid_candidates.append({
+                    'rx': cav['rx'],
+                    'ry': cav['ry'],
+                    'rw': cav['rw'],
+                    'rh': cav['rh'],
+                    'area': cav['area'],
+                    'aspect': cav['rw'] / max(1, cav['rh']),
+                    'cx': cav['cx'],
+                    'cy': cav['cy'],
+                    'abs_x': cav['abs_x'],
+                    'abs_y': cav['abs_y'],
                     'label': -1,
-
-                    'is_open': True
-
+                    'is_open': True,
+                    'has_big_cav': True,
+                    'is_whole_note': True,
+                    'has_stem': False
                 })
 
-    valid_candidates = [c for c in valid_candidates if id(c) not in to_remove] + standalone_cavs
-
+    valid_candidates = [c for c in valid_candidates if id(c) not in to_remove]
     valid_candidates.sort(key=lambda c: c['abs_x'])
+
+    # Aanvullende optische voortekenscan in inv links van elke nootkandidaat
+    # (voor dunne tekens zoals herstellingstekens die door ellips-opening zijn weggefilterd)
+    for c_idx, c in enumerate(valid_candidates):
+        if c.get('accidental'):
+            continue
+        x2_acc = int(c['rx'] - 2)
+        min_x = 4
+        if c_idx > 0:
+            min_x = max(min_x, int(valid_candidates[c_idx - 1]['rx'] + valid_candidates[c_idx - 1]['rw'] + 2))
+        x1_acc = max(min_x, int(c['rx'] - sp * 1.85))
+        if x2_acc - x1_acc >= 4:
+            y1_acc = max(0, int(c['cy'] - sp * 1.15))
+            y2_acc = min(crop.shape[0], int(c['cy'] + sp * 1.15))
+            acc_roi = inv[y1_acc:y2_acc, x1_acc:x2_acc]
+            if acc_roi.size > 0:
+                ll_acc = track_local_staff_lines(img, staff_info, mx1 + (x1_acc + x2_acc) // 2)
+                acc_clean = acc_roi.copy()
+                for line_y in ll_acc:
+                    rel_ly = int(line_y - (y_top + y1_acc))
+                    if 0 <= rel_ly < acc_clean.shape[0]:
+                        acc_clean[max(0, rel_ly - 3):min(acc_clean.shape[0], rel_ly + 4), :] = 0
+                acc_clean = cv2.morphologyEx(acc_clean, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (1, 7)))
+                n_acc, _, st_acc, cents_acc = cv2.connectedComponentsWithStats(acc_clean)
+                if debug:
+                    print(f"      OPT ACC CHECK {clef}: c={int(c['abs_x'])}, n_acc={n_acc}, roi_w={acc_roi.shape[1]}")
+                for ai in range(1, n_acc):
+                    ax, ay, aw, ah, a_area = st_acc[ai, 0], st_acc[ai, 1], st_acc[ai, 2], st_acc[ai, 3], st_acc[ai, 4]
+                    dist_to_head = c['rx'] - (x1_acc + ax + aw)
+                    if not (-2 <= dist_to_head <= int(sp * 1.6)):
+                        continue
+                    if not (int(sp * 0.60) <= ah <= int(sp * 2.30) and int(sp * 0.20) <= aw <= int(sp * 1.35) and a_area >= int(sp * 0.7)):
+                        continue
+                    if abs((y1_acc + ay + ah // 2) - c['cy']) > int(sp * 0.85):
+                        continue
+                    comp_acc = (acc_clean[ay:ay+ah, ax:ax+aw] > 0)
+                    k_top = max(2, int(ah * 0.35))
+                    k_bot = max(2, int(ah * 0.35))
+                    top_rows = comp_acc[:k_top, :]
+                    bot_rows = comp_acc[-k_bot:, :]
+                    top_cols = np.where(top_rows)[1]
+                    bot_cols = np.where(bot_rows)[1]
+                    x_top = float(np.mean(top_cols)) / max(1, aw) if len(top_cols) > 0 else 0.5
+                    x_bot = float(np.mean(bot_cols)) / max(1, aw) if len(bot_cols) > 0 else 0.5
+                    if (x_bot - x_top) >= 0.18:
+                        c['accidental'] = 'natural'
+                    elif aw >= int(sp * 0.45) and ah >= int(sp * 1.1) and a_area >= int(sp * sp * 0.35):
+                        c['accidental'] = 'sharp'
+                    break
 
     if debug:
         print(f"   🔍 DEBUG CANDIDATES ({clef}): candidates={len(candidates)}, valid={len(valid_candidates)}, cavs={len(cavities)}, raw_cavs={len(raw_cavs)}")
@@ -1452,46 +1496,52 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
             fw, fh, farea = stats_fc[fci, 2], stats_fc[fci, 3], stats_fc[fci, 4]
             aspect_f = fw / max(1, fh)
             cx_f, cy_f = cents_fc[fci][0], cents_fc[fci][1]
-            if params.fermata_min_w <= fw <= params.fermata_max_w and params.fermata_min_h <= fh <= params.fermata_max_h and 1.35 <= aspect_f <= 2.35 and farea >= params.fermata_min_area:
+            if params.fermata_min_w <= fw <= params.fermata_max_w and params.fermata_min_h <= fh <= params.fermata_max_h and 1.15 <= aspect_f <= 2.65 and farea >= params.fermata_min_area:
                 arches.append((cx_f, cy_f, fw, fh, farea))
-            elif int(sp * 0.25) <= fw <= int(sp * 1.05) and int(sp * 0.25) <= fh <= int(sp * 0.95) and 30 <= farea <= 450:
+            elif int(sp * 0.15) <= fw <= int(sp * 1.15) and int(sp * 0.15) <= fh <= int(sp * 1.10) and 15 <= farea <= 500:
                 dots.append((cx_f, cy_f, fw, fh, farea))
         for acx, acy, afw, afh, _ in arches:
+            # Een echte fermate bestaat uit een brede boog met een losse stip eronder (of erboven bij bas):
             has_matching_dot = any(
-                abs(acx - dcx) <= sp * 0.45 and ((dcy > acy) if not is_inverted else (dcy < acy))
+                abs(acx - dcx) <= sp * 0.65 and ((dcy > acy) if not is_inverted else (dcy < acy))
                 for dcx, dcy, _, _, _ in dots
             )
+            if debug:
+                print(f"      FERMATA ARCH ({'inv' if is_inverted else 'top'}): acx={mx1 + acx}, w={afw}, h={afh}, has_dot={has_matching_dot}")
             if has_matching_dot:
                 found_xs.append(mx1 + acx)
         return found_xs
 
-    y_ferm_top = max(0, int(l0 - sp * 2.0))
-    y_ferm_bot = max(y_ferm_top + 1, int(l0 - 6))
+    y_ferm_top = max(0, int(l0 - sp * 3.5))
+    y_ferm_bot = max(y_ferm_top + 1, int(l0 - 4))
     fermata_top_x = _find_fermatas_in_crop(img[y_ferm_top:y_ferm_bot, mx1:mx2], is_inverted=False)
 
-    y_ferm_bot_top = min(img.shape[0] - 1, int(l4 + 6))
-    y_ferm_bot_bot = min(img.shape[0], int(l4 + sp * 2.0))
+    y_ferm_bot_top = min(img.shape[0] - 1, int(l4 + 4))
+    y_ferm_bot_bot = min(img.shape[0], int(l4 + sp * 3.5))
     fermata_bot_x = _find_fermatas_in_crop(img[y_ferm_bot_top:y_ferm_bot_bot, mx1:mx2], is_inverted=True) if clef == 'bass' else []
     fermata_x = fermata_top_x + fermata_bot_x
 
     note_candidates = []
     for c in valid_candidates:
-        if any(abs(c['abs_x'] - fx) < sp * 1.5 for fx in fermata_top_x) and c['abs_y'] < (l0 - sp * 0.15):
+        ferm_top_match = not c.get('is_open') and any(abs(c['abs_x'] - fx) < sp * 1.5 for fx in fermata_top_x) and c['abs_y'] < (l0 - sp * 0.85)
+        ferm_bot_match = not c.get('is_open') and any(abs(c['abs_x'] - fx) < sp * 1.5 for fx in fermata_bot_x) and c['abs_y'] > (l4 + sp * 0.85)
+        if ferm_top_match:
             continue
-        if any(abs(c['abs_x'] - fx) < sp * 1.5 for fx in fermata_bot_x) and c['abs_y'] > (l4 + sp * 0.15):
+        if ferm_bot_match:
             continue
         is_noise = (c.get('label', 0) != -1 and not c.get('is_open')) and (c['rw'] < params.min_head_w or c['rh'] < params.min_head_h or c['area'] < params.min_head_area)
         
         # STOK-EERST VALIDATIE (Stem-First conform AGENTS.md Sectie 5):
-        # Elke gesloten nootkop (kwart, achtste, zestiende) MOET een verticale stok van >= 1.2*sp bezitten.
-        # Alleen open nootkoppen (hele noten) kunnen zonder stok voorkomen.
-        has_stem = True
-        if not c.get('is_open') and c.get('label', 0) != -1:
+        # Hele noten (zonder stok) en noten met een geldige stok worden geaccepteerd.
+        is_whole_note = c.get('is_whole_note') or (c.get('is_open') and not c.get('has_stem'))
+        has_stem = c.get('has_stem', False)
+        
+        if not is_whole_note and not has_stem and c.get('label', 0) != -1:
             cand_cx = c['rx'] + c['rw'] // 2
             cand_y1 = c['ry']
             cand_y2 = c['ry'] + c['rh']
             stem_check_h = int(sp * 2.5)
-            min_stem_len = int(sp * 1.2)
+            min_stem_len = int(sp * 1.1)
             
             # Zoekzone boven de nootkop (up-stem)
             y_up_start = max(0, cand_y1 - stem_check_h)
@@ -1516,7 +1566,7 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
                 
             has_stem = (has_up_stem or has_dn_stem)
 
-        if not is_noise and has_stem:
+        if not is_noise and (has_stem or is_whole_note):
             if note_candidates and abs(c['abs_x'] - note_candidates[-1]['abs_x']) < int(sp * 0.65):
                 prev = note_candidates[-1]
                 if (c.get('is_open') and c.get('label', 0) != -1 and not prev.get('is_open') and c['area'] >= prev['area'] * 0.7) or (c['area'] > prev['area'] * 1.15):
@@ -1530,9 +1580,13 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
 
     for c_idx, c in enumerate(note_candidates):
 
-        rx, ry, rw, rh = c['rx'], c['ry'], c['rw'], c['rh']
-
+        rx = max(0, min(crop.shape[1] - 1, int(c['rx'])))
+        ry = max(0, min(crop.shape[0] - 1, int(c['ry'])))
+        rw = max(1, min(crop.shape[1] - rx, int(c['rw'])))
+        rh = max(1, min(crop.shape[0] - ry, int(c['rh'])))
         head_box = crop[ry:ry+rh, rx:rx+rw]
+        if head_box.shape[0] < 4 or head_box.shape[1] < 4:
+            continue
 
         
 
@@ -1546,21 +1600,19 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
 
         white_ratio = float(np.mean(core_pixels > 130)) if len(core_pixels) > 0 else 0.0
 
-        
-
         is_open = c.get('is_open', False)
 
         if is_open and c.get('label', 0) != -1 and white_ratio < 0.05:
 
             is_open = False
 
-        elif not is_open and white_ratio > 0.08:
+        elif not is_open and white_ratio > 0.22:
 
             is_open = True
 
             
 
-        if is_open and c.get('label', 0) == -1 and ((rw == rh and rw >= 20 and white_ratio > 0.70) or c['area'] > 280):
+        if is_open and c.get('label', 0) == -1 and ((rw == rh and rw >= 20 and white_ratio > 0.70) or c['area'] > int(sp * sp * 0.75)):
             continue
         if is_open:
 
@@ -1568,31 +1620,8 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
 
             note_cx = c['cx']
 
-        else:
-
-            blob_mask = (opened[ry:ry+rh, rx:rx+rw] > 0)
-
-            row_widths = np.sum(blob_mask, axis=1)
-
-            if len(row_widths) > 0 and np.max(row_widths) > 0:
-
-                max_w = np.max(row_widths)
-
-                eq_rows = np.where(row_widths >= 0.85 * max_w)[0]
-
-                eq_y = ry + float(np.median(eq_rows))
-
-            else:
-
-                eq_y = float(rh / 2.0)
-
-            note_cx = rx + rw // 2
-
-                
-
-        abs_x = mx1 + note_cx
-
-        abs_y = y_top + eq_y
+        abs_x = c['abs_x']
+        abs_y = c['abs_y']
 
         
 
@@ -1644,11 +1673,13 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
 
         
 
-        # Toevallig voorteken (#) overschrijft toonsoort
-
+        # Toevallig voorteken (#, ♮, b) overschrijft toonsoort
         if c.get('accidental') == 'sharp':
-
             alt = 1
+        elif c.get('accidental') == 'natural':
+            alt = 0
+        elif c.get('accidental') == 'flat':
+            alt = -1
 
             
 
@@ -1719,9 +1750,8 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
                     # of onderrand en staat los van de nootkop (dx_c >= 2)
 
                     touches_vertical_boundary = (dy_c <= 1 or dy_c + dh >= dot_zone.shape[0] - 1)
-
-                    if touches_vertical_boundary:
-
+                    touches_notehead = (dx_c <= max(3, int(sp * 0.15)))
+                    if touches_vertical_boundary or touches_notehead:
                         continue
 
                     # Een verlengingspunt is compact en rondachtig
@@ -1789,6 +1819,8 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
     for fx in fermata_x:
         if filtered_notes:
             closest_n = min(filtered_notes, key=lambda it: abs(it['abs_x'] - fx))
+            if debug:
+                print(f"      FERMATA MATCH: fx={fx}, closest={closest_n.get('solfege')} abs_x={closest_n['abs_x']}, diff={abs(closest_n['abs_x'] - fx):.1f}, max_diff={sp * 1.65:.1f}")
             if abs(closest_n['abs_x'] - fx) <= sp * 1.65:
                 closest_n['fermata'] = True
                 if closest_n.get('is_open') and closest_n['duration'] < 8:
@@ -2248,7 +2280,7 @@ def detect_beams_for_notes(img, notes, staff_info, debug=False):
 
         half_w = n.get('rw', int(sp * 0.70)) // 2
 
-        stem_x = nx + half_w if stem_dir == 'up' else nx - half_w - 2
+        stem_x = int(n.get('stem_x', (nx + half_w if stem_dir == 'up' else nx - half_w - 2)))
 
         
 
@@ -2279,6 +2311,21 @@ def detect_beams_for_notes(img, notes, staff_info, debug=False):
                     if flag_ink > 35:
 
                         n['flag'] = 1
+        else:
+            # Down-stem flag: hangt aan de rechterkant van het onderste stokeinde
+            win = img[max(0, int(tip_y - sp * 1.0)) : tip_y,
+                      stem_x + 3 : min(img.shape[1], stem_x + int(sp * 0.75))]
+            if win.size > 0 and win.shape[1] >= 6:
+                win_clean = win.copy()
+                for l in lines:
+                    rel_ly = int(l - max(0, int(tip_y - sp * 1.0)))
+                    if 0 <= rel_ly < win_clean.shape[0]:
+                        win_clean[max(0, rel_ly - 2):min(win_clean.shape[0], rel_ly + 3), :] = 255
+                flag_ink = np.sum(win_clean < 160)
+                if debug:
+                    print(f"      FLAG CHECK: {n.get('solfege')} (x={nx}, tip={tip_y}, dir={stem_dir}): flag_ink={flag_ink}")
+                if flag_ink > 50:
+                    n['flag'] = 1
 
             
 
@@ -2403,138 +2450,196 @@ def detect_slurs_and_ties_in_measure(img, notes, staff_info, debug=False):
 
     sp = staff_info['spacing']
 
-    for i in range(len(notes) - 1):
-
+    i = 0
+    while i < len(notes) - 1:
         n1 = notes[i]
-
-        n2 = notes[i + 1]
-
-        if n1.get('step') == 'rest' or n2.get('step') == 'rest':
-
+        if n1.get('step') == 'rest' or n1.get('slur') == 'start':
+            i += 1
             continue
 
-        dx = n2['abs_x'] - n1['abs_x']
-        if not (15 <= dx <= int(sp * 4.8)):
-            continue
-
-        x1_s = int(n1['abs_x'] + 6)
-        x2_s = int(n2['abs_x'] - 6)
-        if x2_s <= x1_s + 6:
-            continue
-
-        if n1.get('slur') == 'stop':
-            continue
-
-        y_bot = max(n1['abs_y'], n2['abs_y'])
-        y_top = min(n1['abs_y'], n2['abs_y'])
+        found_target = None
         found_arc = None
+        found_span = 1
 
-        def _check_strip_arc(side):
-            # SUBTRACTIEVE BOOGDETECTIE (AGENTS.md Sectie 5B):
-            # Gum balklijnen, stokken, beams en nootkoppen weg; een boog is het dunne,
-            # gekromde residu dat de ruimte tussen beide nootkoppen overspant.
-            pad = int(sp * 0.4)
-            wx1 = max(0, int(n1['abs_x']) - pad)
-            wx2 = min(img.shape[1], int(n2['abs_x']) + pad)
-            if side == 'below':
-                wy1 = int(y_top + sp * 0.2)
-                wy2 = int(y_bot + sp * 1.8)
-            else:
-                wy1 = int(y_top - sp * 1.8)
-                wy2 = int(y_bot - sp * 0.2)
-            wy1 = max(0, wy1)
-            wy2 = min(img.shape[0], wy2)
-            if wy2 - wy1 < 6 or wx2 - wx1 < 10:
-                return False
-            # Brede context zodat balklijnen als lange horizontale lijnen herkenbaar zijn
-            ext = int(sp * 3.5)
-            cx1 = max(0, wx1 - ext)
-            cx2 = min(img.shape[1], wx2 + ext)
-            _, inv_c = cv2.threshold(img[wy1:wy2, cx1:cx2], 160, 255, cv2.THRESH_BINARY_INV)
-            lines_k = cv2.getStructuringElement(cv2.MORPH_RECT, (max(15, int(sp * 3.0)), 1))
-            staff_ink = cv2.morphologyEx(inv_c, cv2.MORPH_OPEN, lines_k)
-            # Meet de werkelijke balklijndikte (mediane verticale looplengte in het lijnmasker)
-            runs = []
-            for xc in range(0, staff_ink.shape[1], 7):
-                colm = staff_ink[:, xc] > 0
-                yy = 0
-                while yy < len(colm):
-                    if colm[yy]:
-                        y0 = yy
-                        while yy < len(colm) and colm[yy]:
+        # Zoek van langste span (melisma over 4 of 3 noten) naar kortste span (2 noten)
+        for span in [3, 2, 1]:
+            j = i + span
+            if j >= len(notes):
+                continue
+            n2 = notes[j]
+            if n2.get('step') == 'rest':
+                continue
+            dx = n2['abs_x'] - n1['abs_x']
+            if not (12 <= dx <= int(sp * 14.0)):
+                continue
+            if n1.get('slur') == 'stop' and span > 1:
+                continue
+
+            span_notes = notes[i:j + 1]
+            y_bot = max(nn['abs_y'] for nn in span_notes if 'abs_y' in nn)
+            y_top = min(nn['abs_y'] for nn in span_notes if 'abs_y' in nn)
+
+            def _check_strip_arc(side):
+                pad = int(sp * 0.4)
+                wx1 = max(0, int(n1['abs_x']) - pad)
+                wx2 = min(img.shape[1], int(n2['abs_x']) + pad)
+                if side == 'below':
+                    wy1 = int(y_top + sp * 0.2)
+                    wy2 = int(y_bot + sp * 2.2)
+                else:
+                    min_y_top = min([y_top] + [nn.get('abs_y', y_top) - sp * 2.8 for nn in span_notes if nn.get('stem_dir') == 'up'])
+                    wy1 = int(min_y_top - sp * 1.5)
+                    wy2 = int(y_bot - sp * 0.2)
+                wy1 = max(0, wy1)
+                wy2 = min(img.shape[0], wy2)
+                if wy2 - wy1 < 6 or wx2 - wx1 < 10:
+                    return False
+                ext = int(sp * 3.5)
+                cx1 = max(0, wx1 - ext)
+                cx2 = min(img.shape[1], wx2 + ext)
+                _, inv_c = cv2.threshold(img[wy1:wy2, cx1:cx2], 160, 255, cv2.THRESH_BINARY_INV)
+                lines_k = cv2.getStructuringElement(cv2.MORPH_RECT, (max(15, int(sp * 3.0)), 1))
+                staff_ink = cv2.morphologyEx(inv_c, cv2.MORPH_OPEN, lines_k)
+                runs = []
+                for xc in range(0, staff_ink.shape[1], 7):
+                    colm = staff_ink[:, xc] > 0
+                    yy = 0
+                    while yy < len(colm):
+                        if colm[yy]:
+                            y0 = yy
+                            while yy < len(colm) and colm[yy]:
+                                yy += 1
+                            runs.append(yy - y0)
+                        else:
                             yy += 1
-                        runs.append(yy - y0)
-                    else:
-                        yy += 1
-            line_t = int(np.median(runs)) if runs else max(2, int(round(sp * 0.12)))
-            res = remove_staff_line_runs(inv_c, staff_ink, max_t=line_t + 1)
-            # Herverbind boogfragmenten die door een balklijn zijn gesplitst
-            res = cv2.morphologyEx(res, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (max(5, int(sp * 0.8)), 1)))
-            stem_k = cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(5, int(sp * 1.2))))
-            stems = cv2.dilate(cv2.morphologyEx(res, cv2.MORPH_OPEN, stem_k), np.ones((1, 5), dtype=np.uint8))
-            res = cv2.subtract(res, stems)
-            beam_k = cv2.getStructuringElement(cv2.MORPH_RECT, (max(9, int(sp * 1.5)), max(3, int(sp * 0.33))))
-            beams = cv2.dilate(cv2.morphologyEx(res, cv2.MORPH_OPEN, beam_k), np.ones((3, 3), dtype=np.uint8))
-            res = cv2.subtract(res, beams)
-            res = res[:, wx1 - cx1: wx2 - cx1].copy()
-            # Gum alle nootkoppen in het venster weg
-            for nn in notes:
-                if nn.get('step') == 'rest' or 'abs_x' not in nn:
-                    continue
-                hx = int(nn['abs_x']) - wx1
-                hy = int(nn['abs_y']) - wy1
-                ax = int(nn.get('rw', sp * 0.7) / 2 + 2)
-                ay = int(nn.get('rh', sp * 0.6) / 2 + 2)
-                if -ax <= hx < res.shape[1] + ax and -ay <= hy < res.shape[0] + ay:
-                    cv2.ellipse(res, (hx, hy), (ax, ay), 0, 0, 360, 0, -1)
-            n_c, lab, st, _ = cv2.connectedComponentsWithStats(res)
-            gap = n2['abs_x'] - n1['abs_x']
-            head_w = (n1.get('rw', sp * 0.7) + n2.get('rw', sp * 0.7)) / 2.0
-            min_bw = max(sp * 0.8, (gap - head_w) * 0.75)
-            for ci in range(1, n_c):
-                bx, by, bw, bh, ba = st[ci]
-                if debug and ba >= sp * 0.8:
-                    print(f"      ARC RAW {side}: {n1.get('solfege')}->{n2.get('solfege')} x={wx1 + bx}, y={wy1 + by}, bw={bw}, bh={bh}, area={ba}, min_bw={min_bw:.0f}")
-                if ba < sp * 0.8 or bw < min_bw or bw > gap + sp * 1.0:
-                    continue
-                if bh < sp * 0.25 or bh > sp * 1.0:
-                    continue
-                if ba / max(1, bw) > sp * 0.45:
-                    continue
-                c_mid = wx1 + bx + bw / 2.0
-                if not (n1['abs_x'] + gap * 0.2 <= c_mid <= n2['abs_x'] - gap * 0.2):
-                    continue
-                comp = (lab[by:by + bh, bx:bx + bw] == ci)
-                cols = np.where(comp.any(axis=0))[0]
-                if len(cols) < 6:
-                    continue
-                ys = np.array([np.mean(np.where(comp[:, c])[0]) for c in cols])
-                k = max(1, len(ys) // 6)
-                y_ends = (np.mean(ys[:k]) + np.mean(ys[-k:])) / 2.0
-                y_mid = np.mean(ys[len(ys) // 2 - k // 2: len(ys) // 2 + k // 2 + 1])
-                sag = (y_mid - y_ends) if side == 'below' else (y_ends - y_mid)
-                if debug:
-                    print(f"      ARC CAND {side}: {n1.get('solfege')}->{n2.get('solfege')} bw={bw}, bh={bh}, thick={ba / max(1, bw):.1f}, sag={sag:.1f}")
-                if sag >= sp * 0.12:
-                    return True
-            return False
+                line_t = int(np.median(runs)) if runs else max(2, int(round(sp * 0.12)))
+                res = remove_staff_line_runs(inv_c, staff_ink, max_t=line_t + 1)
+                res = cv2.morphologyEx(res, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (max(5, int(sp * 0.8)), 1)))
+                stem_k = cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(5, int(sp * 1.2))))
+                stems = cv2.dilate(cv2.morphologyEx(res, cv2.MORPH_OPEN, stem_k), np.ones((1, 5), dtype=np.uint8))
+                res = cv2.subtract(res, stems)
+                beam_k = cv2.getStructuringElement(cv2.MORPH_RECT, (max(9, int(sp * 1.5)), max(3, int(sp * 0.33))))
+                beams = cv2.dilate(cv2.morphologyEx(res, cv2.MORPH_OPEN, beam_k), np.ones((3, 3), dtype=np.uint8))
+                res = cv2.subtract(res, beams)
+                # Herverbind boogsegmenten die door een stok of dwarsbalk zijn doorgesneden
+                res = cv2.morphologyEx(res, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (max(11, int(sp * 1.25)), 3)))
+                res = res[:, wx1 - cx1: wx2 - cx1].copy()
+                # Gum alle nootkoppen in het venster weg
+                for nn in notes:
+                    if nn.get('step') == 'rest' or 'abs_x' not in nn:
+                        continue
+                    hx = int(nn['abs_x']) - wx1
+                    hy = int(nn['abs_y']) - wy1
+                    ax = int(nn.get('rw', sp * 0.7) / 2 + 2)
+                    ay = int(nn.get('rh', sp * 0.6) / 2 + 2)
+                    if -ax <= hx < res.shape[1] + ax and -ay <= hy < res.shape[0] + ay:
+                        cv2.ellipse(res, (hx, hy), (ax, ay), 0, 0, 360, 0, -1)
+                n_c, lab, st, _ = cv2.connectedComponentsWithStats(res)
+                gap = n2['abs_x'] - n1['abs_x']
+                head_w = (n1.get('rw', sp * 0.7) + n2.get('rw', sp * 0.7)) / 2.0
+                min_bw = max(int(sp * 0.45), int((gap - head_w) * 0.45))
+                for ci in range(1, n_c):
+                    bx, by, bw, bh, ba = st[ci]
+                    if debug and ba >= sp * 0.8:
+                        print(f"      ARC RAW {side}: {n1.get('solfege')}->{n2.get('solfege')} x={wx1 + bx}, y={wy1 + by}, bw={bw}, bh={bh}, area={ba}, min_bw={min_bw:.0f}")
+                    if ba < sp * 0.8 or bw < min_bw or bw > gap + sp * 1.2:
+                        continue
+                    if bh < max(3, int(sp * 0.15)) or bh > int(sp * 1.85):
+                        continue
+                    if ba / max(1, bw) > max(6.0, int(sp * 0.22)):
+                        continue
+                    c_mid = wx1 + bx + bw / 2.0
+                    if not (n1['abs_x'] + gap * 0.08 <= c_mid <= n2['abs_x'] - gap * 0.08):
+                        continue
+                    x_arc_l = wx1 + bx
+                    x_arc_r = wx1 + bx + bw
+                    if abs(x_arc_l - n1['abs_x']) > max(16, int(sp * 1.35)) or abs(x_arc_r - n2['abs_x']) > max(16, int(sp * 1.35)):
+                        continue
+                    comp = (lab[by:by + bh, bx:bx + bw] == ci)
+                    cols = np.where(comp.any(axis=0))[0]
+                    if len(cols) < 5:
+                        continue
+                    ys = np.array([np.mean(np.where(comp[:, c])[0]) for c in cols])
+                    k_win = max(1, len(ys) // 6)
+                    y_ends = (np.mean(ys[:k_win]) + np.mean(ys[-k_win:])) / 2.0
+                    y_mid = np.mean(ys[len(ys) // 2 - k_win // 2: len(ys) // 2 + k_win // 2 + 1])
+                    sag = (y_mid - y_ends) if side == 'below' else (y_ends - y_mid)
+                    if debug:
+                        print(f"      ARC CAND {side}: {n1.get('solfege')}->{n2.get('solfege')} bw={bw}, bh={bh}, thick={ba / max(1, bw):.1f}, sag={sag:.1f}")
+                    if sag >= max(2.8, int(round(sp * 0.11))):
+                        return True
 
-        # 1. Onder de nootkoppen
-        if _check_strip_arc('below'):
-            found_arc = 'below'
-        # 2. Boven de nootkoppen
-        elif not (n1.get('fermata') or n2.get('fermata')) and _check_strip_arc('above'):
-            found_arc = 'above'
+                def _get_arm_endpoints(ci_idx):
+                    bx, by, bw, bh, _ = st[ci_idx]
+                    comp_arm = (lab[by:by + bh, bx:bx + bw] == ci_idx)
+                    cols_arm = np.where(comp_arm.any(axis=0))[0]
+                    if len(cols_arm) < 4:
+                        return None
+                    ys_arm = [np.mean(np.where(comp_arm[:, c])[0]) for c in cols_arm]
+                    k_arm = max(1, len(ys_arm) // 5)
+                    y_l = wy1 + by + float(np.mean(ys_arm[:k_arm]))
+                    y_r = wy1 + by + float(np.mean(ys_arm[-k_arm:]))
+                    return y_l, y_r
 
-        if found_arc:
-            same_pitch = (n1.get('step') == n2.get('step') and n1.get('octave') == n2.get('octave') and n1.get('alter', 0) == n2.get('alter', 0))
+                seg_cand = [(ci, st[ci]) for ci in range(1, n_c) if st[ci, 4] >= sp * 0.8 and st[ci, 2] >= int(sp * 0.35) and st[ci, 3] <= int(sp * 1.85)]
+                for i1 in range(len(seg_cand)):
+                    for i2 in range(i1 + 1, len(seg_cand)):
+                        (ci1, s1), (ci2, s2) = seg_cand[i1], seg_cand[i2]
+                        if s1[0] > s2[0]:
+                            ci1, ci2 = ci2, ci1
+                            s1, s2 = s2, s1
+                        x1_left = wx1 + s1[0]
+                        x1_right = wx1 + s1[0] + s1[2]
+                        x2_left = wx1 + s2[0]
+                        x2_right = wx1 + s2[0] + s2[2]
+                        inter_gap = x2_left - x1_right
+                        if not (0 <= inter_gap <= int(sp * 6.5)):
+                            continue
+                        comb_span = x2_right - x1_left
+                        if comb_span < min_bw or comb_span > gap + sp * 1.2:
+                            continue
+                        if abs(x1_left - n1['abs_x']) > max(14, int(sp * 0.85)) or abs(x2_right - n2['abs_x']) > max(14, int(sp * 0.85)):
+                            continue
+                        ep1 = _get_arm_endpoints(ci1)
+                        ep2 = _get_arm_endpoints(ci2)
+                        if ep1 is None or ep2 is None:
+                            continue
+                        y1_outer, y1_inner = ep1
+                        y2_inner, y2_outer = ep2
+                        if abs(y1_inner - y2_inner) > max(3, int(sp * 0.18)):
+                            continue
+                        if abs(y1_outer - y2_outer) > int(sp * 0.70):
+                            continue
+                        y_ends = (y1_outer + y2_outer) / 2.0
+                        y_mid = (y1_inner + y2_inner) / 2.0
+                        sag_pair = (y_mid - y_ends) if side == 'below' else (y_ends - y_mid)
+                        if debug:
+                            print(f"      ARC PAIR {side}: {n1.get('solfege')}->{n2.get('solfege')} span={comb_span}, inter_gap={inter_gap}, sag={sag_pair:.1f}")
+                        if sag_pair >= max(2.8, int(round(sp * 0.11))):
+                            return True
+                return False
+
+            if _check_strip_arc('below'):
+                found_arc = 'below'
+                found_target = n2
+                found_span = span
+                break
+            elif not any(nn.get('fermata') for nn in span_notes) and _check_strip_arc('above'):
+                found_arc = 'above'
+                found_target = n2
+                found_span = span
+                break
+
+        if found_arc and found_target is not None:
+            same_pitch = (found_span == 1 and n1.get('step') == found_target.get('step') and n1.get('octave') == found_target.get('octave') and n1.get('alter', 0) == found_target.get('alter', 0))
             if same_pitch:
                 n1['tie'] = 'start'
-                n2['tie'] = 'stop'
+                found_target['tie'] = 'stop'
             else:
                 n1['slur'] = 'start'
                 n1['slur_placement'] = found_arc
-                n2['slur'] = 'stop'
+                found_target['slur'] = 'stop'
+        i += 1
 
 # ==============================================================================
 
@@ -2735,8 +2840,7 @@ def export_to_musicxml(score_data, output_file, title="Score", composer="Anonymo
 
                     n_el = ET.SubElement(m_el, 'note', attrib=n_attrib)
 
-                    if n.get('step') == 'rest':
-
+                    if n.get('step') == 'rest' or n.get('pitch') == 'Rust':
                         ET.SubElement(n_el, 'rest')
 
                     else:
@@ -3247,10 +3351,13 @@ def print_score_audit(xml_path):
                             note_str = f"{step}{acc}{octave}"
                             slurs = n.findall('notations/slur')
                             ties = n.findall('notations/tied')
+                            fermatas = n.findall('notations/fermata')
                             if any(s.get('type') == 'start' for s in slurs):
                                 note_str += '‿'
                             elif any(t.get('type') == 'start' for t in ties):
                                 note_str += '~'
+                            if fermatas:
+                                note_str += '𝄐'
                             notes.append(note_str)
 
             parts_notes.append(f"{name} ({dur_total}d): {','.join(notes)}")
@@ -3370,117 +3477,67 @@ def main():
 
     print("="*65)
 
-    # 1. Inlezen en voorbewerking
-
-    raw_img = load_or_render_image(args.input)
-
-    deskewed_img, rot_angle = deskew_score(raw_img)
-
-    clean_img = filter_and_enhance_image(deskewed_img)
-
-    
-
-    # Sla de gerenderde scan automatisch op als <naam>_page_1.png voor Zing! webviewer
+    # 1. Inlezen en voorbewerking van alle pagina's
+    pages = load_or_render_images(args.input)
+    print(f"📄 Totaal aantal pagina's ingelezen: {len(pages)}")
 
     input_p = Path(args.input).resolve()
+    all_systems = []
 
-    if input_p.suffix.lower() == '.pdf':
+    for page_idx, page_img in enumerate(pages):
+        deskewed_img, rot_angle = deskew_score(page_img)
+        clean_img = filter_and_enhance_image(deskewed_img)
 
-        png_out = input_p.parent / f"{input_p.stem}_page_1.png"
+        # Sla de gerenderde scan automatisch op als <naam>_page_<N>.png voor Zing! webviewer
+        if input_p.suffix.lower() == '.pdf':
+            png_out = input_p.parent / f"{input_p.stem}_page_{page_idx+1}.png"
+            cv2.imwrite(str(png_out), deskewed_img)
+            print(f"🖼️ Gerenderde partituur-scan automatisch opgeslagen als: {png_out.name}")
 
-        cv2.imwrite(str(png_out), deskewed_img)
+        if args.debug_dir and page_idx == 0:
+            os.makedirs(args.debug_dir, exist_ok=True)
+            cv2.imwrite(os.path.join(args.debug_dir, "01_preprocessed.png"), clean_img)
 
-        print(f"🖼️ Gerenderde partituur-scan automatisch opgeslagen als: {png_out.name}")
+        # Balken en systemen vinden via kamfilter en B0
+        p_staves = find_all_staves_on_page(clean_img)
+        p_systems = group_staves_by_b0(clean_img, p_staves)
+        print(f"📄 Pagina {page_idx+1}: {len(p_staves)} notenbalken -> {len(p_systems)} systemen.")
 
-    
+        for sys_dict in p_systems:
+            sys_dict['page_idx'] = page_idx
+            sys_dict['clean_img'] = clean_img
+            all_systems.append(sys_dict)
 
-    if args.debug_dir:
+    if not all_systems:
+        raise ValueError("Geen systemen gevonden op de partituur!")
 
-        os.makedirs(args.debug_dir, exist_ok=True)
-
-        cv2.imwrite(os.path.join(args.debug_dir, "01_preprocessed.png"), clean_img)
-
-    # 2. Balken en systemen vinden
-
-    staves = find_all_staves_on_page(clean_img)
-
-    print(f"🔍 Gevonden notenbalken op pagina: {len(staves)}")
-
-    
-
+    num_parts = len(all_systems[0]['staves'])
     if args.voices == "auto":
-
-        # Bepaal of de balken verticaal verbonden zijn door een doorlopende systeemlijn/accolade
-
-        if len(staves) >= 2:
-
-            top_y = int(staves[0]['lines'][0])
-
-            bot_y = int(staves[1]['lines'][4])
-
-            strip = clean_img[top_y:bot_y, :800]
-
-            inv_strip = (strip < 150).astype(np.uint8)
-
-            col_h = np.sum(inv_strip, axis=0) if inv_strip.size > 0 else np.array([0])
-
-            max_col_h = np.max(col_h) if len(col_h) > 0 else 0
-
-            is_connected = (max_col_h > (bot_y - top_y) * 0.85)
-
-            
-
-            if is_connected and len(staves) % 4 == 0:
-
-                active_voices = "SATB"
-
-            elif is_connected and len(staves) % 3 == 0:
-
-                active_voices = "SAB"
-
-            elif is_connected and len(staves) % 2 == 0:
-
-                active_voices = "SA"
-
-            else:
-
-                active_voices = "S"
-
-        else:
-
-            active_voices = "S"
-
-        print(f"🤖 Automatisch gedetecteerde bezetting: {active_voices}")
-
+        voice_map = {1: "S", 2: "SA", 3: "SAB", 4: "SATB"}
+        active_voices = voice_map.get(num_parts, "SATB" if num_parts >= 4 else "S")
+        print(f"🤖 Automatisch gedetecteerde bezetting: {active_voices} ({num_parts} stemmen per systeem)")
     else:
-
         active_voices = args.voices
 
-        
-
     num_parts = len(active_voices)
-
-    num_systems = len(staves) // num_parts
-
+    num_systems = len(all_systems)
     print(f"📊 Systeemstructuur: {num_systems} systemen van {num_parts} stemmen elk.")
 
     parts_info = []
-
     voice_names = {'S': 'Sopraan', 'A': 'Alt', 'T': 'Tenor', 'B': 'Bas'}
-
     for idx, v_code in enumerate(active_voices):
-
         parts_info.append((f'P{idx+1}', voice_names.get(v_code, v_code)))
 
     measures_by_part = {p[0]: [] for p in parts_info}
 
     # Maatstrepen en Header Analyzer op Systeem 1 (Barline-First)
+    sys1 = all_systems[0]
+    sys1_staves = sys1['staves']
+    b0_x1 = sys1['b0_x']
+    clean_sys1 = sys1['clean_img']
 
-    sys1_staves = staves[:num_parts]
-
-    b1_list = detect_measure_barlines(clean_img, sys1_staves, is_first_system=True)
-
-    header_info = analyze_system_header(clean_img, sys1_staves, b1_list[0], key_fifths=args.key_fifths)
+    b1_list = detect_measure_barlines(clean_sys1, sys1_staves, b0_x=b0_x1, is_first_system=True)
+    header_info = analyze_system_header(clean_sys1, sys1_staves, b1_list[0] if b1_list else clean_sys1.shape[1] - 100, b0_x=b0_x1, key_fifths=args.key_fifths)
 
     
 
@@ -3560,108 +3617,56 @@ def main():
 
     upbeat_dur = 4 if b_den == 4 else (full_measure_dur // 2)
 
-    min_m_w = 200 if (b_num <= 2 and b_den == 4) else 280
+    min_m_w = 450 if (b_num >= 6 and b_den == 8) else (200 if (b_num <= 2 and b_den == 4) else (280 if (b_num == 3) else 320))
 
-    for sys_idx in range(num_systems):
-
-        sys_staves = staves[sys_idx * num_parts : (sys_idx + 1) * num_parts]
-
+    for sys_idx, sys_dict in enumerate(all_systems):
+        sys_staves = sys_dict['staves']
+        b0_x = sys_dict['b0_x']
+        clean_img = sys_dict['clean_img']
         is_first = (sys_idx == 0)
-
-        barlines = detect_measure_barlines(clean_img, sys_staves, is_first_system=is_first, min_measure_w=min_m_w)
-
-        
+        barlines = detect_measure_barlines(clean_img, sys_staves, b0_x=b0_x, is_first_system=is_first, min_measure_w=min_m_w, key_fifths=key_fifths)
 
         # Start van noten na header (Systeem 1) of na de sleutel links (vervolgsystemen)
-
         if is_first:
-
             start_of_notes = header_info['x_notes_start']
-
         else:
-
             s_curr = sys_staves[0]
-
             l0_c, l4_c = int(s_curr['lines'][0]), int(s_curr['lines'][4])
-
             sp_c = s_curr['spacing']
-
-            strip_l = clean_img[int(sys_staves[0]['lines'][0]):int(sys_staves[-1]['lines'][4])+1, :700] if len(sys_staves) > 1 else clean_img[l0_c:l4_c+1, :500]
-
-            col_i = np.sum(strip_l < 150, axis=0)
-
-            st_starts = np.where(col_i >= (int(strip_l.shape[0] * 0.85) if len(sys_staves) > 1 else 3))[0]
-
-            x_st = int(st_starts[0]) if len(st_starts) > 0 else 200
-
-            
-
             bar_end = barlines[0] if barlines else (clean_img.shape[1] - 100)
-
-            search_sub = clean_img[int(l0_c-sp_c):int(l4_c+sp_c), x_st+125+abs(key_fifths)*int(sp_c*1.65):bar_end]
-
+            search_start = b0_x + 120 + abs(key_fifths) * int(sp_c * 1.5)
+            search_sub = clean_img[int(l0_c-sp_c):int(l4_c+sp_c), search_start:bar_end]
             if search_sub.size > 0:
-
                 _, inv_sub = cv2.threshold(search_sub, 160, 255, cv2.THRESH_BINARY_INV)
-
                 hk_sub = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (int(sp_c*0.7), int(sp_c*0.5)))
-
                 op_sub = cv2.morphologyEx(inv_sub, cv2.MORPH_OPEN, hk_sub)
-
                 n_sub, _, stats_sub, cents_sub = cv2.connectedComponentsWithStats(op_sub)
-
                 cand_sub = [int(cents_sub[i][0]) for i in range(1, n_sub) if stats_sub[i, 4] >= 180]
-
                 if cand_sub:
-
-                    start_of_notes = max(x_st + 125 + abs(key_fifths) * int(sp_c * 1.65), x_st + 125 + abs(key_fifths) * int(sp_c * 1.65) + min(cand_sub) - int(sp_c * 1.2))
-
+                    start_of_notes = max(search_start, search_start + min(cand_sub) - int(sp_c * 1.2))
                 else:
-
-                    start_of_notes = x_st + 140 + abs(key_fifths) * int(sp_c * 1.65)
-
+                    start_of_notes = search_start + 15
             else:
+                start_of_notes = b0_x + 130
 
-                start_of_notes = x_st + 140
-
-                
-
+        # Sluit maatstrepen uit die binnen de header/sleutelzone vallen
+        sp_s = sys_staves[0].get('spacing', 27.25)
+        min_first_bar = int(sp_s * 2.5) if is_first else int(min_m_w * 0.65)
+        barlines = [b for b in barlines if b >= start_of_notes + min_first_bar]
         system_measures = [start_of_notes] + barlines
-
-        print(f"📐 Systeem {sys_idx + 1}: {len(barlines)} maatstrepen gedetecteerd -> {len(system_measures)-1} maten")
-
-        
-
-        # Teken blauwe maatstrepen op debug overlay
-
-        for b in barlines:
-
-            cv2.line(annotated, (b, int(sys_staves[0]['lines'][0]) - 20),
-
-                     (b, int(sys_staves[-1]['lines'][4]) + 20), (255, 120, 0), 3)
+        print(f"📐 Systeem {sys_idx + 1} (Pagina {sys_dict.get('page_idx', 0)+1}): {len(barlines)} maatstrepen gedetecteerd -> {len(system_measures)-1} maten: {system_measures}")
 
         # STAP-VOOR-STAP: Maat per maat verwerken over alle stemmen heen
-
         for m_i in range(len(system_measures) - 1):
-
             if args.limit_measures is not None and global_measure_count >= args.limit_measures:
-
                 break
 
-                
-
             mx1 = system_measures[m_i]
-
             mx2 = system_measures[m_i + 1]
-
             measure_width = mx2 - mx1
-
             is_upbeat = (measure_width < 340 and (m_i == 0 or m_i == len(system_measures) - 2))
-
             if sys_idx == 0 and m_i == 0:
-
                 has_piece_upbeat = is_upbeat
-
             is_incomplete_cadence = (has_piece_upbeat and not is_upbeat and ((m_i == len(system_measures) - 2 and (sys_idx == 0 or sys_idx == num_systems - 1)) or (m_i == len(system_measures) - 3 and (system_measures[-1] - system_measures[-2]) < 340)))
 
             target_dur = upbeat_dur if is_upbeat else ((full_measure_dur - upbeat_dur) if is_incomplete_cadence else full_measure_dur)
@@ -3669,8 +3674,17 @@ def main():
             
 
             # Verwerk elke stem voor deze specifieke maat
-
             for part_idx, (p_id, p_name) in enumerate(parts_info):
+                if part_idx >= len(sys_staves):
+                    measures_by_part[p_id].append({
+                        'measure_num': global_measure_count,
+                        'notes': [{'step': 'rest', 'pitch': 'Rust', 'duration': target_dur}],
+                        'width': int(measure_width * 0.32),
+                        'mx1': mx1,
+                        'new_system': (m_i == 0 and sys_idx > 0),
+                        'repeat_backward': False
+                    })
+                    continue
 
                 staff_info = sys_staves[part_idx]
 
@@ -3782,7 +3796,7 @@ def main():
                                 n['lyric2'] = verse_lists[1][s_i]
                             s_i += 1
 
-            if args.debug_dir and global_measure_count in [3, 11]:
+            if args.debug_dir and (global_measure_count in debug_measures if debug_measures else global_measure_count in [3, 11]):
 
                 y1 = int(sys_staves[0]['lines'][0] - 40)
 

@@ -5,9 +5,10 @@
 - **Incrementele Regressie-Werkwijze:**
   - We verfijnen `tools/scan_to_musicxml.py` punt voor punt aan de hand van opeenvolgende referentiepartituren:
     1. `assets/sample-scores/calypso.pdf` (1-balkig S, 2/4 maat, 0 kruisen/mollen) — **100% voltooid (referentie)**.
-    2. `assets/sample-scores/befiehl-du-deine-wege.pdf` (4-balkig SATB, 4/4 Common Time `C`, 2 kruisen, met opmaat en herhaling) — **nu in uitvoering**.
-    3. `assets/sample-scores/komt-vrienden-in-het-ronde.pdf` (volgende partituur na *Befiehl*).
-    4. Alle verdere partituren.
+    2. `assets/sample-scores/befiehl-du-deine-wege.pdf` (4-balkig SATB, 4/4 Common Time `C`, 2 kruisen, met opmaat en herhaling) — **100% voltooid (referentie)**.
+    3. `assets/sample-scores/drink-to-me-only.pdf` (3-balkig SAB, 6/8 maat, 1 mol, 2 pagina's) — **nu in uitvoering**.
+    4. `assets/sample-scores/komt-vrienden-in-het-ronde.pdf` (4-balkig SATB, 2/4 maat, 1 mol, 2 pagina's) — **referentie 4**.
+    5. Alle verdere partituren.
   - Elke verfijning in `tools/scan_to_musicxml.py` moet ervoor zorgen dat de nieuwe partituur vlekkeloos werkt **zonder dat eerder voltooide partituren (zoals *Calypso*) achteruitgaan**.
   - Gebruik voor testen en inspectie altijd rechtstreeks `python tools/scan_to_musicxml.py ...` (met de ingebouwde `SCORE AUDIT` en `--debug-dir`), geen losse ad-hoc `scratch/` scripts.
 
@@ -31,17 +32,21 @@
 ## 2. Vaste 5-Stappenprocedure (Van Systeem & Maten naar Maat-voor-Maat)
 Bij het ontwikkelen en controleren van een partituur volgen we altijd stipt deze volgorde:
 
-1. **Stap 1: Systeem- & Balklijndetectie:**
+1. **Stap 1: Systeem- & Balklijndetectie via de Initiële Maatstreep ($B_0$):**
    - Detectie van alle notenbalken ($L_1 \dots L_5$) en balkafstand (`spacing`) via horizontale morfologie en kamfilter.
-   - Automatische bepaling van de systeemstructuur en bezetting (1-balkig S, of verticaal gekoppeld SA / SAB / SATB).
-2. **Stap 2: Maatstrepen & Maatvakken (Barline-First):**
-   - Detectie van alle maatstrepen per systeem vóórdat er naar noten wordt gekeken.
+   - **Initiële Maatstreep ($B_0$):** De doorlopende verticale lijn/accolade direct aan het begin van de balklijnen ($x_{\text{staff\_start}}$) is de formele eerste maatstreep ($B_0$).
+   - **Universele Systeemgroepering:** Door inspectie van de verticale tussenruimte $Y_{\text{gap}}$ tussen opeenvolgende balken op de $B_0$-positie:
+     - Loopt de inkt van $B_0$ over minstens 75% van de tussenruimte door? Dan behoren die balken tot hetzelfde systeem (1-balkig S, 2-balkig SA/piano, 3-balkig SAB, of 4-balkig SATB).
+     - Is er witruimte tussen de balken? Dan is dat de scheiding tussen twee opeenvolgende systemen.
+     - Geen hardcoded modulo-aannames: de partituur-gravure dicteert zelf zuiver visueel de systeemstructuur.
+2. **Stap 2: Binnenmaatstrepen & Maatvakken (Barline-First):**
+   - Detectie van alle binnenmaatstrepen per systeem ($B_1, B_2, \dots, B_{\text{end}}$) vóórdat er naar noten wordt gekeken.
    - Afbakening van de exacte maatvensters `[mx1, mx2]` (inclusief herkenning van opmaat en onvolledige cadens-/slotmaat).
 3. **Stap 3: Systeem-Header (Sleutels, Toonsoort, Maatsoort & Start van de Noten):**
-   - Analyse van de header-zone links van de eerste maatstreep ($B_1$):
+   - Analyse van de header-zone tussen de initiële maatstreep ($B_0$) en de eerste binnenmaatstreep ($B_1$):
      - Sleutel per balk (G-sleutel, G-8 tenorsleutel, F-sleutel).
      - Toonsoort (aantal kruisen/mollen na de sleutel).
-     - Maatsoort (`4/4` Common Time, `2/2` Alla Breve, `2/4`, etc.).
+     - Maatsoort (`4/4` Common Time, `2/2` Alla Breve, `2/4`, `3/4`, `6/8`, etc.).
      - Exacte startpositie van de eerste noot (`x_notes_start`) ná sleutel, toonsoort en maatteken.
 4. **Stap 4: Maat-voor-Maat Noot- & Symboolanalyse (per maat over alle stemmen):**
    - Binnen elk afgebakend maatvenster `[mx1, mx2]` worden per stem de symbolen in eliminatie-volgorde geanalyseerd:
@@ -76,20 +81,32 @@ Voorafgaand aan elke codewijziging moet de AI altijd motiveren:
 
 ---
 
-## 5. De "Stem-First & Subtractieve Eliminatie" Architectuur
-Voor de maat-voor-maat symbooldetectie hanteren we het universele principe:
+## 5. De "Nootkop- & Stokkoppeling" Architectuur (Bipartite Head-Stem Binding)
+Voor de maat-voor-maat symbooldetectie hanteren we het universele principe van twee onafhankelijke detecties die paarsgewijs worden gekoppeld:
 
-### A. Stok-Eerst Detectie (Stem-First)
-1. **Verticale Stokisolatie:**
-   - Een verticaal morfologisch filter ($1 \times \text{int}(2.5 \cdot sp)$) isoleert alle verticale lijnen met een minimale lengte van $\ge 2.5 \cdot sp$.
-   - Omdat voortekens ($\sharp, \natural, \flat$) en tekstletters korter zijn ($< 1.5 \cdot sp$), worden ze hier direct en universeel van noten onderscheiden.
-2. **Uiteinde A — De Nootkop:**
-   - Aan één van de uiteinden zit de nootkop (het dikkere inktlichaam of de open ovaal).
-   - **Toonhoogte:** Exacte projectie van het kopcentrum op $L_1 \dots L_5$.
+### A. Twee Onafhankelijke Detecties (Nootkoppen & Stokken)
+1. **Verzameling A: Nootkoppen (2D Elliptisch & Cavity-filter):**
+   - **Gesloten nootkoppen:** Gedetecteerd via een 2D elliptisch morfologisch openingsfilter (`cv2.MORPH_ELLIPSE` met afmeting $\approx 0.70 \cdot sp \times 0.50 \cdot sp$). Dit filter wist dunne lijnen (stokken, balklijnen, vlaggetjes) en isoleert zuiver het dikke elliptische nootkoplichaam.
+   - **Open nootkoppen & holtes:** Gedetecteerd via `cv2.floodFill` als ingesloten witte holtes.
+   - **Toonhoogte:** Het zwaartepunt `(cx, cy)` van de ellips/cavity projecteert met wiskundige precisie op $L_1 \dots L_5$.
    - **Voortekens:** Zoek direct links van de nootkop naar toevallige tekens ($\sharp, \flat, \natural$).
    - **Verlengingspunten:** Zoek direct rechts van de nootkop naar losse punten (dots, $\times 1.5$ duur).
-3. **Uiteinde B — Het Stokeinde (Ritme & Beams):**
-   - Aan het andere uiteinde (`stem_tip_y`) bepaalt de horizontale omgeving direct de nootwaarde en balkgroep:
+
+2. **Verzameling B: Stokken (1D Verticaal Lijnfilter):**
+   - Een verticaal morfologisch openingsfilter (`cv2.MORPH_RECT` met hoogte $\ge 1.8 \cdot sp$ en breedte 1 px) isoleert alle verticale lijnen.
+   - Omdat voortekens ($\sharp, \natural, \flat$) en tekstletters korter zijn ($< 1.5 \cdot sp$), worden ze hier direct en universeel van notenstokken onderscheiden.
+   - Elke stok levert zijn horizontale positie $x_s$ en verticale spanne $[y_{\text{top}}, y_{\text{bot}}]$.
+
+### B. De Paarsgewijze Koppeling (Welke horen bij elkaar?)
+Een stok en een nootkop worden gekoppeld als ze elkaar fysiek raken (horizontale afstand $|x_s - x_h| \le 0.55 \cdot sp$):
+1. **Stok omhoog (`stem_dir = 'up'`):**
+   - De onderkant van de stok ($y_{\text{bot}}$) raakt de nootkop aan de rechterzijde ($x_s \ge x_h$).
+   - Het **vrije uiteinde bovenaan** ($y_{\text{top}}$) is het formele **stokeinde** (`stem_tip_y`).
+2. **Stok omlaag (`stem_dir = 'down'`):**
+   - De bovenkant van de stok ($y_{\text{top}}$) raakt de nootkop aan de linkerzijde ($x_s \le x_h$).
+   - Het **vrije uiteinde onderaan** ($y_{\text{bot}}$) is het formele **stokeinde** (`stem_tip_y`).
+3. **Stokeinde-Analyse (Ritme & Beams aan het vrije uiteinde):**
+   - Aan `stem_tip_y` bepaalt de horizontale omgeving direct de nootwaarde en balkgroep:
      - **Horizontale inkt alleen naar rechts:** `<beam>begin</beam>` (start van balkgroep).
      - **Horizontale inkt naar links én rechts:** `<beam>continue</beam>` (midden van balkgroep).
      - **Horizontale inkt alleen naar links:** `<beam>end</beam>` (einde van balkgroep).
@@ -97,9 +114,12 @@ Voor de maat-voor-maat symbooldetectie hanteren we het universele principe:
      - **Vaantje (geen buurnoot):** Achtste ($2\text{d}$) of zestiende ($1\text{d}$).
      - **Kaal stokeinde (witruimte rondom):** Kwartnoot ($4\text{d}$).
 4. **Hele Noten (Zonder Stok):**
-   - Hele noten zijn de enige uitzondering zonder stok: zij worden gedetecteerd als losstaande grote open holtes (`floodFill`) op de balklijnen.
+   - Open nootkoppen uit Verzameling A die géén gekoppelde stok hebben, zijn zuivere hele noten.
+5. **Wederzijdse Ruiseliminatie:**
+   - Verticale lijnen zonder gekoppelde nootkop vallen direct af (voorkomt spooknoten door tekst of maatstrepen).
+   - Inktvlekjes zonder gekoppelde stok (tenzij hele noot) vallen direct af.
 
-### B. Subtractieve Eliminatie (Residuele Rusten)
+### C. Subtractieve Eliminatie (Residuele Rusten)
 - Nadat alle balklijnen, maatstrepen, noten en bogen zijn geïdentificeerd, worden hun pixels uit het binaire beeld "weggegumd" (gemaskeerd op 0).
 - **Wat overblijft in het balkvenster is het zuivere residu: automatisch de rusten!**
   - Kwartrust: typische gekrulde vorm/bliksemschicht in het centrum van de balk.

@@ -1540,12 +1540,9 @@ def detect_notes_in_region(img, x1, x2, staff_info, clef='treble', key_fifths=0,
             continue
         if ferm_bot_match:
             continue
-        is_noise = (c.get('label', 0) != -1 and not c.get('is_open')) and (c['rw'] < params.min_head_w or c['rh'] < params.min_head_h or c['area'] < params.min_head_area)
-        
-        # STOK-EERST VALIDATIE (Stem-First conform AGENTS.md Sectie 5):
-        # Hele noten (zonder stok) en noten met een geldige stok worden geaccepteerd.
-        is_whole_note = c.get('is_whole_note') or (c.get('is_open') and not c.get('has_stem'))
         has_stem = c.get('has_stem', False)
+        is_whole_note = c.get('is_whole_note') or (c.get('is_open') and not has_stem)
+        is_noise = (not has_stem and not is_whole_note) and (c.get('label', 0) != -1 and not c.get('is_open')) and (c['rw'] < params.min_head_w or c['rh'] < params.min_head_h or c['area'] < params.min_head_area)
         
         if not is_whole_note and not has_stem and c.get('label', 0) != -1:
             cand_cx = c['rx'] + c['rw'] // 2
@@ -1984,76 +1981,48 @@ def detect_beams_for_notes(img, notes, staff_info, debug=False):
             
 
         nx = int(n['abs_x'])
-
         ny = int(n['abs_y'])
-
         
-
-        true_half_w = min(n.get('rw', int(sp * 0.70)) // 2, int(sp * 0.45))
-
-        stem_up_col_range = range(max(0, nx + true_half_w - 4), min(img.shape[1], nx + true_half_w + 4))
-
-        stem_up_x = min(stem_up_col_range, key=lambda x: np.mean(img[max(0, ny - int(sp * 2.5)):ny, x])) if stem_up_col_range else (nx + true_half_w)
-
-        up_col = img[max(0, ny - int(sp * 3.2)):ny, max(0, stem_up_x - 3):min(img.shape[1], stem_up_x + 4)]
-
-        up_score = 0
-
-        if up_col.size > 0:
-
-            up_inv = (up_col < 160).astype(np.uint8)
-
-            up_stem = cv2.morphologyEx(up_inv, cv2.MORPH_OPEN, stem_k)
-
-            up_score = np.sum(up_stem > 0)
-
-            
-
-        stem_down_col_range = range(max(0, nx - true_half_w - 4), min(img.shape[1], nx - true_half_w + 4))
-
-        stem_down_x = min(stem_down_col_range, key=lambda x: np.mean(img[ny:min(img.shape[0], ny + int(sp * 2.5)), x])) if stem_down_col_range else (nx - true_half_w)
-
-        k_val = n.get('k', 4)
-
-        if k_val <= 1:
-
-            max_down_y = min(img.shape[0], ny + int(sp * 3.4), int(lines[4] + sp * 0.9))
-
+        if n.get('has_stem') and n.get('stem_dir') in ('up', 'down'):
+            is_stem_up = (n['stem_dir'] == 'up')
+            stem_up_x = int(n.get('stem_x', nx))
+            stem_down_x = int(n.get('stem_x', nx))
+            up_score = 100 if is_stem_up else 0
+            down_score = 0 if is_stem_up else 100
         else:
+            true_half_w = min(n.get('rw', int(sp * 0.70)) // 2, int(sp * 0.45))
+            stem_up_col_range = range(max(0, nx + true_half_w - 4), min(img.shape[1], nx + true_half_w + 4))
+            stem_up_x = min(stem_up_col_range, key=lambda x: np.mean(img[max(0, ny - int(sp * 2.5)):ny, x])) if stem_up_col_range else (nx + true_half_w)
+            up_col = img[max(0, ny - int(sp * 3.2)):ny, max(0, stem_up_x - 3):min(img.shape[1], stem_up_x + 4)]
+            up_score = 0
+            if up_col.size > 0:
+                up_inv = (up_col < 160).astype(np.uint8)
+                up_stem = cv2.morphologyEx(up_inv, cv2.MORPH_OPEN, stem_k)
+                up_score = np.sum(up_stem > 0)
 
-            max_down_y = min(img.shape[0], ny + int(sp * 3.4))
+            stem_down_col_range = range(max(0, nx - true_half_w - 4), min(img.shape[1], nx - true_half_w + 4))
+            stem_down_x = min(stem_down_col_range, key=lambda x: np.mean(img[ny:min(img.shape[0], ny + int(sp * 2.5)), x])) if stem_down_col_range else (nx - true_half_w)
+            k_val = n.get('k', 4)
+            if k_val <= 1:
+                max_down_y = min(img.shape[0], ny + int(sp * 3.4), int(lines[4] + sp * 0.9))
+            else:
+                max_down_y = min(img.shape[0], ny + int(sp * 3.4))
+            down_col = img[ny:max_down_y, max(0, stem_down_x - 3):min(img.shape[1], stem_down_x + 4)]
+            down_score = 0
+            if down_col.size > 0:
+                down_inv = (down_col < 160).astype(np.uint8)
+                down_stem = cv2.morphologyEx(down_inv, cv2.MORPH_OPEN, stem_k)
+                down_score = np.sum(down_stem > 0)
 
-        down_col = img[ny:max_down_y, max(0, stem_down_x - 3):min(img.shape[1], stem_down_x + 4)]
-
-        down_score = 0
-
-        if down_col.size > 0:
-
-            down_inv = (down_col < 160).astype(np.uint8)
-
-            down_stem = cv2.morphologyEx(down_inv, cv2.MORPH_OPEN, stem_k)
-
-            down_score = np.sum(down_stem > 0)
-
-            
-
-        if up_score > down_score + 15:
-
-            is_stem_up = True
-
-        elif down_score > up_score + (35 if k_val <= 1 else 15):
-
-            is_stem_up = False
-
-        else:
-
-            # Universele muzieknotatieregel (Behind Bars, p. 13):
-
-            # Noten onder de middelste balklijn (k < 4) hebben stok omhoog,
-
-            # noten op of boven de middelste lijn (k >= 4) hebben stok omlaag.
-
-            is_stem_up = (k_val < 4)
+            if up_score > down_score + 15:
+                is_stem_up = True
+            elif down_score > up_score + (35 if k_val <= 1 else 15):
+                is_stem_up = False
+            else:
+                # Universele muzieknotatieregel (Behind Bars, p. 13):
+                # Noten onder de middelste balklijn (k < 4) hebben stok omhoog,
+                # noten op of boven de middelste lijn (k >= 4) hebben stok omlaag.
+                is_stem_up = (k_val < 4)
 
         n['stem_dir'] = 'up' if is_stem_up else 'down'
 
@@ -2500,10 +2469,10 @@ def detect_slurs_and_ties_in_measure(img, notes, staff_info, debug=False):
                 wx2 = min(img.shape[1], int(n2['abs_x']) + pad)
                 if side == 'below':
                     wy1 = int(y_top + sp * 0.2)
-                    wy2 = int(y_bot + sp * 2.2)
+                    wy2 = min(int(y_bot + sp * 2.2), int(staff_info['lines'][4] + sp * 1.05))
                 else:
                     min_y_top = min([y_top] + [nn.get('abs_y', y_top) - sp * 2.8 for nn in span_notes if nn.get('stem_dir') == 'up'])
-                    wy1 = int(min_y_top - sp * 1.5)
+                    wy1 = max(int(min_y_top - sp * 1.5), int(staff_info['lines'][0] - sp * 2.5))
                     wy2 = int(y_bot - sp * 0.2)
                 wy1 = max(0, wy1)
                 wy2 = min(img.shape[0], wy2)
@@ -2630,7 +2599,8 @@ def detect_slurs_and_ties_in_measure(img, notes, staff_info, debug=False):
                         sag_pair = (y_mid - y_ends) if side == 'below' else (y_ends - y_mid)
                         if debug:
                             print(f"      ARC PAIR {side}: {n1.get('solfege')}->{n2.get('solfege')} span={comb_span}, inter_gap={inter_gap}, sag={sag_pair:.1f}")
-                        if sag_pair >= max(2.8, int(round(sp * 0.11))):
+                        min_sag = max(3.5, float(comb_span * 0.035))
+                        if sag_pair >= min_sag:
                             return True
                 return False
 

@@ -1,9 +1,11 @@
 [
-  "komt-vrienden-in-het-ronde.musicxml",
-  "befiehl-du-deine-wege.musicxml",
   "calypso.musicxml",
+  "befiehl-du-deine-wege.musicxml",
   "drink-to-me-only.musicxml",
-  "test_befiehl.musicxml",
-  "test_debug.musicxml",
-  "calypso_test.musicxml"
+  "komt-vrienden-in-het-ronde.musicxml",
+  "befiehl_orig.musicxml",
+  "komt.musicxml",
+  "drink.musicxml",
+  "output_drink.musicxml",
+  "test_komt_omr.musicxml"
 ]

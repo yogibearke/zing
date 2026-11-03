@@ -1,4 +1,4 @@
-# Universele OMR Ontwikkelregels (Zing! & Antigravity)
+# Universele OMR Ontwikkelregels (Zing!, Antigravity & Audiveris-Methodiek)
 
 ## 0. Hoofddoel & Werkwijze (Incrementele Universele Verfijning)
 - **Doel:** Het bouwen van één universeel OMR-conversieprogramma (`tools/scan_to_musicxml.py`) dat **alle mogelijke partituren** (ongeacht bezetting, maatsoort, toonsoort of opmaak) vlekkeloos omzet naar MusicXML.
@@ -29,100 +29,67 @@
 
 ---
 
-## 2. Vaste 5-Stappenprocedure (Van Systeem & Maten naar Maat-voor-Maat)
-Bij het ontwikkelen en controleren van een partituur volgen we altijd stipt deze volgorde:
+## 2. De Audiveris-Filosofie & Sequentiële Pipeline
+We volgen de beproefde methodiek van **Audiveris** (de toonaangevende open-source OMR-architectuur), waarin muziektekens worden onderverdeeld in:
+1. **Variabele vormen (Varying-shape):** Waardestrepen (`BEAMS`), notenstokken (`STEMS`), bogen (`CURVES`).
+2. **Vaste vormen (Fixed-shape glyphs):** Nootkoppen (`HEADS`), sleutels, voortekens, rusten.
+
+De kernles van Audiveris is de **volgorde van detectie**:
+* **`BEAMS` (Waardestrepen) moeten ALTIJD VÓÓR `HEADS` (Nootkoppen) worden geïdentificeerd en gemaskeerd.** Omdat waardestrepen dik zijn, worden ze anders door morfologische filters onterecht als nootkoppen (op lage hulplijnen zoals F2/G2) herkend.
+* **`STEMS` (Nootstokken) verbinden de nootkoppen met de reeds gevonden beams of vaantjes.**
+* **`SIG` (Symbol Interpretation Graph):** Elk inktdeeltje wordt paarsgewijs gekoppeld (`HeadStemRelation`, `BeamStemRelation`), waarbij conflicterende hypotheses worden geëlimineerd.
+
+---
+
+## 3. Vaste 5-Stappenprocedure (Audiveris-Georiënteerd)
 
 1. **Stap 1: Systeem- & Balklijndetectie via de Initiële Maatstreep ($B_0$):**
-   - Detectie van alle notenbalken ($L_1 \dots L_5$) en balkafstand (`spacing`) via horizontale morfologie en kamfilter.
+   - Detectie van alle notenbalken ($L_1 \dots L_5$) en balkafstand (`spacing` $sp$) via horizontale morfologie en kamfilter.
    - **Initiële Maatstreep ($B_0$):** De doorlopende verticale lijn/accolade direct aan het begin van de balklijnen ($x_{\text{staff\_start}}$) is de formele eerste maatstreep ($B_0$).
-   - **Universele Systeemgroepering:** Door inspectie van de verticale tussenruimte $Y_{\text{gap}}$ tussen opeenvolgende balken op de $B_0$-positie:
-     - Loopt de inkt van $B_0$ over minstens 75% van de tussenruimte door? Dan behoren die balken tot hetzelfde systeem (1-balkig S, 2-balkig SA/piano, 3-balkig SAB, of 4-balkig SATB).
-     - Is er witruimte tussen de balken? Dan is dat de scheiding tussen twee opeenvolgende systemen.
-     - Geen hardcoded modulo-aannames: de partituur-gravure dicteert zelf zuiver visueel de systeemstructuur.
-2. **Stap 2: Binnenmaatstrepen & Maatvakken (Barline-First):**
+   - **Universele Systeemgroepering:** Inspectie van verticale doorgang $Y_{\text{gap}}$ op de $B_0$-positie:
+     - Loopt de inkt van $B_0$ door tussen balken? Dan behoren die balken tot hetzelfde systeem (1-balkig S, 2-balkig SA/piano, 3-balkig SAB, of 4-balkig SATB).
+     - Geen hardcoded aannames: de partituur-gravure dicteert zelf zuiver visueel de systeemstructuur.
+2. **Stap 2: Binnenmaatstrepen & Maatvakken met Volheidscontrole:**
    - Detectie van alle binnenmaatstrepen per systeem ($B_1, B_2, \dots, B_{\text{end}}$) vóórdat er naar noten wordt gekeken.
-   - Afbakening van de exacte maatvensters `[mx1, mx2]` (inclusief herkenning van opmaat en onvolledige cadens-/slotmaat).
+   - **Volheidsmeting (`staff_fullness`):** Maatstrepen lopen van de bovenste balklijn $L_0$ tot de onderste $L_4$.
+     - Witte pixels, print-onderbrekingen en scan-dropouts worden overbrugd met een verticale sluiting (`cv2.MORPH_CLOSE` met kernel `1x7`).
+     - Over de hele hoogte $L_0 \dots L_4$ wordt de dekkingsgraad (volheid) gemeten. Een echte maatstreep vereist hoge volheid ($\ge 70\%$) in alle balken.
+   - Afbakening van de exacte maatvensters `[mx1, mx2]` (waarbij maatstrepen aan de randen netjes worden afgeknipt).
 3. **Stap 3: Systeem-Header (Sleutels, Toonsoort, Maatsoort & Start van de Noten):**
    - Analyse van de header-zone tussen de initiële maatstreep ($B_0$) en de eerste binnenmaatstreep ($B_1$):
      - Sleutel per balk (G-sleutel, G-8 tenorsleutel, F-sleutel).
      - Toonsoort (aantal kruisen/mollen na de sleutel).
-     - Maatsoort (`4/4` Common Time, `2/2` Alla Breve, `2/4`, `3/4`, `6/8`, etc.).
-     - Exacte startpositie van de eerste noot (`x_notes_start`) ná sleutel, toonsoort en maatteken.
-4. **Stap 4: Maat-voor-Maat Noot- & Symboolanalyse (per maat over alle stemmen):**
-   - Binnen elk afgebakend maatvenster `[mx1, mx2]` worden per stem de symbolen in eliminatie-volgorde geanalyseerd:
-     1. *Kandidaat-blobs & Open Holtes (`floodFill`):* gesloten en open nootkoppen.
-     2. *Toevallige voortekens eerst ($\sharp, \flat, \natural$):* direct links van de nootkop koppelen zodat ze nooit een spooknoot worden.
-     3. *Fermates & Nootkop-filtering:* fermates boven de balk detecteren en ruis/boogfragmenten wegfilteren.
-     4. *Koptype, Toonhoogte ($L_1 \dots L_5$) & Verlengingspunten (Dots):* exacte projectie op de lokale balklijnen en vrij zwevende punten rechts van de kop.
-     5. *Rusten, Stokken, Dwarsbalken (`<beam>`) & Bogen:* stokrichting en stokeinde (`stem_tip_y`) volgen voor achtsten/zestienden, vaantjes, rusten en overbindingen (ties).
+     - Maatsoort (`4/4`, `2/2`, `2/4`, `3/4`, `6/8`, etc.).
+     - Exacte startpositie van de eerste noot (`x_notes_start`) ná de header.
+4. **Stap 4: Maat-voor-Maat Semantische Ontleding (Audiveris-Volgorde):**
+   - Binnen elk maatvenster `[mx1 + 4, mx2 - 4]` per balk worden de componenten in deze volgorde ontleed:
+     1. **Waardestrepen eerst (`BEAMS`):** Brede horizontale of licht hellende balken (breedte $\ge 1.8 \cdot sp$, dikte $0.25 \dots 0.45 \cdot sp$). Deze worden direct als balkgroep geregistreerd en **gemaskeerd uit het binaire beeld**.
+     2. **Nootkoppen (`HEADS`):** Op het beam-vrije beeld worden gesloten nootkoppen (elliptisch filter $\approx 0.52 \cdot sp \times 0.36 \cdot sp$) en open holtes (`floodFill`) gedetecteerd. Hierdoor kunnen beams **nooit meer als spooknootkoppen worden gezien**.
+     3. **Nootstokken (`STEMS`):** Verticale lijnen (hoogte $\ge 1.3 \cdot sp$, dikte 1–3 px) die nootkoppen verbinden met beams of vaantjes.
+     4. **Bipartite Koppeling (`HeadStemRelation`):** Paarsgewijze binding van koppen en stokken. Aan het vrije stokeinde (`stem_tip_y`) bepaalt de koppeling met de eerder gevonden beams of vlaggetjes het ritme (achtste, zestiende, kwartnoot).
+     5. **Toevallige Voortekens (`SYMBOLS`):** $\sharp, \flat, \natural$ direct links van de nootkop koppelen.
+     6. **Bogen (`CURVES`):** Legatobogen en ties die zweven boven of onder de nootkoppen.
+     7. **Residuele Rusten:** Na aftrek van alle lijnen, noten en beams blijft het zuivere rusten-residu over.
 5. **Stap 5: Maatharmonisatie, Liedtekst & MusicXML-export:**
-   - Controle per maat of de som van de nootduren in elke stem klopt met de doelduur van die maat (opmaat, reguliere maat of slotmaat).
-   - Koppeling van liedtekst-syllaben en export naar MusicXML met audit-tabel.
+   - Controle per maat of de som van de nootduren klopt met de nominale maatduur (bijv. 12 divisions voor 6/8, 16 voor 4/4).
+   - Koppeling van liedtekst-syllaben per maat (inclusief meerstemmige coupletten via `|`).
+   - Export naar MusicXML met audit-tabel.
 
 ---
 
-## 3. Verificatie-Protocol bij Elke Wijziging
+## 4. Verificatie-Protocol bij Elke Wijziging
 Voorafgaand aan elke codewijziging moet de AI altijd motiveren:
 1. **De Universele Formule / Filter:** Welke algemene visuele eigenschap wordt gemeten op de scan-pixels.
 2. **De Generieke Werking:** Waarom deze wijziging wiskundig en visueel op elke partituur werkt, zonder enige aanname over een specifieke maat of lied.
 
 ---
 
-## 4. Scheiding tussen Tool-Ontwikkeling (Puur Visueel) en Finale Evaluatie (Muzikaal)
+## 5. Scheiding tussen Tool-Ontwikkeling (Puur Visueel) en Finale Evaluatie (Muzikaal)
 - **TIJDENS DE ONTWIKKELING IN DE TOOL (`tools/scan_to_musicxml.py`):**
-  - Deze strenge beperking (geen muzikaal redeneren of voorkennis aannemen) geldt **enkel en alleen voor het tool**.
-  - De detectielogica mag uitsluitend sturen op visuele feiten: inkt, geometrie, component-dimensies, en lokale balklijnen $L_1 \dots L_5$.
+  - Detectielogica mag uitsluitend sturen op visuele feiten: inkt, geometrie, component-dimensies, en lokale balklijnen $L_1 \dots L_5$.
 - **NA DE CONVERSIE (MET MUZIKALE OGEN KIJKEN):**
-  - Als de conversie door het tool voltooid is en de MusicXML geëxporteerd is, **mag (en moet) de AI wél met muzikale ogen naar het eindresultaat kijken**:
+  - Als de conversie voltooid is, kijkt de AI met muzikale ogen naar het eindresultaat:
     - Kloppen de zangstemmen en harmonieën samen?
     - Zijn de muzikale fraseringen, ritmes, bogen en tekstplaatsingen logisch en zingbaar in de app Zing!?
-    - Zijn er muzikaal onlogische sprongen die wijzen op een gemiste nootkop of verkeerde sleutel?
-  - Blijkt uit de muzikale blik dat er iets niet klopt, dan gaan we terug naar de scan om te onderzoeken welke *visuele* eigenschap in het tool moet worden verfijnd om het mechanisch correct te detecteren.
-
----
-
-## 5. De "Nootkop- & Stokkoppeling" Architectuur (Bipartite Head-Stem Binding)
-Voor de maat-voor-maat symbooldetectie hanteren we het universele principe van twee onafhankelijke detecties die paarsgewijs worden gekoppeld:
-
-### A. Twee Onafhankelijke Detecties (Nootkoppen & Stokken)
-1. **Verzameling A: Nootkoppen (2D Elliptisch & Cavity-filter):**
-   - **Gesloten nootkoppen:** Gedetecteerd via een 2D elliptisch morfologisch openingsfilter (`cv2.MORPH_ELLIPSE` met afmeting $\approx 0.70 \cdot sp \times 0.50 \cdot sp$). Dit filter wist dunne lijnen (stokken, balklijnen, vlaggetjes) en isoleert zuiver het dikke elliptische nootkoplichaam.
-   - **Open nootkoppen & holtes:** Gedetecteerd via `cv2.floodFill` als ingesloten witte holtes.
-   - **Toonhoogte:** Het zwaartepunt `(cx, cy)` van de ellips/cavity projecteert met wiskundige precisie op $L_1 \dots L_5$.
-   - **Voortekens:** Zoek direct links van de nootkop naar toevallige tekens ($\sharp, \flat, \natural$).
-   - **Verlengingspunten:** Zoek direct rechts van de nootkop naar losse punten (dots, $\times 1.5$ duur).
-
-2. **Verzameling B: Stokken (1D Verticaal Lijnfilter):**
-   - Een verticaal morfologisch openingsfilter (`cv2.MORPH_RECT` met hoogte $\ge 1.8 \cdot sp$ en breedte 1 px) isoleert alle verticale lijnen.
-   - Omdat voortekens ($\sharp, \natural, \flat$) en tekstletters korter zijn ($< 1.5 \cdot sp$), worden ze hier direct en universeel van notenstokken onderscheiden.
-   - Elke stok levert zijn horizontale positie $x_s$ en verticale spanne $[y_{\text{top}}, y_{\text{bot}}]$.
-
-### B. De Paarsgewijze Koppeling (Welke horen bij elkaar?)
-Een stok en een nootkop worden gekoppeld als ze elkaar fysiek raken (horizontale afstand $|x_s - x_h| \le 0.55 \cdot sp$):
-1. **Stok omhoog (`stem_dir = 'up'`):**
-   - De onderkant van de stok ($y_{\text{bot}}$) raakt de nootkop aan de rechterzijde ($x_s \ge x_h$).
-   - Het **vrije uiteinde bovenaan** ($y_{\text{top}}$) is het formele **stokeinde** (`stem_tip_y`).
-2. **Stok omlaag (`stem_dir = 'down'`):**
-   - De bovenkant van de stok ($y_{\text{top}}$) raakt de nootkop aan de linkerzijde ($x_s \le x_h$).
-   - Het **vrije uiteinde onderaan** ($y_{\text{bot}}$) is het formele **stokeinde** (`stem_tip_y`).
-3. **Stokeinde-Analyse (Ritme & Beams aan het vrije uiteinde):**
-   - Aan `stem_tip_y` bepaalt de horizontale omgeving direct de nootwaarde en balkgroep:
-     - **Horizontale inkt alleen naar rechts:** `<beam>begin</beam>` (start van balkgroep).
-     - **Horizontale inkt naar links én rechts:** `<beam>continue</beam>` (midden van balkgroep).
-     - **Horizontale inkt alleen naar links:** `<beam>end</beam>` (einde van balkgroep).
-     - **Aantal evenwijdige balken:** 1 balk = achtste ($2\text{d}$), 2 balken = zestiende ($1\text{d}$).
-     - **Vaantje (geen buurnoot):** Achtste ($2\text{d}$) of zestiende ($1\text{d}$).
-     - **Kaal stokeinde (witruimte rondom):** Kwartnoot ($4\text{d}$).
-4. **Hele Noten (Zonder Stok):**
-   - Open nootkoppen uit Verzameling A die géén gekoppelde stok hebben, zijn zuivere hele noten.
-5. **Wederzijdse Ruiseliminatie:**
-   - Verticale lijnen zonder gekoppelde nootkop vallen direct af (voorkomt spooknoten door tekst of maatstrepen).
-   - Inktvlekjes zonder gekoppelde stok (tenzij hele noot) vallen direct af.
-
-### C. Subtractieve Eliminatie (Residuele Rusten)
-- Nadat alle balklijnen, maatstrepen, noten en bogen zijn geïdentificeerd, worden hun pixels uit het binaire beeld "weggegumd" (gemaskeerd op 0).
-- **Wat overblijft in het balkvenster is het zuivere residu: automatisch de rusten!**
-  - Kwartrust: typische gekrulde vorm/bliksemschicht in het centrum van de balk.
-  - Achtsterust: 7-vormig vlaggetje in de tussenruimtes.
-  - Halve/hele rust: rechthoekig inktblokje rustend op of hangend aan een balklijn.
-- Doordat de noten eerst zijn verwijderd, kunnen noten en rusten elkaar optisch nooit meer verstoren.
+    - Wijzen onlogische sprongen op een gemiste nootkop of verwisselde balk?
+  - Bij afwijkingen onderzoeken we welke *visuele* eigenschap in het tool moet worden verfijnd om het mechanisch correct te detecteren.

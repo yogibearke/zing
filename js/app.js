@@ -710,8 +710,8 @@ document.addEventListener('DOMContentLoaded', () => {
         composer,
         badge,
         badgeClass,
-        musicXmlUrl: `./assets/sample-scores/${filename}`,
-        pdfUrl: `./assets/sample-scores/${filename.replace(/\.musicxml$/i, '.pdf')}`,
+        musicXmlUrl: `./assets/scores/${filename}`,
+        pdfUrl: `./assets/scores/${filename.replace(/\.musicxml$/i, '.pdf')}`,
         desc: `${composer ? composer + ' • ' : ''}${partNames.length > 0 ? partNames.join(', ') : 'Koorpartituur'}. Oefen jouw stempartij of Tutti.`
       };
     } catch (e) {
@@ -738,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let fileList = [];
       try {
-        const res = await fetch('./assets/sample-scores/scores-index.json?_t=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch('./assets/scores/scores-index.json?_t=' + Date.now(), { cache: 'no-store' });
         if (res.ok) {
           const raw = await res.json();
           if (Array.isArray(raw) && raw.length > 0) {
@@ -758,7 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
       for (const fname of fileList) {
         let meta = null;
         try {
-          const xmlRes = await fetch(`./assets/sample-scores/${fname}?_t=` + Date.now(), { cache: 'no-store' });
+          const xmlRes = await fetch(`./assets/scores/${fname}?_t=` + Date.now(), { cache: 'no-store' });
           if (xmlRes.ok) {
             const xmlText = await xmlRes.text();
             meta = parseMusicXmlMetadata(xmlText, fname);

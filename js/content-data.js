@@ -119,16 +119,6 @@ const ContentData = {
           desc: 'Bespeelbaar klavier om toonladders en losse referentietonen aan te slaan.'
         },
         {
-          id: 'score-toonladder',
-          title: 'Dagelijkse Inzing-Toonladder & 5-Toons Vocalise',
-          type: 'builtin',
-          targetScreen: 'screen-scores',
-          scoreKey: 'toonladder-oefening',
-          badge: 'Inzingen',
-          badgeClass: 'badge-gold',
-          desc: '5-toonsladder in C-groot om de stembanden rustig soepel te maken op klinkers.'
-        },
-        {
           id: 'ext-pitchhighway',
           title: 'PitchHighway Guided Warm-up',
           type: 'external',
@@ -147,50 +137,9 @@ const ContentData = {
       themeClass: 'theme-pink',
       icon: '🎼',
       title: 'Partituren & Repertoire',
-      shortExplanation: 'Instuderen van koorpartijen (SATB), interactieve MusicXML bladmuziek en oefenspeler.',
-      description: 'Zing meerstemmig in een koor of ensemble. Oefen jouw stempartij (S/A/T/B) met instelbaar tempo, dynamische partituren en uploadmogelijkheid.',
-      tools: [
-        {
-          id: 'score-komt-vrienden',
-          title: '1. Komt vrienden in het ronde (Het Slijperslied)',
-          type: 'builtin',
-          targetScreen: 'screen-scores',
-          scoreKey: 'komt-vrienden',
-          badge: 'SATB Koor',
-          badgeClass: 'badge-green',
-          desc: 'Originele partituur in d-mineur (2/4 maat met 1/8 opmaat). Oefen Sopraan, Alt, Tenor, Bas of Tutti.'
-        },
-        {
-          id: 'score-befiehl-du-deine-wege',
-          title: '44. Befiehl du deine Wege (J.S. Bach - Matthäus-Passion)',
-          type: 'builtin',
-          targetScreen: 'screen-scores',
-          scoreKey: 'befiehl-du-deine-wege',
-          badge: 'SATB Koraal',
-          badgeClass: 'badge-gold',
-          desc: 'Klassiek 4-stemmig koraal BWV 244 in D-groot (4/4 maat met 1/4 opmaat). Oefen Sopraan, Alt, Tenor, Bas of Tutti.'
-        },
-        {
-          id: 'score-calypso',
-          title: 'Calypso (Jan Holstock)',
-          type: 'builtin',
-          targetScreen: 'screen-scores',
-          scoreKey: 'calypso',
-          badge: 'Koorlied',
-          badgeClass: 'badge-purple',
-          desc: 'Vrolijk 4/4 koorlied van Jan Holstock. Oefen melodie, tempo en zangbegeleiding.'
-        },
-        {
-          id: 'score-drink-to-me-only',
-          title: 'Drink To Me Only With Thine Eyes',
-          type: 'builtin',
-          targetScreen: 'screen-scores',
-          scoreKey: 'drink-to-me-only',
-          badge: 'SAB Koor',
-          badgeClass: 'badge-green',
-          desc: 'Traditioneel koorwerk in F-groot (6/8 maat) voor Sopraan, Alt en Bariton (SAB) met 2 coupletten.'
-        }
-      ]
+      shortExplanation: 'Instuderen van koorpartijen, interactieve MusicXML bladmuziek en oefenspeler.',
+      description: 'Zing meerstemmig in een koor of ensemble. Alle partituren en gegevens worden rechtstreeks geladen uit scores-index.json en de bijbehorende XML/PDF-bestanden.',
+      tools: []
     },
     {
       id: 'tools',

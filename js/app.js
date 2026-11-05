@@ -70,6 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!listEl) return;
     listEl.innerHTML = '';
 
+    const countEl = document.querySelector(`#pillar-${pillar.id} .pillar-tools-count`);
+    if (countEl) {
+      countEl.textContent = `${tools.length} opties ▾`;
+    }
+
     tools.forEach((tool, index) => {
       const itemEl = document.createElement('div');
       itemEl.className = 'tool-item-card';
@@ -78,11 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const arrowIcon = isExternalTab
         ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
         : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
-
-      const isDeletable = tool.isCustom || tool.scoreKey === 'befiehl-du-deine-wege';
-      const deleteBtnHtml = isDeletable
-        ? `<button class="btn-item-delete-discreet" title="Verwijder '${tool.title}' met paswoord" data-key="${tool.scoreKey || tool.id}">🗑️</button>`
-        : '';
 
       itemEl.innerHTML = `
         <div class="reorder-controls">
@@ -96,33 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="tool-item-desc">${tool.desc}</div>
         </div>
-        ${deleteBtnHtml}
         <div class="tool-item-arrow" title="${isExternalTab ? 'Opent direct in nieuw tabblad' : 'Open in Zing!'}">
           ${arrowIcon}
         </div>
       `;
-
-      // Discreet individual delete click
-      const itemDeleteBtn = itemEl.querySelector('.btn-item-delete-discreet');
-      if (itemDeleteBtn) {
-        itemDeleteBtn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const targetKey = itemDeleteBtn.dataset.key;
-          const isConfirm = confirm(`Weet je zeker dat je "${tool.title}" wilt verwijderen?`);
-          if (!isConfirm) return;
-
-          const inputPwd = prompt('Voer het beheerderspaswoord in om deze partituur te verwijderen:');
-          const isValid = await ScoreStorage.verifyPassword(inputPwd);
-          if (!isValid) {
-            alert('❌ Onjuist paswoord. Verwijdering geannuleerd. Paswoord is: tatjana01');
-            return;
-          }
-
-          await ScoreStorage.deleteScoreLocally(targetKey);
-          alert('✅ Partituur succesvol verwijderd!');
-          await refreshScoresCatalog();
-        });
-      }
 
       // Up / Down sorting clicks
       const upBtn = itemEl.querySelector('.btn-move-up');
@@ -188,58 +165,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="pillar-body">
           <div class="pillar-body-intro">
             <p class="pillar-instruction">${pillar.description}</p>
-            <div class="pillar-actions-bar">
-              <button class="btn-pillar-action btn-pillar-upload-trigger" data-pillar="${pillar.id}" title="Upload bestand of partituur">
-                <span>➕ Upload</span>
-              </button>
-              <button class="btn-pillar-action btn-pillar-delete-trigger" data-pillar="${pillar.id}" title="Verwijder item met beheerderspaswoord">
-                <span>🗑️</span>
-              </button>
-            </div>
           </div>
           <div class="tools-list" id="tools-list-${pillar.id}"></div>
         </div>
       `;
-
-      // Discreet actions in pillar
-      const uploadTriggers = card.querySelectorAll('.btn-pillar-upload-trigger');
-      uploadTriggers.forEach(b => {
-        b.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const modal = document.getElementById('modal-upload-score');
-          if (modal) modal.style.display = 'flex';
-        });
-      });
-
-      const deleteTriggers = card.querySelectorAll('.btn-pillar-delete-trigger');
-      deleteTriggers.forEach(b => {
-        b.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const currentTools = getPillarTools(pillar);
-          const deletable = currentTools.filter(t => t.isCustom || t.scoreKey === 'befiehl-du-deine-wege' || t.isDeletable);
-          if (deletable.length === 0) {
-            alert('Er zijn in deze pijler momenteel geen verwijderbare aangepaste items.');
-            return;
-          }
-          const listText = deletable.map((t, idx) => `${idx + 1}. ${t.title}`).join('\n');
-          const choice = prompt(`Kies het nummer van het item dat je wilt verwijderen:\n\n${listText}`);
-          const chosenIdx = parseInt(choice, 10) - 1;
-          if (isNaN(chosenIdx) || chosenIdx < 0 || chosenIdx >= deletable.length) return;
-          const chosenTool = deletable[chosenIdx];
-
-          const inputPwd = prompt(`Voer het beheerderspaswoord in om "${chosenTool.title}" te verwijderen:`);
-          const isValid = await ScoreStorage.verifyPassword(inputPwd);
-          if (!isValid) {
-            alert('❌ Onjuist beheerderspaswoord. Paswoord is: tatjana01');
-            return;
-          }
-          if (chosenTool.scoreKey) {
-            await ScoreStorage.deleteScoreLocally(chosenTool.scoreKey);
-          }
-          alert('✅ Item succesvol verwijderd!');
-          await refreshScoresCatalog();
-        });
-      });
 
       // Toggle accordion on header tap (alleen op mobiel/tablet < 1024px)
       const header = card.querySelector('.pillar-header');
@@ -662,169 +591,171 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --------------------------------------------------------------------------
-  // 8. Score Management, Upload (tatjana01) & Catalog Sync
+  // 8. Score Management, Upload (tatjana01) & Catalog Sync (100% uit scores-index.json + XML/PDF)
   // --------------------------------------------------------------------------
-  // Helper: Haalt metadata (titel, componist, bezetting) rechtstreeks uit de MusicXML
   function parseMusicXmlMetadata(xmlString, filename) {
-    const defaultKey = filename.replace(/\.musicxml$/i, '').toLowerCase().replace(/[^a-z0-9_-]/g, '-');
-    const fallbackTitle = filename.replace(/\.musicxml$/i, '').replace(/[-_]/g, ' ');
-    if (!xmlString) {
-      return {
-        key: defaultKey,
-        filename,
-        title: fallbackTitle,
-        composer: '',
-        badge: 'Koor',
-        badgeClass: 'badge-green',
-        desc: 'Interactieve koorpartituur.'
-      };
-    }
+    if (!xmlString || !filename) return null;
     try {
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
-      const titleEl = xmlDoc.querySelector('movement-title') || xmlDoc.querySelector('work-title');
-      const title = (titleEl && titleEl.textContent.trim()) ? titleEl.textContent.trim() : fallbackTitle;
+      if (xmlDoc.querySelector('parsererror')) return null;
+
+      const key = filename
+        .replace(/\.(musicxml|xml)$/i, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+      // Titel rechtstreeks uit de XML
+      let title = '';
+      const titleEl = xmlDoc.querySelector('movement-title') || xmlDoc.querySelector('work > work-title');
+      if (titleEl && titleEl.textContent.trim()) {
+        title = titleEl.textContent.trim();
+      } else {
+        xmlDoc.querySelectorAll('credit').forEach(cr => {
+          const ct = cr.querySelector('credit-type');
+          const cw = cr.querySelector('credit-words');
+          if (!title && ct && ct.textContent.trim() === 'title' && cw && cw.textContent.trim()) {
+            title = cw.textContent.trim();
+          }
+        });
+      }
+      if (!title) return null;
+
+      // Componist rechtstreeks uit de XML
+      let composer = '';
       const compEl = xmlDoc.querySelector('identification > creator[type="composer"]') || xmlDoc.querySelector('creator');
-      const composer = (compEl && compEl.textContent.trim()) ? compEl.textContent.trim() : '';
+      if (compEl && compEl.textContent.trim()) {
+        composer = compEl.textContent.trim();
+      } else {
+        xmlDoc.querySelectorAll('credit').forEach(cr => {
+          const ct = cr.querySelector('credit-type');
+          const cw = cr.querySelector('credit-words');
+          if (!composer && ct && ct.textContent.trim() === 'composer' && cw && cw.textContent.trim()) {
+            composer = cw.textContent.trim();
+          }
+        });
+      }
+
+      // Stempartijen rechtstreeks uit part-list
       const partEls = Array.from(xmlDoc.querySelectorAll('part-list > score-part > part-name'));
       const partNames = partEls.map(pn => pn.textContent.trim()).filter(Boolean);
-      let badge = 'Koor';
-      let badgeClass = 'badge-green';
-      if (partNames.length === 4) {
-        badge = 'SATB Koor';
-        badgeClass = 'badge-gold';
-      } else if (partNames.length === 3) {
-        badge = 'SAB Koor';
-        badgeClass = 'badge-purple';
-      } else if (partNames.length === 2) {
-        badge = 'SA Koor';
-        badgeClass = 'badge-green';
-      } else if (partNames.length === 1) {
-        badge = 'Solostem';
-        badgeClass = 'badge-purple';
+
+      // Maatsoort rechtstreeks uit attributes > time
+      const beatsEl = xmlDoc.querySelector('attributes > time > beats');
+      const beatTypeEl = xmlDoc.querySelector('attributes > time > beat-type');
+      const timeSig = (beatsEl && beatTypeEl)
+        ? `${beatsEl.textContent.trim()}/${beatTypeEl.textContent.trim()}`
+        : '';
+
+      // Tempo rechtstreeks uit sound[tempo] of metronome > per-minute
+      let bpm = null;
+      const soundEl = xmlDoc.querySelector('sound[tempo]');
+      if (soundEl && soundEl.getAttribute('tempo')) {
+        bpm = Math.round(parseFloat(soundEl.getAttribute('tempo')));
+      } else {
+        const perMinEl = xmlDoc.querySelector('metronome > per-minute');
+        if (perMinEl && perMinEl.textContent.trim()) {
+          bpm = Math.round(parseFloat(perMinEl.textContent.trim()));
+        }
       }
+
+      const badge = partNames.join(' • ');
+      const badgeClass = partNames.length >= 4 ? 'badge-gold' : (partNames.length >= 2 ? 'badge-green' : 'badge-purple');
+      const descParts = [];
+      if (composer) descParts.push(composer);
+      if (timeSig) descParts.push(`${timeSig} maat`);
+      if (partNames.length > 0) descParts.push(partNames.join(', '));
+      const desc = descParts.join(' • ');
+
       return {
-        key: defaultKey,
+        key,
         filename,
         title,
         composer,
+        partNames,
+        timeSig,
+        bpm,
         badge,
         badgeClass,
         musicXmlUrl: `./assets/scores/${filename}`,
-        pdfUrl: `./assets/scores/${filename.replace(/\.musicxml$/i, '.pdf')}`,
-        desc: `${composer ? composer + ' • ' : ''}${partNames.length > 0 ? partNames.join(', ') : 'Koorpartituur'}. Oefen jouw stempartij of Tutti.`
+        pdfUrl: `./assets/scores/${key}.pdf`,
+        desc
       };
     } catch (e) {
-      return {
-        key: defaultKey,
-        filename,
-        title: fallbackTitle,
-        composer: '',
-        badge: 'Koor',
-        badgeClass: 'badge-green',
-        desc: 'Interactieve koorpartituur.'
-      };
+      return null;
     }
   }
 
   async function refreshScoresCatalog() {
+    const scoreSelect = document.getElementById('score-select');
+    const pillarPartituren = ContentData.pillars.find(p => p.id === 'partituren');
+
     try {
-      const DEFAULT_SCORE_FILES = [
-        "komt-vrienden-in-het-ronde.musicxml",
-        "befiehl-du-deine-wege.musicxml",
-        "calypso.musicxml",
-        "drink-to-me-only.musicxml"
-      ];
-
-      let fileList = [];
-      try {
-        const res = await fetch('./assets/scores/scores-index.json?_t=' + Date.now(), { cache: 'no-store' });
-        if (res.ok) {
-          const raw = await res.json();
-          if (Array.isArray(raw) && raw.length > 0) {
-            fileList = raw.map(item => (typeof item === 'string') ? item : (item.musicXmlUrl ? item.musicXmlUrl.split('/').pop() : item.key + '.musicxml'));
-          }
+      const res = await fetch('./assets/scores/scores-index.json?_t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) {
+        console.error('Kan ./assets/scores/scores-index.json niet laden (HTTP ' + res.status + '). Zonder scores-index.json worden geen partituren geladen.');
+        if (pillarPartituren) {
+          pillarPartituren.tools = [];
+          renderPillarTools(pillarPartituren, []);
         }
-      } catch (err) {
-        console.warn('Kon scores-index.json niet live ophalen, gebruik default bestandenlijst:', err);
+        if (scoreSelect) scoreSelect.innerHTML = '';
+        return;
       }
 
-      if (fileList.length === 0) {
-        fileList = DEFAULT_SCORE_FILES;
+      const raw = await res.json();
+      if (!Array.isArray(raw) || raw.length === 0) {
+        console.warn('scores-index.json is leeg of ongeldig.');
+        if (pillarPartituren) {
+          pillarPartituren.tools = [];
+          renderPillarTools(pillarPartituren, []);
+        }
+        if (scoreSelect) scoreSelect.innerHTML = '';
+        return;
       }
 
-      // 1. Sequentieel elke MusicXML inlezen en metadata dynamisch parsen
+      const fileList = raw
+        .map(item => (typeof item === 'string') ? item : (item && item.musicXmlUrl ? item.musicXmlUrl.split('/').pop() : null))
+        .filter(Boolean);
+
+      // 1. Sequentieel elke MusicXML inlezen en metadata uitsluitend uit het XML-bestand halen
       const serverScores = [];
       for (const fname of fileList) {
-        let meta = null;
         try {
           const xmlRes = await fetch(`./assets/scores/${fname}?_t=` + Date.now(), { cache: 'no-store' });
-          if (xmlRes.ok) {
-            const xmlText = await xmlRes.text();
-            meta = parseMusicXmlMetadata(xmlText, fname);
-          }
-        } catch (xmlErr) {
-          // Bij offline restricties
-        }
-        if (!meta) {
-          meta = parseMusicXmlMetadata(null, fname);
-        }
-        serverScores.push(meta);
+          if (!xmlRes.ok) continue;
+          const xmlText = await xmlRes.text();
+          const meta = parseMusicXmlMetadata(xmlText, fname);
+          if (!meta) continue;
 
-        if (typeof ScoreViewer !== 'undefined' && ScoreViewer.registerScore) {
-          ScoreViewer.registerScore(meta.key, {
-            title: meta.title,
-            subtitle: meta.desc,
-            musicXmlUrl: meta.musicXmlUrl,
-            pdfUrl: meta.pdfUrl
-          });
-        }
-      }
+          serverScores.push(meta);
 
-      // 2. Haal eventuele lokaal ingeladen oefenpartituren op uit IndexedDB
-      let localScores = [];
-      if (typeof ScoreStorage !== 'undefined') {
-        localScores = await ScoreStorage.getAllLocalScores();
-      }
-
-      const scoreSelect = document.getElementById('score-select');
-      const pillarPartituren = ContentData.pillars.find(p => p.id === 'partituren');
-
-      if (pillarPartituren) {
-        const newTools = [];
-
-        // Voeg officiële koorpartituren toe uit scores-index.json
-        serverScores.forEach(s => {
-          newTools.push({
-            id: `score-${s.key}`,
-            title: s.title,
-            type: 'builtin',
-            targetScreen: 'screen-scores',
-            scoreKey: s.key,
-            badge: s.badge || 'Koor Partituur',
-            badgeClass: s.badgeClass || 'badge-green',
-            desc: s.desc || `${s.composer ? s.composer + ' • ' : ''}Officiële koorpartituur. Oefen Sopraan, Alt, Tenor, Bas of Tutti.`
-          });
-        });
-
-        // Voeg eventuele lokale oefenpartituren toe (indien niet al op de server)
-        const serverKeys = serverScores.map(s => s.key);
-        localScores.forEach(ls => {
-          if (!serverKeys.includes(ls.key)) {
-            newTools.push({
-              id: `score-${ls.key}`,
-              title: ls.title,
-              type: 'builtin',
-              targetScreen: 'screen-scores',
-              scoreKey: ls.key,
-              badge: 'Mijn Oefenpartituur',
-              badgeClass: 'badge-purple',
-              desc: `${ls.composer ? ls.composer + ' • ' : ''}Lokaal ingeladen partituur op dit apparaat.`,
-              isCustomScore: true,
-              isDeletable: true
+          if (typeof ScoreViewer !== 'undefined' && ScoreViewer.registerScore) {
+            ScoreViewer.registerScore(meta.key, {
+              filename: meta.filename,
+              title: meta.title,
+              subtitle: meta.desc,
+              bpm: meta.bpm,
+              musicXmlUrl: meta.musicXmlUrl,
+              pdfUrl: meta.pdfUrl
             });
           }
-        });
+        } catch (xmlErr) {
+          console.warn(`Kon ${fname} niet inlezen:`, xmlErr);
+        }
+      }
+
+      if (pillarPartituren) {
+        const newTools = serverScores.map(s => ({
+          id: `score-${s.key}`,
+          title: s.title,
+          type: 'builtin',
+          targetScreen: 'screen-scores',
+          scoreKey: s.key,
+          badge: s.badge,
+          badgeClass: s.badgeClass,
+          desc: s.desc
+        }));
 
         pillarPartituren.tools = newTools;
         renderPillarTools(pillarPartituren, getPillarTools(pillarPartituren));
@@ -838,159 +769,24 @@ document.addEventListener('DOMContentLoaded', () => {
         serverScores.forEach(s => {
           const opt = document.createElement('option');
           opt.value = s.key;
-          opt.textContent = `${s.title} (${s.composer || 'Koor'})`;
+          opt.textContent = s.composer ? `${s.title} (${s.composer})` : s.title;
           scoreSelect.appendChild(opt);
-        });
-
-        const serverKeys = serverScores.map(s => s.key);
-        localScores.forEach(ls => {
-          if (!serverKeys.includes(ls.key)) {
-            const opt = document.createElement('option');
-            opt.value = ls.key;
-            opt.textContent = `${ls.title} (Lokaal)`;
-            scoreSelect.appendChild(opt);
-          }
         });
 
         if (currentVal && Array.from(scoreSelect.options).some(o => o.value === currentVal)) {
           scoreSelect.value = currentVal;
         }
       }
+
+      // Als de pagina geopend werd met een directe hash naar een partituur (bv. #tool-score-...), open deze na het inladen van scores-index.json
+      if (window.location.hash.startsWith('#tool-score-') && pillarPartituren) {
+        const toolId = window.location.hash.substring(6);
+        const found = pillarPartituren.tools.find(t => t.id === toolId);
+        if (found) openToolScreen(found, false);
+      }
     } catch (e) {
-      console.warn('Fout bij synchroniseren van scores catalogus:', e);
+      console.error('Fout bij inladen van scores-index.json:', e);
     }
-  }
-
-  function initScoreManagement() {
-    const modal = document.getElementById('modal-upload-score');
-    const openBtn = document.getElementById('btn-open-upload-modal');
-    const closeBtn = document.getElementById('btn-close-upload-modal');
-    const cancelBtn = document.getElementById('btn-cancel-upload');
-    const form = document.getElementById('form-upload-score');
-    const xmlInput = document.getElementById('upload-musicxml-file');
-    const pdfInput = document.getElementById('upload-pdf-file');
-    const titleInput = document.getElementById('upload-title');
-    const compInput = document.getElementById('upload-composer');
-    const fileInfo = document.getElementById('upload-file-info');
-    const statusMsg = document.getElementById('upload-status-msg');
-    const deleteBtn = document.getElementById('btn-delete-current-score');
-
-    let currentParsedXml = null;
-
-    if (openBtn && modal) {
-      openBtn.addEventListener('click', () => {
-        modal.style.display = 'flex';
-        if (fileInfo) fileInfo.style.display = 'none';
-        if (statusMsg) statusMsg.style.display = 'none';
-        if (form) form.reset();
-        currentParsedXml = null;
-      });
-    }
-
-    const closeModal = () => {
-      if (modal) modal.style.display = 'none';
-    };
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-
-    // MusicXML bestand selectie & metadata preview
-    if (xmlInput) {
-      xmlInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const text = event.target.result;
-          currentParsedXml = text;
-          const meta = ScoreStorage.parseMusicXMLMetadata(text);
-          if (titleInput) titleInput.value = meta.title;
-          if (compInput) compInput.value = meta.composer;
-          if (fileInfo) {
-            fileInfo.style.display = 'block';
-            fileInfo.textContent = `✅ Gedetecteerd: "${meta.title}" (${meta.parts.join(', ')})`;
-          }
-        };
-        reader.readAsText(file);
-      });
-    }
-
-    // Formulier versturen: bewaart partituur lokaal op het apparaat
-    if (form) {
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!currentParsedXml) {
-          alert('Selecteer eerst een geldig MusicXML bestand.');
-          return;
-        }
-
-        if (statusMsg) {
-          statusMsg.style.display = 'block';
-          statusMsg.style.background = 'rgba(99, 102, 241, 0.2)';
-          statusMsg.style.color = '#c7d2fe';
-          statusMsg.textContent = 'Bezig met inladen...';
-        }
-
-        const meta = ScoreStorage.parseMusicXMLMetadata(currentParsedXml);
-        const finalTitle = (titleInput && titleInput.value.trim()) || meta.title;
-        const finalComp = (compInput && compInput.value.trim()) || meta.composer;
-
-        // Lees eventuele PDF in
-        let pdfDataUrl = null;
-        if (pdfInput && pdfInput.files[0]) {
-          pdfDataUrl = await new Promise((res) => {
-            const pr = new FileReader();
-            pr.onload = () => res(pr.result);
-            pr.readAsDataURL(pdfInput.files[0]);
-          });
-        }
-
-        // Bewaar in IndexedDB voor lokaal oefenen
-        await ScoreStorage.saveScoreLocally({
-          key: meta.key,
-          title: finalTitle,
-          composer: finalComp,
-          musicXml: currentParsedXml,
-          pdfDataUrl,
-          isCustom: true,
-          updatedAt: Date.now()
-        });
-
-        await refreshScoresCatalog();
-        closeModal();
-
-        // Open direct in de speler
-        ScoreViewer.displayScore(meta.key);
-      });
-    }
-
-    // Verwijderknop handler
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', async () => {
-        const select = document.getElementById('score-select');
-        const activeKey = select ? select.value : null;
-        if (!activeKey) return;
-
-        const isConfirm = confirm(`Weet je zeker dat je deze partituur wilt verwijderen?`);
-        if (!isConfirm) return;
-
-        const localScore = await ScoreStorage.getScoreLocally(activeKey);
-        if (!localScore) {
-          alert('Officiële koorpartituren worden centraal beheerd via GitHub. Je kunt wel je eigen lokaal ingeladen partituren verwijderen.');
-          return;
-        }
-
-        await ScoreStorage.deleteScoreLocally(activeKey);
-        alert('✅ Partituur verwijderd van dit apparaat.');
-        await refreshScoresCatalog();
-        if (select) {
-          select.value = 'komt-vrienden';
-        }
-        ScoreViewer.displayScore('komt-vrienden');
-      });
-    }
-
-    refreshScoresCatalog();
   }
 
   // --------------------------------------------------------------------------
@@ -1003,16 +799,23 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.console-quick-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       let found = null;
-      ContentData.pillars.forEach(p => {
-        const t = p.tools.find(tool => tool.id === btn.dataset.toolId);
-        if (t) found = t;
-      });
+      if (btn.dataset.toolId === 'pillar-partituren') {
+        const pillarPartituren = ContentData.pillars.find(p => p.id === 'partituren');
+        if (pillarPartituren && pillarPartituren.tools.length > 0) {
+          found = getPillarTools(pillarPartituren)[0];
+        }
+      } else {
+        ContentData.pillars.forEach(p => {
+          const t = p.tools.find(tool => tool.id === btn.dataset.toolId);
+          if (t) found = t;
+        });
+      }
       if (found) openToolScreen(found);
     });
   });
   ScoreViewer.init();
-  initScoreManagement();
   renderPillars();
+  refreshScoresCatalog();
 
   // Directe hash routing (bv. #tool-score-drink-to-me-only)
   if (window.location.hash.startsWith('#tool-')) {

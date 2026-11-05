@@ -69,27 +69,45 @@ const ScoreStorage = (() => {
     });
   }
 
-  // --- 2. MusicXML Metadata Extractie ---
-  function parseMusicXMLMetadata(xmlString) {
+  // --- 2. MusicXML Metadata Extractie (100% uit XML, geen defaults) ---
+  function parseMusicXMLMetadata(xmlString, filename = '') {
+    if (!xmlString) return null;
     try {
       const parser = new DOMParser();
       const doc = parser.parseFromString(xmlString, 'application/xml');
+      if (doc.querySelector('parsererror')) return null;
 
-      // Titel
-      let title = 'Nieuwe Partituur';
-      const wtitle = doc.querySelector('work > work-title') || doc.querySelector('movement-title');
+      // Titel uit movement-title, work-title of credit[type="title"]
+      let title = '';
+      const wtitle = doc.querySelector('movement-title') || doc.querySelector('work > work-title');
       if (wtitle && wtitle.textContent.trim()) {
         title = wtitle.textContent.trim();
+      } else {
+        doc.querySelectorAll('credit').forEach(cr => {
+          const ct = cr.querySelector('credit-type');
+          const cw = cr.querySelector('credit-words');
+          if (!title && ct && ct.textContent.trim() === 'title' && cw && cw.textContent.trim()) {
+            title = cw.textContent.trim();
+          }
+        });
       }
 
-      // Componist
-      let composer = 'Onbekende Componist';
+      // Componist uit creator[type="composer"], creator of credit[type="composer"]
+      let composer = '';
       const compEl = doc.querySelector('identification > creator[type="composer"]') || doc.querySelector('creator');
       if (compEl && compEl.textContent.trim()) {
         composer = compEl.textContent.trim();
+      } else {
+        doc.querySelectorAll('credit').forEach(cr => {
+          const ct = cr.querySelector('credit-type');
+          const cw = cr.querySelector('credit-words');
+          if (!composer && ct && ct.textContent.trim() === 'composer' && cw && cw.textContent.trim()) {
+            composer = cw.textContent.trim();
+          }
+        });
       }
 
-      // Stemmen / Instrumenten
+      // Stemmen / Instrumenten uit part-list
       const parts = [];
       doc.querySelectorAll('part-list > score-part').forEach(sp => {
         const pname = sp.querySelector('part-name');
@@ -98,26 +116,22 @@ const ScoreStorage = (() => {
         }
       });
 
-      // Key genereren (slug)
-      const cleanSlug = title
+      // Key genereren uit bestandsnaam of titel
+      const baseSource = filename ? filename.replace(/\.(musicxml|xml)$/i, '') : title;
+      const cleanSlug = baseSource
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '') || ('score-' + Date.now());
+        .replace(/^-+|-+$/g, '');
 
       return {
         key: cleanSlug,
         title,
         composer,
-        parts: parts.length > 0 ? parts : ['Sopraan', 'Alt', 'Tenor', 'Bas']
+        parts
       };
     } catch (e) {
       console.warn('Fout bij parsen van MusicXML metadata:', e);
-      return {
-        key: 'score-' + Date.now(),
-        title: 'Geüploade Partituur',
-        composer: '',
-        parts: ['Sopraan', 'Alt', 'Tenor', 'Bas']
-      };
+      return null;
     }
   }
 
@@ -158,7 +172,7 @@ const ScoreStorage = (() => {
   // --- 4. Server Sync & GitHub API Operations ---
   const REPO_OWNER = 'yogibearke';
   const REPO_NAME = 'zing';
-  const SCORES_PATH = 'assets/sample-scores';
+  const SCORES_PATH = 'assets/scores';
 
   async function getGitHubFileSha(filename, githubToken) {
     try {

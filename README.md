@@ -2,38 +2,33 @@
 
 Een interactieve, moderne webapplicatie (Progressive Web App) ontworpen voor zangers en koren, direct bruikbaar op desktop en smartphone.
 
-## 🌟 De 5 Pijlers
+## 🌟 De 4 Pijlers
 
-1. **🌬️ 01 • Fundament — Ademhaling & Lichaamshouding:**
+1. **🌬️ 01 • Basis — Ademhaling & Houding:**
    * Ingebouwde 4-4-8 S-klank ademcirkel met rustgevende chimes.
-   * Techniekles buikademhaling door operazangeres Francis van Broekhuizen.
+   * Techniekles buikademhaling door operazangeres Francis van Broekhuizen en oefeningen voor lage flankademhaling.
 2. **🔥 02 • Inzingen — Opwarmen & Stemregisters:**
    * Complete 7-daagse opwarmreeks van coach Maggie (*Zangles met Maggie*): Dag 1 t/m 4 en volledige afspeellijst.
    * Automatische piano-vocalises voor Bas/Alt, Bariton/Mezzo en Tenor/Sopraan.
-   * Bespeelbaar referentieklavier (C3 - C5).
-3. **🎯 03 • Intonatie — Gehoor & Zuiverheid (Pitch):**
+   * Bespeelbaar virtueel referentieklavier (C3 - C5).
+3. **🎼 03 • Repertoire — Partituren & Repertoire:**
+   * Interactieve MusicXML-partituren (via OpenSheetMusicDisplay) en originele PDF-scans.
+   * Ingebouwde koor-oefenspeler per stempartij (Sopraan, Alt, Tenor, Bariton, Bas of Tutti) met instelbaar tempo (BPM).
+   * Alle partituren en muzikale gegevens (titel, componist, stempartijen, maatsoort, toonsoort, noten, herhalingen en tempo) worden rechtstreeks en zonder defaults ingeladen vanuit `assets/scores/scores-index.json` en de bijbehorende `.musicxml`- en `.pdf`-bestanden in `assets/scores/`.
+4. **🛠️ 04 • Tools — Tools & Zanghulpmiddelen:**
    * Realtime Web Audio stemtrainer met microfoondetectie (exacte noot, bijv. A3 of C4, frequentie in Hz en afwijking in cents).
-   * Teoria intervaltrainer en realtime pianorol.
-4. **⏱️ 04 • Maat & Noten — Ritme & Notenleer:**
-   * Interactieve metronoom met tempokeuze en visuele beat indicators.
-   * Solfège- en nootoefeningen.
-5. **🎼 05 • Repertoire — Koor, Partituren & Repertoire:**
-   * PDF Partiturenviewer met ingebouwde audiospeler (voor koor-oefentracks) met tempoknop.
-   * Geïntegreerde Spotify-muziekspeler om het originele nummer te beluisteren.
+   * Interactieve visuele metronoom (40 – 200 BPM).
+   * Externe zanghulpmiddelen voor gehoortraining, solfège en AI stem-splitters.
 
 ---
 
-## 🔐 Beheerderspaswoord & Serverbeheer
+## 📂 Partituren Beheren (`assets/scores/`)
 
-Voor het uploaden van nieuwe partituren, het overschrijven van bestaande stukken of het verwijderen van partituren op de server:
-* **Beheerderspaswoord:** `tatjana01`
-
-Met dit paswoord kun je in de app via de knop **"➕ Partituur Toevoegen"**:
-1. **Nieuwe MusicXML (+ optioneel PDF) uploaden:** Wordt direct vastgelegd op de server zodat alle koorleden het kunnen openen.
-2. **Bestaande partituur overschrijven (updaten):** Als er een correctie of nieuwe versie van een lied is.
-3. **Partituur verwijderen van server:** Met de rode knop *"🗑️ Verwijder van Server"* na paswoordbevestiging.
-
-*(Koorleden kunnen de uploadknop zonder paswoord gebruiken om een eigen bestand privé op hun eigen telefoon in te laden).*
+De app werkt volledig statisch zonder serverbeheer of uploadfunctie in de browser:
+1. Plaats nieuwe `.musicxml`- en bijbehorende `.pdf`-bestanden in de map `assets/scores/`.
+2. Teksten of extra liedstrofes zet je in MuseScore in een **tekstvak** (kader); die worden mee geëxporteerd in de `.musicxml` en automatisch onder de partituur getoond.
+3. Voeg de bestandsnaam van het `.musicxml`-bestand toe aan `assets/scores/scores-index.json`.
+4. Bij het openen van de app worden alle gegevens automatisch uit de XML- en PDF-bestanden gelezen.
 
 ---
 

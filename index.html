@@ -77,7 +77,7 @@
             <button class="console-quick-btn" data-tool-id="builtin-warmup"><span class="qi">🔥</span>Inzingen</button>
             <button class="console-quick-btn" data-tool-id="builtin-tuner"><span class="qi">🎯</span>Stemtrainer</button>
             <button class="console-quick-btn" data-tool-id="builtin-metronome"><span class="qi">⏱️</span>Metronoom</button>
-            <button class="console-quick-btn" data-tool-id="score-komt-vrienden" style="grid-column: 1 / -1;"><span class="qi">🎼</span>Partituren &amp; Koor</button>
+            <button class="console-quick-btn" data-tool-id="pillar-partituren" style="grid-column: 1 / -1;"><span class="qi">🎼</span>Partituren &amp; Koor</button>
           </div>
         </div>
       </aside>
@@ -263,27 +263,13 @@
               </div>
             </div>
 
-            <!-- Lijn 2: Stemmen (Voice Pills) - enkel getoond bij meerstemmig koor -->
-            <div class="score-toolbar voice-toolbar-compact" id="voice-picker-container">
+            <!-- Lijn 2: Stemmen (Voice Pills) - enkel getoond bij meerstemmig koor (gevuld vanuit XML) -->
+            <div class="score-toolbar voice-toolbar-compact" id="voice-picker-container" style="display: none;">
               <div class="voice-picker-wrapper">
-                <div class="voice-pills-bar" id="voice-pills-bar">
-                  <button class="voice-pill active" data-voice="sopraan">🔵 Sopraan</button>
-                  <button class="voice-pill" data-voice="alt">🟢 Alt</button>
-                  <button class="voice-pill" data-voice="tenor">🟠 Tenor</button>
-                  <button class="voice-pill" data-voice="bas">🔴 Bas</button>
-                  <button class="voice-pill" data-voice="tutti">🟣 Tutti</button>
-                </div>
-                <!-- Hidden fallback selects for programmatic sync -->
-                <select id="voice-part-select" style="display: none;">
-                  <option value="sopraan" selected>Sopraan</option>
-                  <option value="alt">Alt</option>
-                  <option value="tenor">Tenor</option>
-                  <option value="bas">Bas</option>
-                  <option value="tutti">Tutti</option>
-                </select>
-                <select id="score-select" style="display: none;">
-                  <option value="komt-vrienden">komt-vrienden</option>
-                </select>
+                <div class="voice-pills-bar" id="voice-pills-bar"></div>
+                <!-- Hidden selects for programmatic sync -->
+                <select id="voice-part-select" style="display: none;"></select>
+                <select id="score-select" style="display: none;"></select>
               </div>
             </div>
 
@@ -315,6 +301,9 @@
 
               <!-- OpenSheetMusicDisplay renders the MusicXML into this container -->
               <div id="osmd-container" style="width: 100%; min-height: 480px; background: #ffffff;"></div>
+
+              <!-- Tekstvakken en liedstrofes rechtstreeks uit de MusicXML -->
+              <div id="score-xml-textboxes" style="display: none; padding: 14px 18px; margin: 12px 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; color: #1e293b;"></div>
 
               <!-- Fallback / Alternative iframe for PDF view or HTML score -->
               <iframe id="pdf-viewer-frame" class="score-frame-content" style="display: none; width: 100%; height: 600px; border: none;" title="Partituur Weergave"></iframe>
@@ -350,74 +339,16 @@
       </div>
     </section>
 
-    <!-- Modal: Partituur Uploaden / Overschrijven -->
-    <div id="modal-upload-score" class="modal-overlay" style="display: none;">
-      <div class="modal-card-custom">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
-          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
-            <span>🎼 Eigen Oefenpartituur Inladen</span>
-          </h3>
-          <button id="btn-close-upload-modal" class="btn-icon" style="width: 32px; height: 32px; font-size: 1.1rem;" title="Sluit venster">✕</button>
-        </div>
-
-        <form id="form-upload-score">
-          <!-- 1. MusicXML Bestand (Verplicht) -->
-          <div style="margin-bottom: 1rem;">
-            <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.35rem; color: #f8fafc;">
-              1. Kies MusicXML bestand (.musicxml of .xml) *
-            </label>
-            <input type="file" id="upload-musicxml-file" accept=".musicxml,.xml" required class="select-custom" style="width: 100%; padding: 0.5rem; font-size: 0.85rem;" />
-            <div id="upload-file-info" style="font-size: 0.75rem; color: #10b981; margin-top: 0.3rem; display: none;"></div>
-          </div>
-
-          <!-- 2. PDF Bestand (Optioneel) -->
-          <div style="margin-bottom: 1rem;">
-            <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.35rem; color: #cbd5e1;">
-              2. Kies PDF partituur (optioneel voor scan-weergave)
-            </label>
-            <input type="file" id="upload-pdf-file" accept=".pdf" class="select-custom" style="width: 100%; padding: 0.5rem; font-size: 0.85rem;" />
-          </div>
-
-          <!-- Metadata previews -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem;">
-            <div>
-              <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Titel van lied:</label>
-              <input type="text" id="upload-title" placeholder="Wordt automatisch uitgelezen" class="select-custom" style="width: 100%; font-size: 0.82rem;" />
-            </div>
-            <div>
-              <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Componist:</label>
-              <input type="text" id="upload-composer" placeholder="Optioneel" class="select-custom" style="width: 100%; font-size: 0.82rem;" />
-            </div>
-          </div>
-
-          <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 0.75rem 0.85rem; margin-bottom: 1rem; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4;">
-            💡 <strong>Oefenen op dit toestel:</strong> De partituur wordt direct ingeladen in jouw browser om te repeteren met instelbaar tempo, de audiospeler en notenbalken.
-          </div>
-
-          <div id="upload-status-msg" style="display: none; padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.8rem; margin-bottom: 1rem;"></div>
-
-          <!-- Knoppen -->
-          <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-            <button type="button" id="btn-cancel-upload" class="btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Annuleren</button>
-            <button type="submit" id="btn-submit-upload" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.85rem;">
-              <span>💾 Opslaan &amp; Openen</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
   </main>
 
   <!-- Scripts -->
-  <script src="js/content-data.js?v=34"></script>
-  <script src="js/audio-engine.js?v=34"></script>
-  <script src="js/pitch-detector.js?v=34"></script>
-  <script src="js/breathing-trainer.js?v=34"></script>
-  <script src="js/lib/opensheetmusicdisplay.min.js?v=34"></script>
-  <script src="js/score-storage.js?v=34"></script>
-  <script src="js/score-viewer.js?v=34"></script>
-  <script src="js/app.js?v=34"></script>
+  <script src="js/content-data.js?v=35"></script>
+  <script src="js/audio-engine.js?v=35"></script>
+  <script src="js/pitch-detector.js?v=35"></script>
+  <script src="js/breathing-trainer.js?v=35"></script>
+  <script src="js/lib/opensheetmusicdisplay.min.js?v=35"></script>
+  <script src="js/score-viewer.js?v=35"></script>
+  <script src="js/app.js?v=35"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>

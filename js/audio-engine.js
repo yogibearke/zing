@@ -1,24 +1,152 @@
 /**
- * ZingStart - Audio Engine
- * Web Audio API Synthesizer, Virtual Piano, Metronome & Chimes
+ * Zing! - Audio Engine
+ * Echte gesamplede akoestische vleugelpiano (Yamaha C5 Salamander Grand Piano)
+ * met fysisch gemodelleerde akoestische piano-fallback, klavier, metronoom & chimes.
  */
 
 const AudioEngine = (() => {
   let ctx = null;
-  let activeOscillators = {};
+  let reverbNode = null;
+  let masterCompressor = null;
 
   // Note frequency calculation table (A4 = 440 Hz standard)
   const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  
+
+  // Salamander Grand Piano anker-samples (3 samples per octaaf voor natuurlijke klankkleur)
+  const SALAMANDER_BASE_URL = 'https://tonejs.github.io/audio/salamander/';
+  const PIANO_SAMPLE_MAP = {
+    33: 'A1.mp3',
+    36: 'C2.mp3',
+    39: 'Ds2.mp3',
+    42: 'Fs2.mp3',
+    45: 'A2.mp3',
+    48: 'C3.mp3',
+    51: 'Ds3.mp3',
+    54: 'Fs3.mp3',
+    57: 'A3.mp3',
+    60: 'C4.mp3',
+    63: 'Ds4.mp3',
+    66: 'Fs4.mp3',
+    69: 'A4.mp3',
+    72: 'C5.mp3',
+    75: 'Ds5.mp3',
+    78: 'Fs5.mp3',
+    81: 'A5.mp3',
+    84: 'C6.mp3'
+  };
+
+  const sampleBuffers = {}; // midi -> AudioBuffer
+  let samplesLoadingStarted = false;
+
+  function midiToFreq(midi) {
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+  function freqToMidi(freq) {
+    return 69 + 12 * Math.log2(freq / 440);
+  }
+
   function getContext() {
     if (!ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       ctx = new AudioCtx();
+      setupMasterChain(ctx);
+      preloadPianoSamples();
     }
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
     return ctx;
+  }
+
+  // Subtiele akoestische ruimte-resonantie (zanglokalen-akoestiek) en compressor
+  function setupMasterChain(audioCtx) {
+    try {
+      masterCompressor = audioCtx.createDynamicsCompressor();
+      masterCompressor.threshold.setValueAtTime(-14, audioCtx.currentTime);
+      masterCompressor.knee.setValueAtTime(18, audioCtx.currentTime);
+      masterCompressor.ratio.setValueAtTime(3, audioCtx.currentTime);
+      masterCompressor.attack.setValueAtTime(0.005, audioCtx.currentTime);
+      masterCompressor.release.setValueAtTime(0.2, audioCtx.currentTime);
+      masterCompressor.connect(audioCtx.destination);
+
+      // Genereer een warme, korte klankkast/kamer-impulsrespons (1.1s)
+      const sampleRate = audioCtx.sampleRate;
+      const length = Math.floor(sampleRate * 1.1);
+      const impulse = audioCtx.createBuffer(2, length, sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const data = impulse.getChannelData(ch);
+        for (let i = 0; i < length; i++) {
+          const t = i / sampleRate;
+          const decay = Math.exp(-t * 5.2);
+          data[i] = (Math.random() * 2 - 1) * decay * 0.18;
+        }
+      }
+      reverbNode = audioCtx.createConvolver();
+      reverbNode.buffer = impulse;
+
+      const reverbGain = audioCtx.createGain();
+      reverbGain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+      reverbNode.connect(reverbGain);
+      reverbGain.connect(masterCompressor);
+    } catch (e) {
+      masterCompressor = null;
+      reverbNode = null;
+    }
+  }
+
+  // Laad de echte vleugelpiano-samples op de achtergrond in
+  function preloadPianoSamples() {
+    if (samplesLoadingStarted) return;
+    samplesLoadingStarted = true;
+
+    const sampleMidis = Object.keys(PIANO_SAMPLE_MAP).map(Number);
+    // Laad eerst het middenregister (C3 - C5) voor direct gebruik, daarna de rest
+    const priorityOrder = sampleMidis.sort((a, b) => Math.abs(a - 60) - Math.abs(b - 60));
+
+    priorityOrder.forEach(async (midi) => {
+      const file = PIANO_SAMPLE_MAP[midi];
+      try {
+        const res = await fetch(SALAMANDER_BASE_URL + file);
+        if (!res.ok) return;
+        const arrayBuf = await res.arrayBuffer();
+        const audioCtx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+        if (!ctx) {
+          ctx = audioCtx;
+          setupMasterChain(ctx);
+        }
+        const decoded = await audioCtx.decodeAudioData(arrayBuf);
+        sampleBuffers[midi] = decoded;
+      } catch (err) {
+        // Offline of geen toegang tot CDN: de warme akoestische piano-synthese neemt automatisch over
+      }
+    });
+  }
+
+  // Vind de dichtstbijzijnde geladen piano-sample voor een gegeven frequentie
+  function findClosestSample(freq) {
+    const loadedMidis = Object.keys(sampleBuffers).map(Number);
+    if (loadedMidis.length === 0) return null;
+
+    const targetMidi = freqToMidi(freq);
+    let closestMidi = loadedMidis[0];
+    let minDiff = Math.abs(targetMidi - closestMidi);
+
+    for (let i = 1; i < loadedMidis.length; i++) {
+      const diff = Math.abs(targetMidi - loadedMidis[i]);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestMidi = loadedMidis[i];
+      }
+    }
+
+    // Alleen gebruiken als de sample binnen een redelijke afstand ligt (max 7 halve tonen)
+    if (minDiff > 7) return null;
+    return {
+      midi: closestMidi,
+      buffer: sampleBuffers[closestMidi],
+      baseFreq: midiToFreq(closestMidi)
+    };
   }
 
   // Convert note name (e.g. "A3", "C#4", "Bb4") to frequency
@@ -31,51 +159,98 @@ const AudioEngine = (() => {
     const octave = parseInt(match[2], 10);
     const semitone = NOTE_NAMES.indexOf(note);
     if (semitone === -1) return 440;
-    // MIDI number: C4 = 60, A4 = 69
     const midi = (octave + 1) * 12 + semitone;
-    return 440 * Math.pow(2, (midi - 69) / 12);
+    return midiToFreq(midi);
   }
 
-  // Play a natural, warm piano-like tone
-  function playTone(freq, duration = 1.0, type = 'piano') {
+  // Speel een echte gesamplede vleugelnoot of (als offline fallback) een warme akoestische vleugelsimulatie
+  function playTone(freq, duration = 1.0) {
     const audioCtx = getContext();
     const now = audioCtx.currentTime;
+    const dest = masterCompressor || audioCtx.destination;
 
-    const masterGain = audioCtx.createGain();
-    masterGain.connect(audioCtx.destination);
+    // 1. Gebruik echte Yamaha C5 vleugelpiano-sample indien geladen
+    const sampleMatch = findClosestSample(freq);
+    if (sampleMatch && sampleMatch.buffer) {
+      const source = audioCtx.createBufferSource();
+      source.buffer = sampleMatch.buffer;
+      source.playbackRate.setValueAtTime(freq / sampleMatch.baseFreq, now);
 
-    // Fundamental oscillator (Warm triangle/sine mix)
-    const osc1 = audioCtx.createOscillator();
-    osc1.type = 'triangle';
-    osc1.frequency.setValueAtTime(freq, now);
+      const envGain = audioCtx.createGain();
+      const sustainTime = Math.max(0.25, duration);
+      const releaseTime = 0.32;
 
-    // Subtle 2nd harmonic for brightness
-    const osc2 = audioCtx.createOscillator();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(freq * 2, now);
+      envGain.gain.setValueAtTime(0.001, now);
+      envGain.gain.linearRampToValueAtTime(0.75, now + 0.006);
+      envGain.gain.setValueAtTime(0.72, now + sustainTime * 0.85);
+      envGain.gain.exponentialRampToValueAtTime(0.0001, now + sustainTime + releaseTime);
 
-    const gain1 = audioCtx.createGain();
-    const gain2 = audioCtx.createGain();
+      source.connect(envGain);
+      envGain.connect(dest);
+      if (reverbNode) {
+        envGain.connect(reverbNode);
+      }
 
-    // Natural attack and exponential decay envelope
-    gain1.gain.setValueAtTime(0.001, now);
-    gain1.gain.linearRampToValueAtTime(0.5, now + 0.03);
-    gain1.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      source.start(now);
+      source.stop(now + sustainTime + releaseTime + 0.05);
+      return;
+    }
 
-    gain2.gain.setValueAtTime(0.001, now);
-    gain2.gain.linearRampToValueAtTime(0.2, now + 0.02);
-    gain2.gain.exponentialRampToValueAtTime(0.0001, now + (duration * 0.7));
+    // 2. Offline Fallback: Fysisch gemodelleerde warme akoestische vleugelpiano
+    const noteGain = audioCtx.createGain();
+    noteGain.connect(dest);
+    if (reverbNode) {
+      noteGain.connect(reverbNode);
+    }
 
-    osc1.connect(gain1);
-    gain1.connect(masterGain);
+    // Dynamisch lowpass filter dat bij de aanslag warm opent en daarna zachtjes rond wordt (zoals echt vilt op snaren)
+    const bodyFilter = audioCtx.createBiquadFilter();
+    bodyFilter.type = 'lowpass';
+    const maxCutoff = Math.min(12000, freq * 9);
+    const warmCutoff = Math.max(600, freq * 3.2);
+    bodyFilter.frequency.setValueAtTime(maxCutoff, now);
+    bodyFilter.frequency.exponentialRampToValueAtTime(warmCutoff, now + Math.max(0.35, duration * 0.65));
+    bodyFilter.Q.setValueAtTime(0.7, now);
+    bodyFilter.connect(noteGain);
 
-    osc2.connect(gain2);
-    gain2.connect(masterGain);
+    // Natuurlijk boventoonspectrum van een pianosnaar (met lichte koor-ontstemming op de dubbele snaren)
+    const partials = [
+      { mult: 1.0, amp: 0.42, decayMult: 1.3, detuneCents: -1.5, type: 'triangle' },
+      { mult: 1.0, amp: 0.42, decayMult: 1.3, detuneCents: 1.5, type: 'sine' },
+      { mult: 2.0005, amp: 0.22, decayMult: 0.95, detuneCents: 0.8, type: 'sine' },
+      { mult: 3.0018, amp: 0.11, decayMult: 0.70, detuneCents: -1.0, type: 'sine' },
+      { mult: 4.004, amp: 0.055, decayMult: 0.50, detuneCents: 1.2, type: 'sine' },
+      { mult: 5.008, amp: 0.025, decayMult: 0.35, detuneCents: 0, type: 'sine' }
+    ];
 
-    osc1.start(now);
-    osc2.start(now);
-    osc1.stop(now + duration + 0.05);
-    osc2.stop(now + duration + 0.05);
+    const totalDur = Math.max(0.4, duration + 0.28);
+
+    partials.forEach((p) => {
+      const pFreq = freq * p.mult;
+      if (pFreq > audioCtx.sampleRate * 0.45) return;
+
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+
+      osc.type = p.type;
+      osc.frequency.setValueAtTime(pFreq, now);
+      if (p.detuneCents) {
+        osc.detune.setValueAtTime(p.detuneCents, now);
+      }
+
+      const pDur = Math.max(0.18, totalDur * p.decayMult);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.linearRampToValueAtTime(p.amp, now + 0.008);
+      // Tweetraps pianosnaar-uitsterving (snelle initiële val naar klankbord-sustain)
+      g.gain.exponentialRampToValueAtTime(p.amp * 0.48, now + Math.min(0.18, pDur * 0.3));
+      g.gain.exponentialRampToValueAtTime(0.0001, now + pDur);
+
+      osc.connect(g);
+      g.connect(bodyFilter);
+
+      osc.start(now);
+      osc.stop(now + pDur + 0.04);
+    });
   }
 
   // Play note by name (e.g. "A3")
@@ -139,9 +314,7 @@ const AudioEngine = (() => {
 
     const startMidi = 48; // C3
     const endMidi = 72;   // C5
-    const keys = [];
 
-    // First collect all white keys
     const whiteKeys = [];
     const blackKeys = [];
 
@@ -158,7 +331,6 @@ const AudioEngine = (() => {
       }
     }
 
-    // Render white keys first
     const keyElements = {};
 
     whiteKeys.forEach((k) => {
@@ -182,7 +354,6 @@ const AudioEngine = (() => {
       keyElements[k.fullNote] = el;
     });
 
-    // Render black keys with accurate relative positioning
     const totalWhiteKeys = whiteKeys.length;
     blackKeys.forEach((k) => {
       const el = document.createElement('div');
@@ -191,7 +362,6 @@ const AudioEngine = (() => {
       el.id = `${idPrefix}${k.fullNote.replace('#', 's')}`;
       el.innerHTML = `<span>${k.fullNote}</span>`;
 
-      // Position between the preceding white key and following white key
       const percentLeft = ((k.prevWhiteIndex + 1) / totalWhiteKeys) * 100 - 3;
       el.style.left = `${percentLeft}%`;
 
@@ -241,6 +411,7 @@ const AudioEngine = (() => {
 
   return {
     getContext,
+    preloadPianoSamples,
     noteToFrequency,
     playTone,
     playNote,

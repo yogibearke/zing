@@ -794,6 +794,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // --------------------------------------------------------------------------
   AudioEngine.setupPianoKeyboard('piano-keys');
   AudioEngine.setupPianoKeyboard('console-piano-keys', 'ckey-');
+  if (typeof AudioEngine.preloadPianoSamples === 'function') {
+    AudioEngine.preloadPianoSamples();
+  }
 
   // Desktop console: snelknoppen openen direct de ingebouwde tool
   document.querySelectorAll('.console-quick-btn').forEach(btn => {

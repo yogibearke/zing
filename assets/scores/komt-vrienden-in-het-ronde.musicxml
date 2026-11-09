@@ -5,7 +5,7 @@
   <identification>
     <encoding>
       <software>MuseScore Studio 4.7.6</software>
-      <encoding-date>2026-11-02</encoding-date>
+      <encoding-date>2026-11-09</encoding-date>
       <supports element="accidental" type="yes"/>
       <supports element="beam" type="yes"/>
       <supports element="print" attribute="new-page" type="yes" value="yes"/>
@@ -68,7 +68,7 @@
     </defaults>
   <credit page="1">
     <credit-type>title</credit-type>
-    <credit-words default-x="600.17" default-y="1611.01" justify="center" valign="top" font-size="22">Komt Vrienden In Het Ronde</credit-words>
+    <credit-words default-x="600.16" default-y="1611.01" justify="center" valign="top" font-size="22">Komt Vrienden In Het Ronde</credit-words>
     </credit>
   <part-list>
     <score-part id="P1">
@@ -177,7 +177,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X1" implicit="yes" width="259.97">
+    <measure number="0" implicit="yes" width="259.97">
       <note default-x="12.5" default-y="-45">
         <pitch>
           <step>D</step>
@@ -206,7 +206,7 @@
           <text>den</text>
           </lyric>
         </note>
-      <note default-x="135.34" default-y="-25">
+      <note default-x="135.33" default-y="-25">
         <pitch>
           <step>A</step>
           <octave>4</octave>
@@ -235,7 +235,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X2" implicit="yes" width="259.97">
+    <measure number="0" implicit="yes" width="259.97">
       <note default-x="12.5" default-y="-10">
         <pitch>
           <step>D</step>
@@ -264,7 +264,7 @@
         <stem>down</stem>
         <beam number="1">end</beam>
         </note>
-      <note default-x="135.34" default-y="-10">
+      <note default-x="135.33" default-y="-10">
         <pitch>
           <step>D</step>
           <octave>5</octave>
@@ -293,7 +293,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X3" implicit="yes" width="259.97">
+    <measure number="0" implicit="yes" width="259.97">
       <note default-x="12.5" default-y="-25">
         <pitch>
           <step>A</step>
@@ -322,7 +322,7 @@
           <text>van</text>
           </lyric>
         </note>
-      <note default-x="135.34" default-y="-35">
+      <note default-x="135.33" default-y="-35">
         <pitch>
           <step>F</step>
           <octave>4</octave>
@@ -351,14 +351,14 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X4" implicit="yes" width="305.21">
+    <measure number="0" implicit="yes" width="305.21">
       <print new-system="yes">
         <system-layout>
           <system-margins>
             <left-margin>0</left-margin>
             <right-margin>0</right-margin>
             </system-margins>
-          <system-distance>97.49</system-distance>
+          <system-distance>101.66</system-distance>
           </system-layout>
         </print>
       <note default-x="76.48" default-y="-45">
@@ -402,7 +402,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X5" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-45">
         <pitch>
           <step>D</step>
@@ -460,7 +460,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X6" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-10">
         <pitch>
           <step>D</step>
@@ -522,7 +522,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X7" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-5">
         <pitch>
           <step>E</step>
@@ -566,14 +566,14 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X8" implicit="yes" width="303.72">
+    <measure number="0" implicit="yes" width="303.72">
       <print new-system="yes">
         <system-layout>
           <system-margins>
             <left-margin>0</left-margin>
             <right-margin>0</right-margin>
             </system-margins>
-          <system-distance>97.49</system-distance>
+          <system-distance>101.66</system-distance>
           </system-layout>
         </print>
       <note default-x="76.48" default-y="-25">
@@ -633,7 +633,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X9" implicit="yes" width="239.73">
+    <measure number="0" implicit="yes" width="239.73">
       <note default-x="12.5" default-y="-45">
         <pitch>
           <step>D</step>
@@ -675,7 +675,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X10" implicit="yes" width="237.81">
+    <measure number="0" implicit="yes" width="237.81">
       <note default-x="12.5" default-y="-25">
         <pitch>
           <step>A</step>
@@ -734,7 +734,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X11" implicit="yes" width="247.64">
+    <measure number="0" implicit="yes" width="247.64">
       <note default-x="21.36" default-y="-25">
         <pitch>
           <step>A</step>
@@ -750,7 +750,7 @@
           <text>vrouw</text>
           </lyric>
         </note>
-      <note default-x="92.81" default-y="-25">
+      <note default-x="92.8" default-y="-25">
         <pitch>
           <step>A</step>
           <octave>4</octave>
@@ -793,7 +793,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X12" implicit="yes" width="371.88">
+    <measure number="0" implicit="yes" width="371.88">
       <print new-page="yes" page-number="2">
         <system-layout>
           <system-margins>
@@ -863,7 +863,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X13" implicit="yes" width="345.59">
+    <measure number="0" implicit="yes" width="345.59">
       <note default-x="21.36" default-y="-25">
         <pitch>
           <step>A</step>
@@ -930,7 +930,7 @@
         <bar-style>light-light</bar-style>
         </barline>
       </measure>
-    <measure number="X14" implicit="yes" width="311.43">
+    <measure number="0" implicit="yes" width="311.43">
       <note default-x="12.5" default-y="-10">
         <pitch>
           <step>D</step>
@@ -992,7 +992,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X15" implicit="yes" width="369.45">
+    <measure number="0" implicit="yes" width="369.45">
       <print new-system="yes">
         <system-layout>
           <system-margins>
@@ -1037,7 +1037,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X16" implicit="yes" width="305.46">
+    <measure number="0" implicit="yes" width="305.46">
       <note default-x="12.5" default-y="-10">
         <pitch>
           <step>D</step>
@@ -1095,7 +1095,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X17" implicit="yes" width="353.99">
+    <measure number="0" implicit="yes" width="353.99">
       <note default-x="12.5" default-y="-20">
         <pitch>
           <step>B</step>
@@ -1182,7 +1182,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X18" implicit="yes" width="336.82">
+    <measure number="0" implicit="yes" width="336.82">
       <print new-system="yes">
         <system-layout>
           <system-margins>
@@ -1249,7 +1249,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X19" implicit="yes" width="272.84">
+    <measure number="0" implicit="yes" width="272.84">
       <note default-x="12.5" default-y="-45">
         <pitch>
           <step>D</step>
@@ -1307,7 +1307,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X20" implicit="yes" width="272.84">
+    <measure number="0" implicit="yes" width="272.84">
       <note default-x="12.5" default-y="-45">
         <pitch>
           <step>D</step>
@@ -1365,7 +1365,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X21" implicit="yes" width="146.4">
+    <measure number="0" implicit="yes" width="146.4">
       <note default-x="12.5" default-y="-45">
         <pitch>
           <step>D</step>
@@ -1390,7 +1390,7 @@
     <measure number="0" implicit="yes" width="161.82">
       <print>
         <staff-layout number="1">
-          <staff-distance>80.72</staff-distance>
+          <staff-distance>77.93</staff-distance>
           </staff-layout>
         </print>
       <attributes>
@@ -1416,7 +1416,7 @@
           </direction-type>
         <sound tempo="120"/>
         </direction>
-      <note default-x="98.61" default-y="-145.72">
+      <note default-x="98.61" default-y="-142.93">
         <pitch>
           <step>A</step>
           <octave>4</octave>
@@ -1431,8 +1431,8 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X1" implicit="yes" width="259.97">
-      <note default-x="12.5" default-y="-165.72">
+    <measure number="0" implicit="yes" width="259.97">
+      <note default-x="12.5" default-y="-162.93">
         <pitch>
           <step>D</step>
           <octave>4</octave>
@@ -1446,7 +1446,7 @@
           <text>vrien</text>
           </lyric>
         </note>
-      <note default-x="73.92" default-y="-145.72">
+      <note default-x="73.92" default-y="-142.93">
         <pitch>
           <step>A</step>
           <octave>4</octave>
@@ -1460,7 +1460,7 @@
           <text>den</text>
           </lyric>
         </note>
-      <note default-x="135.34" default-y="-145.72">
+      <note default-x="135.33" default-y="-142.93">
         <pitch>
           <step>A</step>
           <octave>4</octave>
@@ -1474,7 +1474,7 @@
           <text>in</text>
           </lyric>
         </note>
-      <note default-x="196.75" default-y="-130.72">
+      <note default-x="196.75" default-y="-127.93">
         <pitch>
           <step>D</step>
           <octave>5</octave>
@@ -1489,8 +1489,8 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X2" implicit="yes" width="259.97">
-      <note default-x="12.5" default-y="-145.72">
+    <measure number="0" implicit="yes" width="259.97">
+      <note default-x="12.5" default-y="-142.93">
         <pitch>
           <step>A</step>
           <octave>4</octave>
@@ -1504,7 +1504,7 @@
           <text>ron</text>
           </lyric>
         </note>
-      <note default-x="135.34" default-y="-145.72">
+      <note default-x="135.33" default-y="-142.93">
         <pitch>
           <step>A</step>
           <octave>4</octave>
@@ -1518,7 +1518,7 @@
           <text>de,</text>
           </lyric>
         </note>
-      <note default-x="196.75" default-y="-150.72">
+      <note default-x="196.75" default-y="-147.93">
         <pitch>
           <step>G</step>
           <octave>4</octave>
@@ -1533,8 +1533,8 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X3" implicit="yes" width="259.97">
-      <note default-x="12.5" default-y="-155.72">
+    <measure number="0" implicit="yes" width="259.97">
+      <note default-x="12.5" default-y="-152.93">
         <pitch>
           <step>F</step>
           <octave>4</octave>
@@ -1548,7 +1548,7 @@
           <text>naars</text>
           </lyric>
         </note>
-      <note default-x="73.92" default-y="-160.72">
+      <note default-x="73.92" default-y="-157.93">
         <pitch>
           <step>E</step>
           <octave>4</octave>
@@ -1562,7 +1562,7 @@
           <text>van</text>
           </lyric>
         </note>
-      <note default-x="135.34" default-y="-165.72">
+      <note default-x="135.33" default-y="-162.93">
         <pitch>
           <step>D</step>
           <octave>4</octave>
@@ -1576,7 +1576,7 @@
           <text>e</text>
           </lyric>
         </note>
-      <note default-x="196.75" default-y="-170.72">
+      <note default-x="196.75" default-y="-167.93">
         <pitch>
           <step>C</step>
           <alter>1</alter>
@@ -1593,7 +1593,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X4" implicit="yes" width="305.21">
+    <measure number="0" implicit="yes" width="305.21">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>58.18</staff-distance>
@@ -1626,7 +1626,7 @@
         <type>quarter</type>
         </note>
       </measure>
-    <measure number="X5" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-118.18">
         <rest/>
         <duration>4</duration>
@@ -1654,7 +1654,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X6" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-143.18">
         <pitch>
           <step>D</step>
@@ -1697,9 +1697,9 @@
           <text>gaan</text>
           </lyric>
         </note>
-      <note default-x="182.7" default-y="-103.18">
+      <note default-x="182.7" default-y="-108.18">
         <pitch>
-          <step>E</step>
+          <step>D</step>
           <octave>5</octave>
           </pitch>
         <duration>2</duration>
@@ -1712,7 +1712,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X7" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-108.18">
         <pitch>
           <step>D</step>
@@ -1770,7 +1770,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X8" implicit="yes" width="303.72">
+    <measure number="0" implicit="yes" width="303.72">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>58.18</staff-distance>
@@ -1788,10 +1788,6 @@
         <lyric number="1" default-y="-53.12" relative-y="-30">
           <syllabic>single</syllabic>
           <text>i</text>
-          </lyric>
-        <lyric number="1" default-y="-53.12" relative-y="-30">
-          <syllabic>single</syllabic>
-          <text>ik</text>
           </lyric>
         </note>
       <note default-x="132.84" default-y="-138.18">
@@ -1839,7 +1835,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X9" implicit="yes" width="239.73">
+    <measure number="0" implicit="yes" width="239.73">
       <note default-x="12.5" default-y="-143.18">
         <pitch>
           <step>D</step>
@@ -1881,7 +1877,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X10" implicit="yes" width="237.81">
+    <measure number="0" implicit="yes" width="237.81">
       <note default-x="12.5" default-y="-123.18">
         <pitch>
           <step>A</step>
@@ -1940,7 +1936,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X11" implicit="yes" width="247.64">
+    <measure number="0" implicit="yes" width="247.64">
       <note default-x="21.36" default-y="-148.18">
         <pitch>
           <step>C</step>
@@ -1958,7 +1954,7 @@
           <text>vrouw</text>
           </lyric>
         </note>
-      <note default-x="92.81" default-y="-143.18">
+      <note default-x="92.8" default-y="-143.18">
         <pitch>
           <step>D</step>
           <octave>4</octave>
@@ -2002,7 +1998,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X12" implicit="yes" width="371.88">
+    <measure number="0" implicit="yes" width="371.88">
       <print new-page="yes" page-number="2">
         <staff-layout number="1">
           <staff-distance>62.07</staff-distance>
@@ -2066,7 +2062,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X13" implicit="yes" width="345.59">
+    <measure number="0" implicit="yes" width="345.59">
       <note default-x="21.36" default-y="-152.07">
         <pitch>
           <step>C</step>
@@ -2132,7 +2128,7 @@
         <bar-style>light-light</bar-style>
         </barline>
       </measure>
-    <measure number="X14" implicit="yes" width="311.43">
+    <measure number="0" implicit="yes" width="311.43">
       <note default-x="12.5" default-y="-127.07">
         <pitch>
           <step>A</step>
@@ -2192,7 +2188,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X15" implicit="yes" width="369.45">
+    <measure number="0" implicit="yes" width="369.45">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>62.07</staff-distance>
@@ -2233,7 +2229,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X16" implicit="yes" width="305.46">
+    <measure number="0" implicit="yes" width="305.46">
       <note default-x="12.5" default-y="-127.07">
         <pitch>
           <step>A</step>
@@ -2291,7 +2287,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X17" implicit="yes" width="353.99">
+    <measure number="0" implicit="yes" width="353.99">
       <note default-x="12.5" default-y="-142.07">
         <pitch>
           <step>E</step>
@@ -2379,7 +2375,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X18" implicit="yes" width="336.82">
+    <measure number="0" implicit="yes" width="336.82">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>62.07</staff-distance>
@@ -2446,7 +2442,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X19" implicit="yes" width="272.84">
+    <measure number="0" implicit="yes" width="272.84">
       <note default-x="12.5" default-y="-147.07">
         <pitch>
           <step>D</step>
@@ -2505,7 +2501,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X20" implicit="yes" width="272.84">
+    <measure number="0" implicit="yes" width="272.84">
       <note default-x="12.5" default-y="-162.07">
         <pitch>
           <step>A</step>
@@ -2564,7 +2560,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X21" implicit="yes" width="146.4">
+    <measure number="0" implicit="yes" width="146.4">
       <note default-x="12.5" default-y="-162.07">
         <pitch>
           <step>A</step>
@@ -2589,7 +2585,7 @@
     <measure number="0" implicit="yes" width="161.82">
       <print>
         <staff-layout number="1">
-          <staff-distance>89</staff-distance>
+          <staff-distance>86.22</staff-distance>
           </staff-layout>
         </print>
       <attributes>
@@ -2616,7 +2612,7 @@
           </direction-type>
         <sound tempo="120"/>
         </direction>
-      <note default-x="98.61" default-y="-274.72">
+      <note default-x="98.61" default-y="-269.15">
         <pitch>
           <step>A</step>
           <octave>3</octave>
@@ -2631,8 +2627,8 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X1" implicit="yes" width="259.97">
-      <note default-x="12.5" default-y="-294.72">
+    <measure number="0" implicit="yes" width="259.97">
+      <note default-x="12.5" default-y="-289.15">
         <pitch>
           <step>D</step>
           <octave>3</octave>
@@ -2646,7 +2642,7 @@
           <text>vrien</text>
           </lyric>
         </note>
-      <note default-x="73.92" default-y="-274.72">
+      <note default-x="73.92" default-y="-269.15">
         <pitch>
           <step>A</step>
           <octave>3</octave>
@@ -2660,7 +2656,7 @@
           <text>den</text>
           </lyric>
         </note>
-      <note default-x="135.34" default-y="-274.72">
+      <note default-x="135.33" default-y="-269.15">
         <pitch>
           <step>A</step>
           <octave>3</octave>
@@ -2674,7 +2670,7 @@
           <text>in</text>
           </lyric>
         </note>
-      <note default-x="196.75" default-y="-259.72">
+      <note default-x="196.75" default-y="-254.15">
         <pitch>
           <step>D</step>
           <octave>4</octave>
@@ -2689,10 +2685,10 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X2" implicit="yes" width="259.97">
-      <note default-x="12.5" default-y="-244.72">
+    <measure number="0" implicit="yes" width="259.97">
+      <note default-x="12.5" default-y="-244.15">
         <pitch>
-          <step>G</step>
+          <step>F</step>
           <octave>4</octave>
           </pitch>
         <duration>2</duration>
@@ -2705,7 +2701,7 @@
           <text>ron</text>
           </lyric>
         </note>
-      <note default-x="73.92" default-y="-254.72">
+      <note default-x="73.92" default-y="-249.15">
         <pitch>
           <step>E</step>
           <octave>4</octave>
@@ -2716,7 +2712,7 @@
         <stem>down</stem>
         <beam number="1">end</beam>
         </note>
-      <note default-x="135.34" default-y="-259.72">
+      <note default-x="135.33" default-y="-254.15">
         <pitch>
           <step>D</step>
           <octave>4</octave>
@@ -2730,21 +2726,21 @@
           <text>de,</text>
           </lyric>
         </note>
-      <note default-x="196.75" default-y="-269.72">
+      <note default-x="196.75" default-y="-264.15">
         <rest/>
         <duration>2</duration>
         <voice>1</voice>
         <type>eighth</type>
         </note>
       </measure>
-    <measure number="X3" implicit="yes" width="259.97">
-      <note default-x="12.5" default-y="-269.72">
+    <measure number="0" implicit="yes" width="259.97">
+      <note default-x="12.5" default-y="-264.15">
         <rest/>
         <duration>2</duration>
         <voice>1</voice>
         <type>eighth</type>
         </note>
-      <note default-x="73.92" default-y="-274.72">
+      <note default-x="73.92" default-y="-269.15">
         <pitch>
           <step>A</step>
           <octave>3</octave>
@@ -2758,7 +2754,7 @@
           <text>min</text>
           </lyric>
         </note>
-      <note default-x="135.34" default-y="-274.72">
+      <note default-x="135.33" default-y="-269.15">
         <pitch>
           <step>A</step>
           <octave>3</octave>
@@ -2772,7 +2768,7 @@
           <text>naars</text>
           </lyric>
         </note>
-      <note default-x="196.75" default-y="-279.72">
+      <note default-x="196.75" default-y="-274.15">
         <pitch>
           <step>G</step>
           <octave>3</octave>
@@ -2787,7 +2783,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X4" implicit="yes" width="305.21">
+    <measure number="0" implicit="yes" width="305.21">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>58.18</staff-distance>
@@ -2842,7 +2838,7 @@
         <type>eighth</type>
         </note>
       </measure>
-    <measure number="X5" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-216.36">
         <rest/>
         <duration>2</duration>
@@ -2892,7 +2888,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X6" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-196.36">
         <pitch>
           <step>F</step>
@@ -2950,7 +2946,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X7" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-216.36">
         <pitch>
           <step>B</step>
@@ -2987,7 +2983,7 @@
         <type>eighth</type>
         </note>
       </measure>
-    <measure number="X8" implicit="yes" width="303.72">
+    <measure number="0" implicit="yes" width="303.72">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>70.21</staff-distance>
@@ -3042,7 +3038,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X9" implicit="yes" width="239.73">
+    <measure number="0" implicit="yes" width="239.73">
       <note default-x="12.5" default-y="-243.39">
         <pitch>
           <step>F</step>
@@ -3100,7 +3096,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X10" implicit="yes" width="237.81">
+    <measure number="0" implicit="yes" width="237.81">
       <note default-x="12.5" default-y="-233.39">
         <pitch>
           <step>A</step>
@@ -3160,7 +3156,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X11" implicit="yes" width="247.64">
+    <measure number="0" implicit="yes" width="247.64">
       <note default-x="21.36" default-y="-233.39">
         <pitch>
           <step>A</step>
@@ -3176,7 +3172,7 @@
           <text>vrouw</text>
           </lyric>
         </note>
-      <note default-x="92.81" default-y="-228.39">
+      <note default-x="92.8" default-y="-228.39">
         <pitch>
           <step>B</step>
           <octave>3</octave>
@@ -3222,7 +3218,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X12" implicit="yes" width="371.88">
+    <measure number="0" implicit="yes" width="371.88">
       <print new-page="yes" page-number="2">
         <staff-layout number="1">
           <staff-distance>66.1</staff-distance>
@@ -3289,7 +3285,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X13" implicit="yes" width="345.59">
+    <measure number="0" implicit="yes" width="345.59">
       <note default-x="21.36" default-y="-233.17">
         <pitch>
           <step>A</step>
@@ -3353,7 +3349,7 @@
         <bar-style>light-light</bar-style>
         </barline>
       </measure>
-    <measure number="X14" implicit="yes" width="311.43">
+    <measure number="0" implicit="yes" width="311.43">
       <note default-x="12.5" default-y="-208.17">
         <pitch>
           <step>F</step>
@@ -3415,7 +3411,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X15" implicit="yes" width="369.45">
+    <measure number="0" implicit="yes" width="369.45">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>71.66</staff-distance>
@@ -3478,7 +3474,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X16" implicit="yes" width="305.46">
+    <measure number="0" implicit="yes" width="305.46">
       <note default-x="12.5" default-y="-213.74">
         <pitch>
           <step>F</step>
@@ -3536,7 +3532,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X17" implicit="yes" width="353.99">
+    <measure number="0" implicit="yes" width="353.99">
       <note default-x="12.5" default-y="-223.74">
         <pitch>
           <step>D</step>
@@ -3622,7 +3618,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X18" implicit="yes" width="336.82">
+    <measure number="0" implicit="yes" width="336.82">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>73.18</staff-distance>
@@ -3685,7 +3681,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X19" implicit="yes" width="272.84">
+    <measure number="0" implicit="yes" width="272.84">
       <note default-x="12.5" default-y="-260.25">
         <pitch>
           <step>D</step>
@@ -3744,7 +3740,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X20" implicit="yes" width="272.84">
+    <measure number="0" implicit="yes" width="272.84">
       <note default-x="12.5" default-y="-250.25">
         <pitch>
           <step>F</step>
@@ -3802,7 +3798,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X21" implicit="yes" width="146.4">
+    <measure number="0" implicit="yes" width="146.4">
       <note default-x="12.5" default-y="-250.25">
         <pitch>
           <step>F</step>
@@ -3827,7 +3823,7 @@
     <measure number="0" implicit="yes" width="161.82">
       <print>
         <staff-layout number="1">
-          <staff-distance>78.02</staff-distance>
+          <staff-distance>75.24</staff-distance>
           </staff-layout>
         </print>
       <attributes>
@@ -3853,7 +3849,7 @@
           </direction-type>
         <sound tempo="120"/>
         </direction>
-      <note default-x="98.61" default-y="-367.73">
+      <note default-x="98.61" default-y="-359.39">
         <pitch>
           <step>A</step>
           <octave>3</octave>
@@ -3868,8 +3864,8 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X1" implicit="yes" width="259.97">
-      <note default-x="12.5" default-y="-387.73">
+    <measure number="0" implicit="yes" width="259.97">
+      <note default-x="12.5" default-y="-379.39">
         <pitch>
           <step>D</step>
           <octave>3</octave>
@@ -3883,7 +3879,7 @@
           <text>vrien</text>
           </lyric>
         </note>
-      <note default-x="73.92" default-y="-367.73">
+      <note default-x="73.92" default-y="-359.39">
         <pitch>
           <step>A</step>
           <octave>3</octave>
@@ -3897,7 +3893,7 @@
           <text>den</text>
           </lyric>
         </note>
-      <note default-x="135.34" default-y="-367.73">
+      <note default-x="135.33" default-y="-359.39">
         <pitch>
           <step>A</step>
           <octave>3</octave>
@@ -3911,7 +3907,7 @@
           <text>in</text>
           </lyric>
         </note>
-      <note default-x="196.75" default-y="-352.73">
+      <note default-x="196.75" default-y="-344.39">
         <pitch>
           <step>D</step>
           <octave>4</octave>
@@ -3926,8 +3922,8 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X2" implicit="yes" width="259.97">
-      <note default-x="12.5" default-y="-367.73">
+    <measure number="0" implicit="yes" width="259.97">
+      <note default-x="12.5" default-y="-359.39">
         <pitch>
           <step>A</step>
           <octave>3</octave>
@@ -3941,7 +3937,7 @@
           <text>ron</text>
           </lyric>
         </note>
-      <note default-x="135.34" default-y="-387.73">
+      <note default-x="135.33" default-y="-379.39">
         <pitch>
           <step>D</step>
           <octave>3</octave>
@@ -3955,27 +3951,27 @@
           <text>de,</text>
           </lyric>
         </note>
-      <note default-x="196.75" default-y="-387.73">
+      <note default-x="196.75" default-y="-379.39">
         <rest/>
         <duration>2</duration>
         <voice>1</voice>
         <type>eighth</type>
         </note>
       </measure>
-    <measure number="X3" implicit="yes" width="259.97">
-      <note default-x="12.5" default-y="-387.73">
+    <measure number="0" implicit="yes" width="259.97">
+      <note default-x="12.5" default-y="-379.39">
         <rest/>
         <duration>4</duration>
         <voice>1</voice>
         <type>quarter</type>
         </note>
-      <note default-x="135.34" default-y="-387.73">
+      <note default-x="135.33" default-y="-379.39">
         <rest/>
         <duration>2</duration>
         <voice>1</voice>
         <type>eighth</type>
         </note>
-      <note default-x="196.75" default-y="-367.73">
+      <note default-x="196.75" default-y="-359.39">
         <pitch>
           <step>A</step>
           <octave>3</octave>
@@ -3990,7 +3986,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X4" implicit="yes" width="305.21">
+    <measure number="0" implicit="yes" width="305.21">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>60.64</staff-distance>
@@ -4053,7 +4049,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X5" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-317">
         <pitch>
           <step>D</step>
@@ -4081,7 +4077,7 @@
         <type>quarter</type>
         </note>
       </measure>
-    <measure number="X6" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-317">
         <rest/>
         <duration>2</duration>
@@ -4132,7 +4128,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X7" implicit="yes" width="241.23">
+    <measure number="0" implicit="yes" width="241.23">
       <note default-x="12.5" default-y="-302">
         <pitch>
           <step>G</step>
@@ -4176,7 +4172,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X8" implicit="yes" width="303.72">
+    <measure number="0" implicit="yes" width="303.72">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>57.2</staff-distance>
@@ -4211,7 +4207,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X9" implicit="yes" width="239.73">
+    <measure number="0" implicit="yes" width="239.73">
       <note default-x="12.5" default-y="-325.59">
         <pitch>
           <step>D</step>
@@ -4269,7 +4265,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X10" implicit="yes" width="237.81">
+    <measure number="0" implicit="yes" width="237.81">
       <note default-x="12.5" default-y="-305.59">
         <pitch>
           <step>A</step>
@@ -4328,7 +4324,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X11" implicit="yes" width="247.64">
+    <measure number="0" implicit="yes" width="247.64">
       <note default-x="21.36" default-y="-310.59">
         <pitch>
           <step>G</step>
@@ -4344,7 +4340,7 @@
           <text>vrouw</text>
           </lyric>
         </note>
-      <note default-x="92.81" default-y="-315.59">
+      <note default-x="92.8" default-y="-315.59">
         <pitch>
           <step>F</step>
           <octave>3</octave>
@@ -4387,7 +4383,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X12" implicit="yes" width="371.88">
+    <measure number="0" implicit="yes" width="371.88">
       <print new-page="yes" page-number="2">
         <staff-layout number="1">
           <staff-distance>73.62</staff-distance>
@@ -4451,7 +4447,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X13" implicit="yes" width="345.59">
+    <measure number="0" implicit="yes" width="345.59">
       <note default-x="21.36" default-y="-336.79">
         <pitch>
           <step>E</step>
@@ -4499,10 +4495,10 @@
       <barline location="middle">
         <bar-style>light-light</bar-style>
         </barline>
-      <note default-x="264.01" default-y="-361.79">
+      <note default-x="264.01" default-y="-341.79">
         <pitch>
-          <step>G</step>
-          <octave>2</octave>
+          <step>D</step>
+          <octave>3</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
@@ -4517,7 +4513,7 @@
         <bar-style>light-light</bar-style>
         </barline>
       </measure>
-    <measure number="X14" implicit="yes" width="311.43">
+    <measure number="0" implicit="yes" width="311.43">
       <note default-x="12.5" default-y="-306.79">
         <pitch>
           <step>D</step>
@@ -4528,10 +4524,6 @@
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
-        <lyric number="1" default-y="-47.98" relative-y="-30">
-          <syllabic>begin</syllabic>
-          <text>lie</text>
-          </lyric>
         <lyric number="1" default-y="-47.98" relative-y="-30">
           <syllabic>begin</syllabic>
           <text>lie</text>
@@ -4551,10 +4543,6 @@
           <syllabic>end</syllabic>
           <text>re</text>
           </lyric>
-        <lyric number="1" default-y="-47.98" relative-y="-30">
-          <syllabic>end</syllabic>
-          <text>re</text>
-          </lyric>
         </note>
       <note default-x="161.07" default-y="-316.79">
         <pitch>
@@ -4566,10 +4554,6 @@
         <voice>1</voice>
         <type>eighth</type>
         <stem>down</stem>
-        <lyric number="1" default-y="-47.98" relative-y="-30">
-          <syllabic>single</syllabic>
-          <text>om</text>
-          </lyric>
         <lyric number="1" default-y="-47.98" relative-y="-30">
           <syllabic>single</syllabic>
           <text>om</text>
@@ -4588,13 +4572,9 @@
           <syllabic>single</syllabic>
           <text>ter</text>
           </lyric>
-        <lyric number="1" default-y="-47.98" relative-y="-30">
-          <syllabic>single</syllabic>
-          <text>ter</text>
-          </lyric>
         </note>
       </measure>
-    <measure number="X15" implicit="yes" width="369.45">
+    <measure number="0" implicit="yes" width="369.45">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>62.07</staff-distance>
@@ -4657,7 +4637,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X16" implicit="yes" width="305.46">
+    <measure number="0" implicit="yes" width="305.46">
       <note default-x="12.5" default-y="-315.81">
         <pitch>
           <step>A</step>
@@ -4715,7 +4695,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X17" implicit="yes" width="353.99">
+    <measure number="0" implicit="yes" width="353.99">
       <note default-x="12.5" default-y="-320.81">
         <pitch>
           <step>G</step>
@@ -4730,9 +4710,9 @@
           <text>draait</text>
           </lyric>
         </note>
-      <note default-x="85.29" default-y="-320.81">
+      <note default-x="85.29" default-y="-315.81">
         <pitch>
-          <step>G</step>
+          <step>A</step>
           <octave>3</octave>
           </pitch>
         <duration>1</duration>
@@ -4802,7 +4782,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X18" implicit="yes" width="336.82">
+    <measure number="0" implicit="yes" width="336.82">
       <print new-system="yes">
         <staff-layout number="1">
           <staff-distance>62.07</staff-distance>
@@ -4867,7 +4847,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X19" implicit="yes" width="272.84">
+    <measure number="0" implicit="yes" width="272.84">
       <note default-x="12.5" default-y="-337.32">
         <pitch>
           <step>D</step>
@@ -4925,7 +4905,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X20" implicit="yes" width="272.84">
+    <measure number="0" implicit="yes" width="272.84">
       <note default-x="12.5" default-y="-337.32">
         <pitch>
           <step>D</step>
@@ -4984,7 +4964,7 @@
           </lyric>
         </note>
       </measure>
-    <measure number="X21" implicit="yes" width="146.4">
+    <measure number="0" implicit="yes" width="146.4">
       <note default-x="12.5" default-y="-337.32">
         <pitch>
           <step>D</step>

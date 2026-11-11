@@ -113,6 +113,7 @@ const ScoreViewer = (() => {
 
       const parsedVoices = {};
       const voiceIndexMap = {};
+      const voiceLyrics = {};
 
       // Lees globale divisions uit het XML-bestand
       const firstDiv = xmlDoc.querySelector('attributes > divisions');
@@ -197,7 +198,11 @@ const ScoreViewer = (() => {
         let currentDivisions = defaultDivisions;
         const measures = partEl.querySelectorAll('measure');
 
+        const partVerses = {};
+        const partMeasures = [];
+
         measures.forEach((measure, mIndex) => {
+          const mNum = measure.getAttribute('number') || String(mIndex + 1);
           const divEl = measure.querySelector('attributes > divisions');
           if (divEl) {
             currentDivisions = parseInt(divEl.textContent.trim(), 10) || currentDivisions;
@@ -205,6 +210,8 @@ const ScoreViewer = (() => {
 
           const mNotes = [];
           const noteEls = measure.querySelectorAll('note');
+          const mLyricTokens = {};
+
           noteEls.forEach(n => {
             // Sla akkoordnoten op dezelfde balk over (koorbalken zijn monofoon per stem)
             if (n.querySelector('chord')) return;
@@ -233,9 +240,69 @@ const ScoreViewer = (() => {
                 mNotes.push({ note: `${step}${acc}${oct}`, dur, measureIndex: mIndex });
               }
             }
+
+            // Lyric extractie
+            const lyrics = n.querySelectorAll('lyric');
+            lyrics.forEach(lyr => {
+              const vNum = lyr.getAttribute('number') || '1';
+              const txtEl = lyr.querySelector('text');
+              const sylEl = lyr.querySelector('syllabic');
+              if (txtEl && txtEl.textContent && txtEl.textContent.trim()) {
+                const token = {
+                  text: txtEl.textContent.trim(),
+                  syllabic: sylEl && sylEl.textContent ? sylEl.textContent.trim().toLowerCase() : 'single',
+                  measureIndex: mIndex,
+                  measureNumber: mNum
+                };
+                if (!partVerses[vNum]) partVerses[vNum] = [];
+                partVerses[vNum].push(token);
+
+                if (!mLyricTokens[vNum]) mLyricTokens[vNum] = [];
+                mLyricTokens[vNum].push(token);
+              }
+            });
           });
           measuresNotes[mIndex] = mNotes;
+          partMeasures[mIndex] = {
+            measureNumber: mNum,
+            verses: mLyricTokens
+          };
         });
+
+        // Vloeiende tekst per vers construeren
+        const assembledVerses = {};
+        Object.keys(partVerses).sort().forEach(vNum => {
+          const tokens = partVerses[vNum];
+          const words = [];
+          let curWord = '';
+          tokens.forEach(tok => {
+            const s = tok.syllabic;
+            const t = tok.text;
+            if (s === 'single') {
+              if (curWord) { words.push(curWord); curWord = ''; }
+              words.push(t);
+            } else if (s === 'begin') {
+              if (curWord) { words.push(curWord); }
+              curWord = t;
+            } else if (s === 'middle') {
+              curWord += t;
+            } else if (s === 'end') {
+              curWord += t;
+              words.push(curWord);
+              curWord = '';
+            }
+          });
+          if (curWord) words.push(curWord);
+          assembledVerses[vNum] = words.join(' ');
+        });
+
+        voiceLyrics[voiceKey] = {
+          voiceKey,
+          label: partLabels[voiceKey] || (VOICE_CONFIG[voiceKey] ? VOICE_CONFIG[voiceKey].name : voiceKey),
+          verses: assembledVerses,
+          tokensByVerse: partVerses,
+          measures: partMeasures
+        };
 
         // Unroll maten volgens berekende afspeelvolgorde (inclusief herhalingen)
         const unrolledVoiceNotes = [];
@@ -299,7 +366,7 @@ const ScoreViewer = (() => {
       if (voiceKeys.length > 1) {
         parsedVoices.tutti = buildTutti(parsedVoices);
       }
-      return { voices: parsedVoices, voiceIndexMap, partLabels, bpm: detectedBpm, textBlocks };
+      return { voices: parsedVoices, voiceIndexMap, partLabels, bpm: detectedBpm, textBlocks, voiceLyrics };
     } catch (err) {
       console.warn('Kon MusicXML niet dynamisch inladen vanuit:', xmlUrlOrText, err);
       return null;
@@ -311,12 +378,12 @@ const ScoreViewer = (() => {
   let activeScoreKey = null;
 
   const VOICE_CONFIG = {
-    'sopraan': { label: '🔵 Sopraan', name: 'Sopraan (Melodie)' },
-    'alt': { label: '🟢 Alt', name: 'Alt (2e stem)' },
-    'tenor': { label: '🟠 Tenor', name: 'Tenor (Hoge mannenstem)' },
-    'bariton': { label: '🟤 Bariton', name: 'Bariton (Mannenstem)' },
-    'bas': { label: '🔴 Bas', name: 'Bas (Lage mannenstem)' },
-    'tutti': { label: '🟣 Tutti', name: 'Tutti (Volledig Koor)' }
+    'sopraan': { label: '🔵 Sopraan', name: 'Sopraan (Melodie)', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+    'alt': { label: '🟢 Alt', name: 'Alt (2e stem)', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
+    'tenor': { label: '🟠 Tenor', name: 'Tenor (Hoge mannenstem)', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+    'bariton': { label: '🟤 Bariton', name: 'Bariton (Mannenstem)', color: '#78350f', bg: '#fef3c7', border: '#fde68a' },
+    'bas': { label: '🔴 Bas', name: 'Bas (Lage mannenstem)', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+    'tutti': { label: '🟣 Tutti', name: 'Tutti (Volledig Koor)', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' }
   };
 
   function getVoiceLabel(voiceKey) {
@@ -441,39 +508,429 @@ const ScoreViewer = (() => {
     }
   }
 
+  let lyricsSubMode = 'flowing'; // 'flowing' of 'measure'
+  let showRawTxt = false;
+  const cachedRawTxt = {};
+
+  function parseLyricsFromTxt(rawTxt, availableVoices) {
+    if (!rawTxt || !rawTxt.trim()) return {};
+    const lines = rawTxt.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const parsed = {};
+    const voiceKeys = availableVoices ? Object.keys(availableVoices).filter(k => k !== 'tutti') : ['sopraan'];
+    const hasMultiVoice = lines.some(l => l.includes('||'));
+
+    if (hasMultiVoice && voiceKeys.length > 1) {
+      voiceKeys.forEach(vk => {
+        parsed[vk] = {
+          voiceKey: vk,
+          label: VOICE_CONFIG[vk] ? VOICE_CONFIG[vk].name : vk,
+          verses: { '1': '' },
+          measures: []
+        };
+      });
+
+      lines.forEach((line, mIdx) => {
+        const segs = line.split('||').map(s => s.trim());
+        voiceKeys.forEach((vk, idx) => {
+          const seg = segs[idx] !== undefined ? segs[idx] : segs[0];
+          parsed[vk].measures.push({
+            measureNumber: String(mIdx + 1),
+            verses: { '1': [{ text: seg, syllabic: 'single' }] }
+          });
+        });
+      });
+
+      voiceKeys.forEach((vk, idx) => {
+        const words = lines.map(l => {
+          const segs = l.split('||').map(s => s.trim());
+          const seg = segs[idx] !== undefined ? segs[idx] : segs[0];
+          return seg.replace(/-/g, '').replace(/\s+/g, ' ');
+        }).filter(w => w && w !== '-').join(' ');
+        parsed[vk].verses['1'] = words;
+      });
+    } else {
+      const primaryKey = voiceKeys[0] || 'sopraan';
+      parsed[primaryKey] = {
+        voiceKey: primaryKey,
+        label: VOICE_CONFIG[primaryKey] ? VOICE_CONFIG[primaryKey].name : primaryKey,
+        verses: { '1': lines.map(l => l.replace(/-/g, '').replace(/\s+/g, ' ')).join(' ') },
+        measures: lines.map((l, idx) => ({
+          measureNumber: String(idx + 1),
+          verses: { '1': [{ text: l, syllabic: 'single' }] }
+        }))
+      };
+    }
+    return parsed;
+  }
+
+  function renderTextView() {
+    const txtContainer = document.getElementById('txt-viewer-container');
+    const statusEl = document.getElementById('score-rendering-status');
+    const scoreData = SCORES[activeScoreKey];
+    if (!txtContainer) return;
+
+    if (statusEl) {
+      statusEl.textContent = selectedVoice === 'tutti'
+        ? '📝 Liedtekst: Tutti (Alle stemmen)'
+        : `📝 Liedtekst: ${getVoiceLabel(selectedVoice)}`;
+    }
+
+    const hasXmlLyrics = scoreData && scoreData.voiceLyrics && Object.keys(scoreData.voiceLyrics).length > 0;
+
+    const txtUrl = (scoreData && (scoreData.txtUrl || (scoreData.pdfUrl && scoreData.pdfUrl.replace(/\.pdf$/i, '.txt'))))
+      || `./assets/scores/${activeScoreKey}.txt`;
+
+    if (!cachedRawTxt[activeScoreKey]) {
+      fetch(txtUrl + (txtUrl.includes('?') ? '&' : '?') + 't=' + Date.now())
+        .then(res => res.ok ? res.text() : '')
+        .then(txt => {
+          cachedRawTxt[activeScoreKey] = txt;
+          if (!hasXmlLyrics && txt && scoreData) {
+            scoreData.voiceLyrics = parseLyricsFromTxt(txt, scoreData.voices);
+          }
+          renderTextHtml(txtContainer);
+        })
+        .catch(() => {
+          cachedRawTxt[activeScoreKey] = '';
+          renderTextHtml(txtContainer);
+        });
+      txtContainer.innerHTML = '<div style="padding: 24px; text-align: center; color: #64748b;">Liedtekst inladen...</div>';
+      return;
+    }
+
+    renderTextHtml(txtContainer);
+  }
+
+  function renderTextHtml(container) {
+    const scoreData = SCORES[activeScoreKey];
+    const voiceLyrics = (scoreData && scoreData.voiceLyrics) ? scoreData.voiceLyrics : {};
+    const availableKeys = Object.keys(voiceLyrics);
+    const rawTxt = cachedRawTxt[activeScoreKey] || '';
+
+    let html = '';
+
+    // Sub-toolbar bovenaan de tekstweergave
+    html += `
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0;">
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button id="btn-txt-submode-flowing" class="btn-secondary" style="font-size: 0.82rem; padding: 5px 12px; border-radius: 6px; cursor: pointer; ${lyricsSubMode === 'flowing' && !showRawTxt ? 'background: var(--accent-indigo); color: #fff; border-color: var(--accent-indigo);' : ''}">📖 Vloeiende Tekst</button>
+          <button id="btn-txt-submode-measure" class="btn-secondary" style="font-size: 0.82rem; padding: 5px 12px; border-radius: 6px; cursor: pointer; ${lyricsSubMode === 'measure' && !showRawTxt ? 'background: var(--accent-indigo); color: #fff; border-color: var(--accent-indigo);' : ''}">🎼 Maat-voor-maat</button>
+          <button id="btn-txt-submode-raw" class="btn-secondary" style="font-size: 0.82rem; padding: 5px 12px; border-radius: 6px; cursor: pointer; ${showRawTxt ? 'background: var(--accent-indigo); color: #fff; border-color: var(--accent-indigo);' : ''}">📄 Ruwe Tekst (.txt)</button>
+        </div>
+        <div style="font-size: 0.8rem; color: #64748b;">
+          ${selectedVoice === 'tutti' ? '🟣 Tutti weergave' : `🎤 Filter actief: ${getVoiceLabel(selectedVoice)}`}
+        </div>
+      </div>
+    `;
+
+    // Modus 1: Ruwe .txt weergave
+    if (showRawTxt) {
+      html += `
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 0.85rem; font-weight: 600; color: #475569;">📄 Bronbestand (${activeScoreKey}.txt)</span>
+            <button id="btn-copy-raw-txt" class="btn-secondary" style="font-size: 0.75rem; padding: 3px 8px;">📋 Kopiëren</button>
+          </div>
+          <pre style="margin: 0; font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; color: #1e293b;">${rawTxt ? escapeHtml(rawTxt) : 'Geen .txt bestand gevonden voor deze partituur.'}</pre>
+        </div>
+      `;
+      container.innerHTML = html;
+      bindTxtToolbarEvents(container);
+      const copyBtn = container.querySelector('#btn-copy-raw-txt');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+          navigator.clipboard.writeText(rawTxt).then(() => {
+            copyBtn.textContent = '✅ Gekopieerd!';
+            setTimeout(() => { copyBtn.textContent = '📋 Kopiëren'; }, 2000);
+          });
+        });
+      }
+      return;
+    }
+
+    // Modus 2: Geen tekst beschikbaar
+    if (availableKeys.length === 0 && !rawTxt) {
+      html += `
+        <div style="padding: 32px; text-align: center; color: #64748b; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+          Geen zangtekst beschikbaar voor deze partituur.
+        </div>
+      `;
+      container.innerHTML = html;
+      bindTxtToolbarEvents(container);
+      return;
+    }
+
+    // Modus 3: Tutti weergave (toon alle stemmen naast elkaar of onder elkaar)
+    if (selectedVoice === 'tutti') {
+      const displayKeys = availableKeys.length > 0 ? availableKeys : ['sopraan'];
+      html += `
+        <div style="margin-bottom: 16px;">
+          <h3 style="font-family: var(--font-heading); font-size: 1.15rem; color: #1e293b; margin: 0 0 4px 0;">🎶 Koorzangtekst — Alle Stemmen (Tutti)</h3>
+          <p style="font-size: 0.82rem; color: #64748b; margin: 0;">Overzicht van de verschillende partijen. Klik op een stemknop bovenaan om in te zoomen op 1 stem.</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+      `;
+
+      displayKeys.forEach(vk => {
+        const vData = voiceLyrics[vk] || { verses: {}, measures: [] };
+        const vConf = VOICE_CONFIG[vk] || { label: vk, name: vk, color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' };
+        const verses = vData.verses || {};
+        const vKeys = Object.keys(verses);
+
+        html += `
+          <div style="background: #ffffff; border: 1.5px solid ${vConf.border || '#e2e8f0'}; border-radius: 8px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
+              <span style="font-weight: 700; color: ${vConf.color}; font-size: 0.98rem;">${vConf.label}</span>
+              <button class="btn-voice-focus btn-secondary" data-voice="${vk}" style="font-size: 0.72rem; padding: 3px 8px; border-radius: 4px; cursor: pointer;">Focus 🔍</button>
+            </div>
+        `;
+
+        if (lyricsSubMode === 'flowing') {
+          if (vKeys.length > 0) {
+            vKeys.forEach(vNum => {
+              html += `
+                <div style="margin-bottom: 12px;">
+                  <span style="display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; background: ${vConf.bg}; color: ${vConf.color}; padding: 2px 7px; border-radius: 4px; margin-bottom: 4px;">Vers ${vNum}</span>
+                  <div style="font-size: 0.92rem; line-height: 1.6; color: #1e293b; white-space: pre-wrap;">${escapeHtml(verses[vNum])}</div>
+                </div>
+              `;
+            });
+          } else {
+            html += `<div style="font-size: 0.85rem; color: #94a3b8; font-style: italic;">Geen tekstregels voor deze stem.</div>`;
+          }
+        } else {
+          // Maat-voor-maat weergave in Tutti kaart
+          const measures = vData.measures || [];
+          html += `<div style="max-height: 320px; overflow-y: auto; font-size: 0.82rem; line-height: 1.5; color: #334155;">`;
+          measures.forEach(m => {
+            const mVerses = m.verses || {};
+            const textParts = Object.keys(mVerses).map(vN => {
+              const toks = mVerses[vN].map(t => t.text).join(' ');
+              return Object.keys(mVerses).length > 1 ? `(V${vN}) ${toks}` : toks;
+            }).filter(Boolean);
+            if (textParts.length > 0) {
+              html += `
+                <div style="display: flex; gap: 8px; padding: 3px 0; border-bottom: 1px solid #f8fafc;">
+                  <span style="font-weight: 700; color: #94a3b8; min-width: 32px;">M${m.measureNumber}:</span>
+                  <span style="color: #1e293b;">${escapeHtml(textParts.join(' | '))}</span>
+                </div>
+              `;
+            }
+          });
+          html += `</div>`;
+        }
+
+        html += `</div>`;
+      });
+
+      html += `</div>`;
+      container.innerHTML = html;
+      bindTxtToolbarEvents(container);
+      return;
+    }
+
+    // Modus 4: Solo Stem weergave (bijv. Sopraan, Alt, Tenor of Bas geselecteerd)
+    const targetKey = voiceLyrics[selectedVoice] ? selectedVoice : (availableKeys[0] || 'sopraan');
+    const vData = voiceLyrics[targetKey] || { verses: {}, measures: [] };
+    const vConf = VOICE_CONFIG[targetKey] || { label: targetKey, name: targetKey, color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' };
+    const verses = vData.verses || {};
+    const vKeys = Object.keys(verses);
+
+    html += `
+      <div style="background: #ffffff; border: 2px solid ${vConf.border || '#cbd5e1'}; border-radius: 10px; padding: 22px 24px; box-shadow: 0 4px 14px rgba(0,0,0,0.04); margin-bottom: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
+          <div>
+            <div style="display: inline-flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.25rem; font-weight: 800; color: ${vConf.color};">${vConf.label}</span>
+              <span style="font-size: 0.88rem; color: #64748b; font-weight: 500;">(${vConf.name})</span>
+            </div>
+            <div style="font-size: 0.82rem; color: #64748b; margin-top: 3px;">
+              Zangtekst en lettergrepen specifiek voor deze partij
+            </div>
+          </div>
+          <button class="btn-voice-focus btn-secondary" data-voice="tutti" style="font-size: 0.78rem; padding: 5px 12px; border-radius: 6px; cursor: pointer;">
+            🟣 Toon Tutti (Alle stemmen)
+          </button>
+        </div>
+    `;
+
+    if (lyricsSubMode === 'flowing') {
+      if (vKeys.length > 0) {
+        vKeys.forEach(vNum => {
+          html += `
+            <div style="margin-bottom: 20px; background: #fafafa; border-radius: 8px; padding: 14px 18px; border-left: 4px solid ${vConf.color};">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: ${vConf.bg}; color: ${vConf.color}; padding: 3px 8px; border-radius: 4px;">Vers ${vNum}</span>
+              </div>
+              <p style="margin: 0; font-size: 1.05rem; line-height: 1.75; color: #0f172a; white-space: pre-wrap;">${escapeHtml(verses[vNum])}</p>
+            </div>
+          `;
+        });
+      } else {
+        html += `<div style="padding: 20px; color: #94a3b8; font-style: italic;">Geen tekstregels gevonden voor deze partij.</div>`;
+      }
+    } else {
+      // Maat-voor-maat tabel
+      const measures = vData.measures || [];
+      html += `
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+              <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-align: left; color: #475569;">
+                <th style="padding: 8px 12px; width: 80px; font-weight: 600;">Maat</th>
+                <th style="padding: 8px 12px; font-weight: 600;">Liedtekst / Syllaben</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+      measures.forEach(m => {
+        const mVerses = m.verses || {};
+        const textParts = Object.keys(mVerses).map(vN => {
+          const toks = mVerses[vN].map(t => t.text).join(' ');
+          return Object.keys(mVerses).length > 1 ? `<strong>(Vers ${vN})</strong> ${escapeHtml(toks)}` : escapeHtml(toks);
+        }).filter(Boolean);
+
+        if (textParts.length > 0) {
+          html += `
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 8px 12px; font-weight: 700; color: #64748b; background: #fbfcfe;">M${m.measureNumber}</td>
+              <td style="padding: 8px 12px; color: #0f172a; line-height: 1.6;">${textParts.join('<br>')}</td>
+            </tr>
+          `;
+        }
+      });
+      html += `
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // Snelle voice switcher onderaan
+    if (availableKeys.length > 1) {
+      html += `
+        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #f1f5f9; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Wissel stem:</span>
+      `;
+      availableKeys.forEach(vk => {
+        const vC = VOICE_CONFIG[vk] || { label: vk };
+        const isActive = vk === selectedVoice;
+        html += `
+          <button class="btn-voice-focus btn-secondary" data-voice="${vk}" style="font-size: 0.76rem; padding: 3px 9px; border-radius: 99px; cursor: pointer; ${isActive ? 'background: ' + (vC.color || '#4f46e5') + '; color: #fff; font-weight: 700;' : ''}">
+            ${vC.label}
+          </button>
+        `;
+      });
+      html += `
+          <button class="btn-voice-focus btn-secondary" data-voice="tutti" style="font-size: 0.76rem; padding: 3px 9px; border-radius: 99px; cursor: pointer; ${selectedVoice === 'tutti' ? 'background: #7c3aed; color: #fff; font-weight: 700;' : ''}">
+            🟣 Tutti
+          </button>
+        </div>
+      `;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+    bindTxtToolbarEvents(container);
+  }
+
+  function bindTxtToolbarEvents(container) {
+    const btnFlowing = container.querySelector('#btn-txt-submode-flowing');
+    const btnMeasure = container.querySelector('#btn-txt-submode-measure');
+    const btnRaw = container.querySelector('#btn-txt-submode-raw');
+
+    if (btnFlowing) {
+      btnFlowing.addEventListener('click', () => {
+        lyricsSubMode = 'flowing';
+        showRawTxt = false;
+        renderTextHtml(container);
+      });
+    }
+    if (btnMeasure) {
+      btnMeasure.addEventListener('click', () => {
+        lyricsSubMode = 'measure';
+        showRawTxt = false;
+        renderTextHtml(container);
+      });
+    }
+    if (btnRaw) {
+      btnRaw.addEventListener('click', () => {
+        showRawTxt = true;
+        renderTextHtml(container);
+      });
+    }
+
+    container.querySelectorAll('.btn-voice-focus').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = btn.dataset.voice;
+        if (v) {
+          setVoicePart(v);
+        }
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   let osmdInstance = null;
-  let activeViewMode = 'musicxml'; // 'musicxml' of 'pdf'
+  let activeViewMode = 'musicxml'; // 'musicxml', 'pdf' of 'txt'
 
   function switchViewMode(mode) {
     activeViewMode = mode;
     const osmdContainer = document.getElementById('osmd-container');
     const pdfFrame = document.getElementById('pdf-viewer-frame');
+    const txtContainer = document.getElementById('txt-viewer-container');
     const btnXml = document.getElementById('btn-view-musicxml');
     const btnPdf = document.getElementById('btn-view-pdf');
+    const btnTxt = document.getElementById('btn-view-txt');
     const statusEl = document.getElementById('score-rendering-status');
     const scoreData = SCORES[activeScoreKey];
+
+    function setToggleStyles(activeBtn) {
+      [btnXml, btnPdf, btnTxt].forEach(btn => {
+        if (!btn) return;
+        if (btn === activeBtn) {
+          btn.classList.add('active');
+          btn.style.background = 'var(--accent-indigo)';
+          btn.style.color = '#ffffff';
+          btn.style.borderColor = 'var(--accent-indigo)';
+        } else {
+          btn.classList.remove('active');
+          btn.style.background = '';
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }
+      });
+    }
 
     if (mode === 'musicxml' && scoreData && scoreData.musicXmlUrl) {
       if (osmdContainer) osmdContainer.style.display = 'block';
       if (pdfFrame) pdfFrame.style.display = 'none';
-
-      if (btnXml) {
-        btnXml.classList.add('active');
-        btnXml.style.background = 'var(--accent-indigo)';
-        btnXml.style.color = '#ffffff';
-        btnXml.style.borderColor = 'var(--accent-indigo)';
-      }
-      if (btnPdf) {
-        btnPdf.classList.remove('active');
-        btnPdf.style.background = '';
-        btnPdf.style.color = '';
-        btnPdf.style.borderColor = '';
-      }
+      if (txtContainer) txtContainer.style.display = 'none';
+      setToggleStyles(btnXml);
       renderMusicXMLWithOSMD(scoreData.musicXmlUrl);
       renderXmlTextBoxes(scoreData.textBlocks);
+    } else if (mode === 'txt') {
+      if (osmdContainer) osmdContainer.style.display = 'none';
+      if (pdfFrame) pdfFrame.style.display = 'none';
+      renderXmlTextBoxes(null);
+      if (txtContainer) {
+        txtContainer.style.display = 'block';
+        renderTextView();
+      }
+      setToggleStyles(btnTxt);
     } else {
       // PDF Scan weergave rechtstreeks uit het PDF-bestand
       if (osmdContainer) osmdContainer.style.display = 'none';
+      if (txtContainer) txtContainer.style.display = 'none';
       renderXmlTextBoxes(null);
       if (pdfFrame) {
         pdfFrame.style.display = 'block';
@@ -485,19 +942,7 @@ const ScoreViewer = (() => {
         }
       }
       if (statusEl) statusEl.textContent = scoreData && scoreData.pdfUrl ? '📄 Originele PDF Scan' : '';
-
-      if (btnPdf) {
-        btnPdf.classList.add('active');
-        btnPdf.style.background = 'var(--accent-indigo)';
-        btnPdf.style.color = '#ffffff';
-        btnPdf.style.borderColor = 'var(--accent-indigo)';
-      }
-      if (btnXml) {
-        btnXml.classList.remove('active');
-        btnXml.style.background = '';
-        btnXml.style.color = '';
-        btnXml.style.borderColor = '';
-      }
+      setToggleStyles(btnPdf);
     }
   }
 
@@ -643,6 +1088,7 @@ const ScoreViewer = (() => {
           scoreData.voiceIndexMap = result.voiceIndexMap || {};
           scoreData.partLabels = result.partLabels || {};
           scoreData.textBlocks = result.textBlocks || [];
+          scoreData.voiceLyrics = result.voiceLyrics || {};
           renderVoicePills(scoreData.voices);
           scoreData.notes = scoreData.voices[selectedVoice] || Object.values(result.voices)[0];
           if (result.bpm) {
@@ -651,10 +1097,17 @@ const ScoreViewer = (() => {
             setBpm(scoreData.bpm);
           }
           updateTrackLabels();
+          if (activeViewMode === 'txt') {
+            renderTextView();
+          }
         }
       });
 
-      switchViewMode('musicxml');
+      if (activeViewMode === 'txt') {
+        switchViewMode('txt');
+      } else {
+        switchViewMode('musicxml');
+      }
     } else {
       if (btnXml) btnXml.style.display = 'none';
       if (statusEl) statusEl.textContent = '';
@@ -864,6 +1317,10 @@ const ScoreViewer = (() => {
         : `✅ Solo: ${getVoiceLabel(selectedVoice)} (1 balk op GSM)`;
     }
 
+    if (activeViewMode === 'txt') {
+      renderTextView();
+    }
+
     if (isPlayingCompanion) {
       currentStep = 0;
     }
@@ -939,14 +1396,18 @@ const ScoreViewer = (() => {
       bpmPlusBtn.addEventListener('click', () => setBpm(currentBpm + 5));
     }
 
-    // Mode Switcher handlers: MusicXML vs Originele PDF Scan
+    // Mode Switcher handlers: MusicXML vs Originele PDF Scan vs Liedtekst
     const btnViewXml = document.getElementById('btn-view-musicxml');
     const btnViewPdf = document.getElementById('btn-view-pdf');
+    const btnViewTxt = document.getElementById('btn-view-txt');
     if (btnViewXml) {
       btnViewXml.addEventListener('click', () => switchViewMode('musicxml'));
     }
     if (btnViewPdf) {
       btnViewPdf.addEventListener('click', () => switchViewMode('pdf'));
+    }
+    if (btnViewTxt) {
+      btnViewTxt.addEventListener('click', () => switchViewMode('txt'));
     }
   }
 

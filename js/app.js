@@ -680,6 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
         badgeClass,
         musicXmlUrl: `./assets/scores/${filename}`,
         pdfUrl: `./assets/scores/${key}.pdf`,
+        txtUrl: `./assets/scores/${key}.txt`,
         desc
       };
     } catch (e) {
@@ -737,7 +738,8 @@ document.addEventListener('DOMContentLoaded', () => {
               subtitle: meta.desc,
               bpm: meta.bpm,
               musicXmlUrl: meta.musicXmlUrl,
-              pdfUrl: meta.pdfUrl
+              pdfUrl: meta.pdfUrl,
+              txtUrl: meta.txtUrl
             });
           }
         } catch (xmlErr) {

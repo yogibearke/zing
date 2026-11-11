@@ -723,7 +723,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const serverScores = [];
       for (const fname of fileList) {
         try {
-          const xmlRes = await fetch(`./assets/scores/${fname}?_t=` + Date.now(), { cache: 'no-store' });
+          let xmlRes = await fetch(`./assets/scores/${fname}?_t=` + Date.now(), { cache: 'no-store' });
+          if (!xmlRes.ok && fname.toLowerCase() !== fname) {
+            xmlRes = await fetch(`./assets/scores/${fname.toLowerCase()}?_t=` + Date.now(), { cache: 'no-store' });
+          }
           if (!xmlRes.ok) continue;
           const xmlText = await xmlRes.text();
           const meta = parseMusicXmlMetadata(xmlText, fname);

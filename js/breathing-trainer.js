@@ -20,19 +20,32 @@ const BreathingTrainer = (() => {
 
   function updateVisuals() {
     const bubble = document.getElementById('breathing-bubble');
+    const belly = document.getElementById('breath-belly');
+    const hand = document.getElementById('breath-hand');
+    const airflow = document.getElementById('breath-airflow');
     const countEl = document.getElementById('breath-count');
     const actionEl = document.getElementById('breath-action');
     const phase = PHASES[currentPhaseIndex];
 
-    if (!bubble || !countEl || !actionEl) return;
+    if (!countEl || !actionEl) return;
 
     countEl.textContent = secondsRemaining;
     actionEl.textContent = phase.label;
 
-    // Remove previous phase classes
-    bubble.classList.remove('inhale', 'hold', 'exhale');
-    bubble.classList.add(phase.className);
-    bubble.style.transitionDuration = `${phase.duration}s`;
+    if (phase.name === 'in') {
+      countEl.style.color = '#38bdf8';
+    } else if (phase.name === 'hold') {
+      countEl.style.color = '#f59e0b';
+    } else {
+      countEl.style.color = '#d946ef';
+    }
+
+    const animEls = [bubble, belly, hand, airflow].filter(Boolean);
+    animEls.forEach(el => {
+      el.classList.remove('inhale', 'hold', 'exhale');
+      el.style.transitionDuration = `${phase.duration}s`;
+      el.classList.add(phase.className);
+    });
   }
 
   function tick() {
@@ -80,14 +93,22 @@ const BreathingTrainer = (() => {
     clearInterval(timerInterval);
 
     const bubble = document.getElementById('breathing-bubble');
+    const belly = document.getElementById('breath-belly');
+    const hand = document.getElementById('breath-hand');
+    const airflow = document.getElementById('breath-airflow');
     const countEl = document.getElementById('breath-count');
     const actionEl = document.getElementById('breath-action');
 
-    if (bubble) {
-      bubble.classList.remove('inhale', 'hold', 'exhale');
-      bubble.style.transitionDuration = '0.5s';
+    const animEls = [bubble, belly, hand, airflow].filter(Boolean);
+    animEls.forEach(el => {
+      el.classList.remove('inhale', 'hold', 'exhale');
+      el.style.transitionDuration = '0.5s';
+    });
+
+    if (countEl) {
+      countEl.textContent = '4';
+      countEl.style.color = '#38bdf8';
     }
-    if (countEl) countEl.textContent = '4';
     if (actionEl) actionEl.textContent = 'Klaar om te beginnen?';
 
     const btn = document.getElementById('btn-toggle-breathing');

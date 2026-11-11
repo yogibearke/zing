@@ -1400,46 +1400,164 @@ body::before {
 }
 
 .breathing-circle-outer {
-  width: 220px;
-  height: 220px;
+  width: 250px;
+  height: 250px;
   border-radius: 50%;
-  border: 2px dashed rgba(99, 102, 241, 0.3);
+  border: 2px dashed rgba(99, 102, 241, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   margin: 1.5rem 0;
+  background: radial-gradient(circle, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.95) 75%);
+  box-shadow: 0 0 40px rgba(99, 102, 241, 0.25);
+  overflow: hidden;
 }
 
 .breathing-circle-inner {
-  width: 90px;
-  height: 90px;
+  position: absolute;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  background: var(--primary-gradient);
-  box-shadow: 0 0 35px rgba(99, 102, 241, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
+  pointer-events: none;
+  opacity: 0.22;
+  transform: scale(0.65);
+  background: radial-gradient(circle, #38bdf8 0%, transparent 70%);
+  box-shadow: 0 0 35px rgba(99, 102, 241, 0.4);
   transition: all 4s ease-in-out;
 }
 
 .breathing-circle-inner.inhale {
-  transform: scale(2.2);
-  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
-  box-shadow: 0 0 50px rgba(56, 189, 248, 0.6);
+  transform: scale(1.15);
+  opacity: 0.5;
+  background: radial-gradient(circle, #38bdf8 0%, #818cf8 50%, transparent 75%);
+  box-shadow: 0 0 60px rgba(56, 189, 248, 0.6);
 }
 
 .breathing-circle-inner.hold {
-  transform: scale(2.2);
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  box-shadow: 0 0 50px rgba(245, 158, 11, 0.6);
+  transform: scale(1.15);
+  opacity: 0.45;
+  background: radial-gradient(circle, #fbbf24 0%, #f59e0b 50%, transparent 75%);
+  box-shadow: 0 0 60px rgba(245, 158, 11, 0.6);
 }
 
 .breathing-circle-inner.exhale {
-  transform: scale(1.0);
-  background: linear-gradient(135deg, #d946ef 0%, #8b5cf6 100%);
+  transform: scale(0.65);
+  opacity: 0.2;
+  background: radial-gradient(circle, #d946ef 0%, #8b5cf6 50%, transparent 75%);
   box-shadow: 0 0 30px rgba(217, 70, 239, 0.4);
+}
+
+/* Zanger Profiel & Geanimeerde Buik */
+.singer-breath-svg {
+  width: 195px;
+  height: 195px;
+  z-index: 2;
+  position: relative;
+  pointer-events: none;
+}
+
+.breath-belly {
+  transform-origin: 106px 134px;
+  transition: transform 4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.breath-belly.inhale {
+  transform: scaleX(1.48) scaleY(1.1);
+}
+.breath-belly.hold {
+  transform: scaleX(1.48) scaleY(1.1);
+}
+.breath-belly.exhale {
+  transform: scaleX(1.0) scaleY(1.0);
+}
+
+.breath-belly .belly-contour {
+  transition: stroke 4s ease-in-out, filter 4s ease-in-out;
+  filter: drop-shadow(-2px 0 6px rgba(56, 189, 248, 0.6));
+}
+.breath-belly.inhale .belly-contour {
+  stroke: #38bdf8;
+  filter: drop-shadow(-4px 0 12px rgba(56, 189, 248, 0.95));
+}
+.breath-belly.hold .belly-contour {
+  stroke: #f59e0b;
+  filter: drop-shadow(-4px 0 12px rgba(245, 158, 11, 0.95));
+}
+.breath-belly.exhale .belly-contour {
+  stroke: #d946ef;
+  filter: drop-shadow(-1px 0 4px rgba(217, 70, 239, 0.5));
+}
+
+.breath-hand {
+  transform-origin: 106px 134px;
+  transition: transform 4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.breath-hand.inhale {
+  transform: translateX(-16px) scaleX(1.04);
+}
+.breath-hand.hold {
+  transform: translateX(-16px) scaleX(1.04);
+}
+.breath-hand.exhale {
+  transform: translateX(0px) scaleX(1.0);
+}
+
+/* Luchtstroom & S-sound */
+.breath-airflow {
+  transition: opacity 0.5s ease-in-out;
+}
+.breath-airflow .air-stream-line {
+  transition: stroke 2s ease-in-out, opacity 0.5s ease-in-out;
+}
+.breath-airflow .air-s-label {
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+.breath-airflow.inhale .air-stream-line {
+  stroke: #38bdf8;
+  opacity: 1;
+}
+.breath-airflow.hold .air-stream-line {
+  opacity: 0;
+}
+.breath-airflow.exhale .air-stream-line {
+  stroke: #d946ef;
+  opacity: 0.85;
+}
+.breath-airflow.exhale .air-s-label {
+  opacity: 1;
+}
+
+/* Timer Badge onderaan cirkel */
+.breath-timer-badge {
+  position: absolute;
+  bottom: 12px;
+  z-index: 5;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  padding: 3px 14px;
+  border-radius: 20px;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.breath-timer-count {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #38bdf8;
+  transition: color 1s ease;
+}
+
+.breath-timer-unit {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .breath-action-text {
@@ -1447,12 +1565,6 @@ body::before {
   font-size: 1.2rem;
   font-weight: 700;
   margin-top: 0.5rem;
-}
-
-.breath-timer-count {
-  font-family: var(--font-mono);
-  font-size: 2rem;
-  font-weight: 700;
 }
 
 /* ==========================================================================

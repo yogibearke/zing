@@ -787,8 +787,26 @@ body::before {
 .tool-item-top {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.6rem;
   margin-bottom: 2px;
+}
+
+.tool-item-top .badge {
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.25;
+  padding: 2px 4px;
+  box-sizing: border-box;
+  border-radius: var(--radius-sm);
 }
 
 .tool-item-title {

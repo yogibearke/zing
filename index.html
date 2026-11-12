@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="assets/icons/icon.svg">
 
   <!-- Modern Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=50">
+  <link rel="stylesheet" href="css/styles.css?v=52">
 </head>
 <body>
 
@@ -176,27 +176,28 @@
               Lage buikademhaling: zie hoe de buik naar voren uitzet bij het inademen en gecontroleerd intrekt bij de lange 'sssss'-klank.
             </p>
 
-            <div class="breathing-circle-outer">
-              <div class="breathing-circle-inner" id="breathing-bubble"></div>
+            <div class="breathing-circle-outer" style="position: relative; width: 260px; height: 260px; border-radius: 50%; border: 2px dashed rgba(99, 102, 241, 0.4); display: flex; align-items: center; justify-content: center; margin: 1.5rem auto; background: radial-gradient(circle, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.95) 75%); box-shadow: 0 0 40px rgba(99, 102, 241, 0.25); overflow: hidden;">
+              <!-- Sfeervolle ademwolk / aura achter de zanger -->
+              <div id="breathing-bubble" style="position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; pointer-events: none; opacity: 0.25; transform: scale(0.65); background: radial-gradient(circle, #38bdf8 0%, transparent 70%); transition: background 2s ease;"></div>
 
               <!-- Zanger profielweergave met dynamisch opzwellende buik -->
-              <svg id="singer-breath-svg" class="singer-breath-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg id="singer-breath-svg" style="width: 200px; height: 200px; position: relative; z-index: 2; pointer-events: none;" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <radialGradient id="lungGlow" cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35"/>
                     <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
                   </radialGradient>
-                  <linearGradient id="bellyGlowInhale" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.55"/>
-                    <stop offset="60%" stop-color="#818cf8" stop-opacity="0.25"/>
+                  <linearGradient id="bellyGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.6"/>
+                    <stop offset="60%" stop-color="#818cf8" stop-opacity="0.3"/>
                     <stop offset="100%" stop-color="#4f46e5" stop-opacity="0"/>
                   </linearGradient>
                 </defs>
 
                 <!-- Luchtstroom animatie bij mond/neus -->
-                <g id="breath-airflow" class="breath-airflow">
-                  <path class="air-stream-line" d="M52 44 Q42 42 34 46" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3 4"/>
-                  <text class="air-s-label" x="20" y="47" fill="#d946ef" font-size="11" font-weight="700" font-family="'Inter', sans-serif">ssss</text>
+                <g id="breath-airflow">
+                  <path id="breath-airstream" d="M52 44 Q42 42 34 46" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3 4"/>
+                  <text id="breath-s-sound" x="18" y="47" fill="#d946ef" font-size="11" font-weight="700" font-family="'Inter', sans-serif" opacity="0">ssss</text>
                 </g>
 
                 <!-- Hoofd & Gezichtsprofiel (rustige, ontspannen zanger) -->
@@ -224,34 +225,27 @@
                 <!-- Longzone lichte gloed -->
                 <ellipse cx="88" cy="92" rx="10" ry="12" fill="url(#lungGlow)"/>
 
-                <!-- DYNAMISCHE BUIK (Onderbuik & Diaphragma: zwelt naar links bij inademing) -->
-                <g id="breath-belly" class="breath-belly">
-                  <!-- Gloedvolume in de buik -->
-                  <path d="M76 102 C65 113 61 128 64 144 C67 155 73 162 80 166 C71 159 68 147 68 134 C68 121 72 110 76 102 Z" 
-                        fill="url(#bellyGlowInhale)"/>
-                  <!-- Buikwand contourlijn -->
-                  <path class="belly-contour" d="M76 102 C63 114 59 130 63 146 C66 157 73 163 80 166" 
-                        stroke="#38bdf8" stroke-width="4.2" stroke-linecap="round" fill="none"/>
-                  <!-- Focuspunt navel / ademcentrum -->
-                  <circle cx="64" cy="134" r="3.2" fill="#38bdf8"/>
-                </g>
+                <!-- DYNAMISCHE BUIK (Onderbuik & Diaphragma: zwelt vloeiend naar links) -->
+                <path id="breath-belly-fill" d="M76 102 C69 112 67 134 68 146 C73 158 76 164 80 166 C73 158 70 146 70 134 C70 122 73 112 76 102 Z" 
+                      fill="url(#bellyGlow)"/>
+                <path id="breath-belly-contour" d="M76 102 C69 112 67 134 68 146 C73 158 76 164 80 166" 
+                      stroke="#38bdf8" stroke-width="4.2" stroke-linecap="round" fill="none" style="filter: drop-shadow(-2px 0 6px rgba(56, 189, 248, 0.7));"/>
+                <circle id="breath-belly-navel" cx="67" cy="134" r="3.2" fill="#38bdf8"/>
 
-                <!-- Arm & Hand op de buik (hand rust op de onderbuik en beweegt mee) -->
+                <!-- Arm & Hand op de buik (hand rust op de onderbuik en beweegt mee met de buik) -->
                 <path d="M92 72 C96 84 100 102 96 116" stroke="#818cf8" stroke-width="2.8" stroke-linecap="round" fill="none"/>
                 
-                <g id="breath-hand" class="breath-hand">
-                  <!-- Onderarm naar buik -->
+                <g id="breath-hand-group">
                   <path d="M96 116 C90 124 78 130 66 134" stroke="#a5b4fc" stroke-width="2.8" stroke-linecap="round" fill="none"/>
-                  <!-- Hand zachtjes rustend op de buikwand -->
                   <path d="M66 134 C63 133 60 131 59 133 C58 135 62 138 66 137 C69 136 71 135 72 134" 
                         stroke="#cbd5e1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                 </g>
               </svg>
 
               <!-- Tellerbadge onderaan de cirkel -->
-              <div class="breath-timer-badge">
-                <span class="breath-timer-count" id="breath-count">4</span>
-                <span class="breath-timer-unit">sec</span>
+              <div class="breath-timer-badge" style="position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 5; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255, 255, 255, 0.16); backdrop-filter: blur(10px); padding: 3px 14px; border-radius: 20px; display: flex; align-items: baseline; gap: 5px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);">
+                <span class="breath-timer-count" id="breath-count" style="font-family: monospace; font-size: 1.4rem; font-weight: 800; color: #38bdf8;">4</span>
+                <span class="breath-timer-unit" style="font-size: 0.72rem; font-weight: 600; color: #94a3b8; text-transform: uppercase;">sec</span>
               </div>
             </div>
 
@@ -421,19 +415,19 @@
   </main>
 
   <!-- Scripts -->
-  <script src="js/content-data.js?v=50"></script>
-  <script src="js/audio-engine.js?v=50"></script>
-  <script src="js/pitch-detector.js?v=50"></script>
-  <script src="js/breathing-trainer.js?v=50"></script>
-  <script src="js/lib/opensheetmusicdisplay.min.js?v=50"></script>
-  <script src="js/score-viewer.js?v=50"></script>
-  <script src="js/app.js?v=50"></script>
+  <script src="js/content-data.js?v=52"></script>
+  <script src="js/audio-engine.js?v=52"></script>
+  <script src="js/pitch-detector.js?v=52"></script>
+  <script src="js/breathing-trainer.js?v=52"></script>
+  <script src="js/lib/opensheetmusicdisplay.min.js?v=52"></script>
+  <script src="js/score-viewer.js?v=52"></script>
+  <script src="js/app.js?v=52"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=50')
+        navigator.serviceWorker.register('./sw.js?v=52')
           .then(reg => {
             reg.update();
             console.log('ServiceWorker registered & updated:', reg.scope);

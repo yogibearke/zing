@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="assets/icons/icon.svg">
 
   <!-- Modern Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=54">
+  <link rel="stylesheet" href="css/styles.css?v=55">
 </head>
 <body>
 
@@ -57,30 +57,6 @@
           <!-- Rendered dynamically by app.js from ContentData.pillars -->
         </div>
       </div>
-
-      <!-- Desktop-only studio console -->
-      <aside class="studio-console" aria-label="Oefenconsole">
-        <div>
-          <div class="console-title">Oefenconsole</div>
-          <div class="console-subtitle">Tik een toets aan voor een referentietoon en zing hem na.</div>
-        </div>
-        <div>
-          <div class="console-label">Referentieklavier C3 – C5</div>
-          <div class="piano-wrapper">
-            <div class="piano-keyboard" id="console-piano-keys"></div>
-          </div>
-        </div>
-        <div>
-          <div class="console-label">Snel starten</div>
-          <div class="console-quick-grid">
-            <button class="console-quick-btn" data-tool-id="builtin-breathing"><span class="qi">🌬️</span>Ademcirkel</button>
-            <button class="console-quick-btn" data-tool-id="builtin-warmup"><span class="qi">🔥</span>Inzingen</button>
-            <button class="console-quick-btn" data-tool-id="builtin-tuner"><span class="qi">🎯</span>Stemtrainer</button>
-            <button class="console-quick-btn" data-tool-id="builtin-metronome"><span class="qi">⏱️</span>Metronoom</button>
-            <button class="console-quick-btn" data-tool-id="pillar-partituren" style="grid-column: 1 / -1;"><span class="qi">🎼</span>Partituren &amp; Koor</button>
-          </div>
-        </div>
-      </aside>
     </section>
 
     <!-- ======================================================================
@@ -415,19 +391,19 @@
   </main>
 
   <!-- Scripts -->
-  <script src="js/content-data.js?v=54"></script>
-  <script src="js/audio-engine.js?v=54"></script>
-  <script src="js/pitch-detector.js?v=54"></script>
-  <script src="js/breathing-trainer.js?v=54"></script>
-  <script src="js/lib/opensheetmusicdisplay.min.js?v=54"></script>
-  <script src="js/score-viewer.js?v=54"></script>
-  <script src="js/app.js?v=54"></script>
+  <script src="js/content-data.js?v=55"></script>
+  <script src="js/audio-engine.js?v=55"></script>
+  <script src="js/pitch-detector.js?v=55"></script>
+  <script src="js/breathing-trainer.js?v=55"></script>
+  <script src="js/lib/opensheetmusicdisplay.min.js?v=55"></script>
+  <script src="js/score-viewer.js?v=55"></script>
+  <script src="js/app.js?v=55"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=54')
+        navigator.serviceWorker.register('./sw.js?v=55')
           .then(reg => {
             reg.update();
             console.log('ServiceWorker registered & updated:', reg.scope);

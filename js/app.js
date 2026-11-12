@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tool.openInNewTab) {
           window.open(tool.externalUrl, '_blank', 'noopener,noreferrer');
         } else {
-          collapseAllPillars();
+          localStorage.setItem('zing_active_pillar', pillar.id);
           openToolScreen(tool);
         }
       });
@@ -170,7 +170,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      // Toggle accordion on header tap (alleen op mobiel/tablet < 1024px)
+      // Accordion op header tap (alleen op mobiel/tablet < 1024px)
+      // "ook mobiel mogen gekozen pijlers blijven openstaan, maar als er een nieuwe gekozen wordt moet de vorige dicht"
       const header = card.querySelector('.pillar-header');
       header.addEventListener('click', () => {
         if (window.innerWidth >= 1024) {
@@ -178,16 +179,31 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         const wasExpanded = card.classList.contains('expanded');
-        // Sluit eventuele andere open panelen voor een rustig overzicht bij lange lijsten
+        // Sluit álle andere open panelen: als er een nieuwe gekozen wordt moet de vorige dicht
         pillarsContainer.querySelectorAll('.pillar-card.expanded').forEach(other => {
           if (other !== card) other.classList.remove('expanded');
         });
-        card.classList.toggle('expanded', !wasExpanded);
+
+        const shouldExpand = !wasExpanded;
+        card.classList.toggle('expanded', shouldExpand);
+
+        if (shouldExpand) {
+          localStorage.setItem('zing_active_pillar', pillar.id);
+        } else {
+          localStorage.removeItem('zing_active_pillar');
+        }
 
         // Vaste schermhoogte loslaten zolang er een pijler open staat
         const anyOpen = !!pillarsContainer.querySelector('.pillar-card.expanded');
         if (viewHome) viewHome.classList.toggle('home-expanded', anyOpen);
       });
+
+      // Bewaar gekozen pijler open op mobiel (blijft openstaan)
+      const savedActivePillar = localStorage.getItem('zing_active_pillar');
+      if (savedActivePillar && pillar.id === savedActivePillar && window.innerWidth < 1024) {
+        card.classList.add('expanded');
+        if (viewHome) viewHome.classList.add('home-expanded');
+      }
 
       pillarsContainer.appendChild(card);
 
@@ -205,7 +221,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const activeTitleEl = document.getElementById('screen-active-title');
 
   function openToolScreen(tool, pushHistory = true) {
-    collapseAllPillars();
+    // Zorg dat de gekozen pijler open blijft/staat en andere dicht
+    if (pillarsContainer && ContentData.pillars) {
+      const parentP = ContentData.pillars.find(p => p.tools && p.tools.some(t => t.id === tool.id));
+      if (parentP) {
+        localStorage.setItem('zing_active_pillar', parentP.id);
+        pillarsContainer.querySelectorAll('.pillar-card.expanded').forEach(other => {
+          if (other.id !== `pillar-${parentP.id}`) other.classList.remove('expanded');
+        });
+        const activeCard = document.getElementById(`pillar-${parentP.id}`);
+        if (activeCard) activeCard.classList.add('expanded');
+        if (viewHome) viewHome.classList.add('home-expanded');
+      }
+    }
 
     viewHome.classList.remove('view-active');
     viewHome.classList.add('view-hidden');
@@ -270,13 +298,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function closeToolScreen(isFromPopState = false) {
-    collapseAllPillars();
+    // Gekozen pijler blijft openstaan op het hoofdscherm
 
     viewScreen.classList.remove('view-active');
     viewScreen.classList.add('view-hidden');
 
     viewHome.classList.remove('view-hidden');
     viewHome.classList.add('view-active');
+
+    const anyOpen = !!(pillarsContainer && pillarsContainer.querySelector('.pillar-card.expanded'));
+    if (viewHome) viewHome.classList.toggle('home-expanded', anyOpen);
 
     // Stop any playing audio companions, warmups, metronome, mic or iframes
     if (typeof ScoreViewer !== 'undefined' && typeof ScoreViewer.stopCompanion === 'function') {
@@ -801,29 +832,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // 9. Initialize App Components
   // --------------------------------------------------------------------------
   AudioEngine.setupPianoKeyboard('piano-keys');
-  AudioEngine.setupPianoKeyboard('console-piano-keys', 'ckey-');
   if (typeof AudioEngine.preloadPianoSamples === 'function') {
     AudioEngine.preloadPianoSamples();
   }
 
-  // Desktop console: snelknoppen openen direct de ingebouwde tool
-  document.querySelectorAll('.console-quick-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      let found = null;
-      if (btn.dataset.toolId === 'pillar-partituren') {
-        const pillarPartituren = ContentData.pillars.find(p => p.id === 'partituren');
-        if (pillarPartituren && pillarPartituren.tools.length > 0) {
-          found = getPillarTools(pillarPartituren)[0];
-        }
-      } else {
-        ContentData.pillars.forEach(p => {
-          const t = p.tools.find(tool => tool.id === btn.dataset.toolId);
-          if (t) found = t;
-        });
-      }
-      if (found) openToolScreen(found);
-    });
-  });
   ScoreViewer.init();
   renderPillars();
   refreshScoresCatalog();

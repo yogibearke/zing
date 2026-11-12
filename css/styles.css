@@ -792,21 +792,22 @@ body::before {
 }
 
 .tool-item-top .badge {
-  width: 130px;
-  min-width: 130px;
-  max-width: 130px;
-  height: 32px;
+  width: 96px;
+  min-width: 96px;
+  max-width: 96px;
+  height: 25px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   flex-shrink: 0;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 700;
-  line-height: 1.25;
-  padding: 2px 4px;
+  line-height: 1.15;
+  padding: 1px 3px;
   box-sizing: border-box;
   border-radius: var(--radius-sm);
+  letter-spacing: 0.02em;
 }
 
 .tool-item-title {

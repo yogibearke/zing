@@ -639,10 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Stempartijen rechtstreeks uit part-list
       const partEls = Array.from(xmlDoc.querySelectorAll('part-list > score-part > part-name'));
-      let partNames = partEls.map(pn => pn.textContent.trim()).filter(Boolean);
-      if (key === 'banaha' || filename.toLowerCase().includes('banaha')) {
-        partNames = ['Canon'];
-      }
+      const partNames = partEls.map(pn => pn.textContent.trim()).filter(Boolean);
 
       // Maatsoort rechtstreeks uit attributes > time
       const beatsEl = xmlDoc.querySelector('attributes > time > beats');

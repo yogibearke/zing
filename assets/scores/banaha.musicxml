@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <score-partwise version="3.1">
-  <movement-title>Banaha</movement-title>
+  <movement-title>Banaha (Canon)</movement-title>
   <identification>
     <creator type="composer">Trad. Congo</creator>
     <encoding>
@@ -9,7 +9,7 @@
   </identification>
   <part-list>
     <score-part id="P1">
-      <part-name>Canon</part-name>
+      <part-name>Stem</part-name>
     </score-part>
   </part-list>
   <part id="P1">

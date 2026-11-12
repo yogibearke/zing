@@ -606,19 +606,22 @@ document.addEventListener('DOMContentLoaded', () => {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
 
-      // Titel rechtstreeks uit de XML
+      // Titel rechtstreeks uit de XML:
+      // MuseScore slaat canvastitel-aanpassingen op in <credit-words> van type 'title',
+      // terwijl <movement-title> vaak de oude naam behoudt tenzij in Bestand > Eigenschappen gewijzigd.
       let title = '';
-      const titleEl = xmlDoc.querySelector('movement-title') || xmlDoc.querySelector('work > work-title');
-      if (titleEl && titleEl.textContent.trim()) {
-        title = titleEl.textContent.trim();
-      } else {
-        xmlDoc.querySelectorAll('credit').forEach(cr => {
-          const ct = cr.querySelector('credit-type');
-          const cw = cr.querySelector('credit-words');
-          if (!title && ct && ct.textContent.trim() === 'title' && cw && cw.textContent.trim()) {
-            title = cw.textContent.trim();
-          }
-        });
+      xmlDoc.querySelectorAll('credit').forEach(cr => {
+        const ct = cr.querySelector('credit-type');
+        const cw = cr.querySelector('credit-words');
+        if (!title && ct && ct.textContent.trim().toLowerCase() === 'title' && cw && cw.textContent.trim()) {
+          title = cw.textContent.trim();
+        }
+      });
+      if (!title) {
+        const titleEl = xmlDoc.querySelector('movement-title') || xmlDoc.querySelector('work > work-title');
+        if (titleEl && titleEl.textContent.trim()) {
+          title = titleEl.textContent.trim();
+        }
       }
       if (!title) return null;
 

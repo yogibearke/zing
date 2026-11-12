@@ -654,6 +654,17 @@ body::before {
   gap: 0.65rem;
   transition: all 0.15s ease;
   cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+a.tool-item-card,
+a.tool-item-card:hover,
+a.tool-item-card:visited,
+a.tool-item-card:active,
+a.tool-item-card:focus {
+  text-decoration: none;
+  color: inherit;
 }
 
 .tool-item-card:hover {

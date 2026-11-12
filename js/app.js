@@ -76,11 +76,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     tools.forEach((tool, index) => {
-      const itemEl = document.createElement('div');
-      itemEl.className = 'tool-item-card';
+      const isExternal = (tool.type === 'external') || !!tool.externalUrl || !!tool.openInNewTab;
 
-      const isExternalTab = !!tool.openInNewTab;
-      const arrowIcon = isExternalTab
+      // Externe tools worden zuivere HTML-links die een nieuw tabblad/nieuwe pagina openen
+      const itemEl = document.createElement(isExternal ? 'a' : 'div');
+      itemEl.className = 'tool-item-card' + (isExternal ? ' tool-item-link' : '');
+      if (isExternal) {
+        itemEl.href = tool.externalUrl;
+        itemEl.target = '_blank';
+        itemEl.rel = 'noopener noreferrer';
+      }
+
+      const arrowIcon = isExternal
         ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
         : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
 
@@ -96,33 +103,33 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="tool-item-desc">${tool.desc}</div>
         </div>
-        <div class="tool-item-arrow" title="${isExternalTab ? 'Opent direct in nieuw tabblad' : 'Open in Zing!'}">
+        <div class="tool-item-arrow" title="${isExternal ? 'Opent direct in een nieuwe pagina ↗' : 'Open in Zing!'}">
           ${arrowIcon}
         </div>
       `;
 
-      // Up / Down sorting clicks
+      // Up / Down sorting clicks (altijd preventDefault zodat <a> niet navigeert bij sorteren)
       const upBtn = itemEl.querySelector('.btn-move-up');
       upBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         moveTool(pillar, tool.id, 'up');
       });
 
       const downBtn = itemEl.querySelector('.btn-move-down');
       downBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         moveTool(pillar, tool.id, 'down');
       });
 
-      // Direct uniform click: opens new tab if openInNewTab, otherwise opens in-app screen
-      itemEl.addEventListener('click', () => {
-        if (tool.openInNewTab) {
-          window.open(tool.externalUrl, '_blank', 'noopener,noreferrer');
-        } else {
+      // Interne tools openen het scherm binnen Zing
+      if (!isExternal) {
+        itemEl.addEventListener('click', () => {
           localStorage.setItem('zing_active_pillar', pillar.id);
           openToolScreen(tool);
-        }
-      });
+        });
+      }
 
       listEl.appendChild(itemEl);
     });
@@ -221,6 +228,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const activeTitleEl = document.getElementById('screen-active-title');
 
   function openToolScreen(tool, pushHistory = true) {
+    if (tool.type === 'external' || tool.externalUrl) {
+      window.open(tool.externalUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
     // Zorg dat de gekozen pijler open blijft/staat en andere dicht
     if (pillarsContainer && ContentData.pillars) {
       const parentP = ContentData.pillars.find(p => p.tools && p.tools.some(t => t.id === tool.id));
@@ -255,39 +267,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Deactivate all tool blocks
     document.querySelectorAll('.tool-content-block').forEach(b => b.classList.remove('active'));
 
-    if (tool.type === 'builtin') {
-      const block = document.getElementById(tool.targetScreen);
-      if (block) block.classList.add('active');
+    const block = document.getElementById(tool.targetScreen);
+    if (block) block.classList.add('active');
 
-      if (tool.targetScreen !== 'screen-scores' && typeof ScoreViewer !== 'undefined' && typeof ScoreViewer.stopCompanion === 'function') {
-        ScoreViewer.stopCompanion();
+    if (tool.targetScreen !== 'screen-scores' && typeof ScoreViewer !== 'undefined' && typeof ScoreViewer.stopCompanion === 'function') {
+      ScoreViewer.stopCompanion();
+    }
+
+    // Als deze tool een specifieke partituur is, selecteer en toon deze direct in de viewer
+    if (tool.scoreKey && typeof ScoreViewer !== 'undefined') {
+      const scoreSelect = document.getElementById('score-select');
+      if (scoreSelect) {
+        scoreSelect.value = tool.scoreKey;
       }
-
-      // Als deze tool een specifieke partituur is, selecteer en toon deze direct in de viewer
-      if (tool.scoreKey && typeof ScoreViewer !== 'undefined') {
-        const scoreSelect = document.getElementById('score-select');
-        if (scoreSelect) {
-          scoreSelect.value = tool.scoreKey;
-        }
-        ScoreViewer.displayScore(tool.scoreKey);
-      }
-    } else {
-      // External tool: stop internal audio and open in screen-external
-      if (typeof ScoreViewer !== 'undefined' && typeof ScoreViewer.stopCompanion === 'function') {
-        ScoreViewer.stopCompanion();
-      }
-      const extBlock = document.getElementById('screen-external');
-      const extTitle = document.getElementById('ext-tool-title');
-      const extDesc = document.getElementById('ext-tool-desc');
-      const extLink = document.getElementById('ext-tool-direct-link');
-      const extFrame = document.getElementById('ext-viewer-frame');
-
-      if (extTitle) extTitle.textContent = tool.title;
-      if (extDesc) extDesc.textContent = tool.desc;
-      if (extLink) extLink.href = tool.externalUrl;
-      if (extFrame) extFrame.src = tool.embedUrl || tool.externalUrl;
-
-      if (extBlock) extBlock.classList.add('active');
+      ScoreViewer.displayScore(tool.scoreKey);
     }
 
     if (pushHistory) {

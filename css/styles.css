@@ -222,7 +222,7 @@ body::before {
   transition: max-width 0.2s ease;
 }
 
-.main-wrapper:has(#screen-scores.active) {
+.main-wrapper:has(#view-screen.view-active #screen-scores.active) {
   max-width: 1160px;
 }
 

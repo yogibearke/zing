@@ -295,6 +295,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     viewScreen.classList.remove('view-active');
     viewScreen.classList.add('view-hidden');
+    viewScreen.classList.remove('is-score-screen');
+
+    // Deactiveer alle individuele tool blocks zodat score screen max-width reset
+    document.querySelectorAll('.tool-content-block').forEach(b => b.classList.remove('active'));
 
     viewHome.classList.remove('view-hidden');
     viewHome.classList.add('view-active');
@@ -664,9 +668,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      // Stempartijen rechtstreeks uit part-list
+      // Stempartijen rechtstreeks uit part-list (netjes witruimte en regeleinden opschonen)
       const partEls = Array.from(xmlDoc.querySelectorAll('part-list > score-part > part-name'));
-      const partNames = partEls.map(pn => pn.textContent.trim()).filter(Boolean);
+      const partNames = partEls.map(pn => pn.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean);
 
       // Maatsoort rechtstreeks uit attributes > time
       const beatsEl = xmlDoc.querySelector('attributes > time > beats');

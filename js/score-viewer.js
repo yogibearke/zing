@@ -88,25 +88,30 @@ const ScoreViewer = (() => {
       const parts = xmlDoc.querySelectorAll('score-partwise > part');
       if (!parts || parts.length === 0) return null;
 
+      const normalizeVoiceKey = (rawLabel) => {
+        const rawName = (rawLabel || '').trim().toLowerCase();
+        if (!rawName) return '';
+        if (rawName.includes('sopraan') || rawName.includes('soprano') || rawName.includes('sopran')) return 'sopraan';
+        if (rawName.includes('mezzo')) return 'mezzo';
+        if (rawName.includes('alt') || rawName.includes('alto')) return 'alt';
+        if (rawName.includes('tenor')) return 'tenor';
+        if (rawName.includes('bariton') || rawName.includes('baritone')) return 'bariton';
+        if (rawName.includes('bas') || rawName.includes('bass') || rawName.includes('basso')) return 'bas';
+        if (rawName.includes('solo')) return 'solo';
+        return rawName.replace(/[^a-z0-9]+/g, '');
+      };
+
       // Detecteer part-namen rechtstreeks uit de part-list van de MusicXML
       const partListEls = xmlDoc.querySelectorAll('part-list > score-part');
-      const partNameMap = {};
+      const partRawLabels = {};
       const partLabels = {};
       if (partListEls && partListEls.length > 0) {
         partListEls.forEach(sp => {
           const id = sp.getAttribute('id');
           const nameEl = sp.querySelector('part-name');
           const rawLabel = nameEl ? nameEl.textContent.trim() : '';
-          const rawName = rawLabel.toLowerCase();
-          let key = rawName.replace(/[^a-z0-9]+/g, '');
-          if (rawName.includes('sopraan') || rawName.includes('sopran')) key = 'sopraan';
-          else if (rawName.includes('alt') || rawName.includes('alto')) key = 'alt';
-          else if (rawName.includes('tenor')) key = 'tenor';
-          else if (rawName.includes('bariton') || rawName.includes('baritone')) key = 'bariton';
-          else if (rawName.includes('bas') || rawName.includes('bass')) key = 'bas';
-          if (id && key) {
-            partNameMap[id] = key;
-            partLabels[key] = rawLabel;
+          if (id && rawLabel) {
+            partRawLabels[id] = rawLabel;
           }
         });
       }
@@ -191,30 +196,77 @@ const ScoreViewer = (() => {
 
       parts.forEach((partEl, idx) => {
         const partId = partEl.getAttribute('id');
-        const voiceKey = partNameMap[partId] || (partId ? partId.toLowerCase() : `part_${idx + 1}`);
-        voiceIndexMap[voiceKey] = idx;
-
-        const measuresNotes = [];
-        let currentDivisions = defaultDivisions;
         const measures = partEl.querySelectorAll('measure');
+        const rawPartLabel = partRawLabels[partId] || partId || `Part ${idx + 1}`;
+        const splitLabels = rawPartLabel
+          .split(/\s*(?:\/|-|&|\+|,|\n)\s*/)
+          .map(s => s.trim())
+          .filter(Boolean);
 
-        const partVerses = {};
-        const partMeasures = [];
+        // Detecteer alle aanwezige stem-lagen (<voice>) in deze notenbalk
+        const voiceSet = new Set();
+        measures.forEach(m => {
+          m.querySelectorAll('note > voice').forEach(v => {
+            const val = v.textContent.trim();
+            if (val) voiceSet.add(val);
+          });
+        });
+        const partVoices = voiceSet.size > 0
+          ? Array.from(voiceSet).sort((a, b) => (parseInt(a, 10) - parseInt(b, 10)) || a.localeCompare(b))
+          : ['1'];
+        const primaryVoiceId = partVoices[0];
 
-        measures.forEach((measure, mIndex) => {
-          const mNum = measure.getAttribute('number') || String(mIndex + 1);
-          const divEl = measure.querySelector('attributes > divisions');
-          if (divEl) {
-            currentDivisions = parseInt(divEl.textContent.trim(), 10) || currentDivisions;
+        partVoices.forEach((targetVoiceId, vIdx) => {
+          let voiceLabel = rawPartLabel;
+          let baseKey = normalizeVoiceKey(rawPartLabel) || (partId ? partId.toLowerCase() : `part_${idx + 1}`);
+          if (partVoices.length > 1) {
+            voiceLabel = splitLabels[vIdx] || `${rawPartLabel} (Stem ${targetVoiceId})`;
+            baseKey = normalizeVoiceKey(splitLabels[vIdx] || '') || `${baseKey}_v${targetVoiceId}`;
+          }
+          let voiceKey = baseKey;
+          if (parsedVoices[voiceKey]) {
+            voiceKey = `${baseKey}_v${targetVoiceId}`;
+            if (parsedVoices[voiceKey]) voiceKey = `${baseKey}_${idx + 1}_v${targetVoiceId}`;
           }
 
-          const mNotes = [];
-          const noteEls = measure.querySelectorAll('note');
-          const mLyricTokens = {};
+          voiceIndexMap[voiceKey] = idx;
+          if (voiceLabel) {
+            partLabels[voiceKey] = voiceLabel;
+          }
 
-          noteEls.forEach(n => {
-            // Sla akkoordnoten op dezelfde balk over (koorbalken zijn monofoon per stem)
-            if (n.querySelector('chord')) return;
+          const measuresNotes = [];
+          let currentDivisions = defaultDivisions;
+
+          const partVerses = {};
+          const partMeasures = [];
+
+          measures.forEach((measure, mIndex) => {
+            const mNum = measure.getAttribute('number') || String(mIndex + 1);
+            const divEl = measure.querySelector('attributes > divisions');
+            if (divEl) {
+              currentDivisions = parseInt(divEl.textContent.trim(), 10) || currentDivisions;
+            }
+
+            const mNotes = [];
+            const allNoteEls = Array.from(measure.querySelectorAll('note'));
+            let noteEls = allNoteEls.filter(n => {
+              const vEl = n.querySelector('voice');
+              const vId = vEl ? vEl.textContent.trim() : primaryVoiceId;
+              return vId === targetVoiceId;
+            });
+            // Unisono-maat: als stem 2 in deze maat leeg is, val terug op de primaire stem
+            if (noteEls.length === 0 && targetVoiceId !== primaryVoiceId) {
+              noteEls = allNoteEls.filter(n => {
+                const vEl = n.querySelector('voice');
+                const vId = vEl ? vEl.textContent.trim() : primaryVoiceId;
+                return vId === primaryVoiceId;
+              });
+            }
+            const mLyricTokens = {};
+
+            noteEls.forEach(n => {
+              // Sla akkoordnoten op dezelfde stemlaag over
+              if (n.querySelector('chord')) return;
 
             const isRest = n.querySelector('rest') !== null;
             const durEl = n.querySelector('duration');
@@ -318,6 +370,7 @@ const ScoreViewer = (() => {
         });
 
         parsedVoices[voiceKey] = unrolledVoiceNotes;
+        });
       });
 
       // Zoek tempo markering in de MusicXML zoals geëxporteerd door MuseScore
@@ -378,7 +431,9 @@ const ScoreViewer = (() => {
   let activeScoreKey = null;
 
   const VOICE_CONFIG = {
+    'solo': { label: '⭐ Solo', name: 'Solo', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
     'sopraan': { label: '🔵 Sopraan', name: 'Sopraan (Melodie)', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+    'mezzo': { label: '🩵 Mezzo', name: 'Mezzo-sopraan', color: '#0891b2', bg: '#ecfeff', border: '#a5f3fc' },
     'alt': { label: '🟢 Alt', name: 'Alt (2e stem)', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
     'tenor': { label: '🟠 Tenor', name: 'Tenor (Hoge mannenstem)', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
     'bariton': { label: '🟤 Bariton', name: 'Bariton (Mannenstem)', color: '#78350f', bg: '#fef3c7', border: '#fde68a' },
@@ -415,8 +470,10 @@ const ScoreViewer = (() => {
     container.style.display = 'flex';
     pillsBar.innerHTML = '';
 
-    const order = ['sopraan', 'alt', 'tenor', 'bariton', 'bas', 'tutti'];
-    const sortedKeys = order.filter(k => voiceKeys.includes(k));
+    const order = ['solo', 'sopraan', 'mezzo', 'alt', 'tenor', 'bariton', 'bas'];
+    const known = order.filter(k => voiceKeys.includes(k));
+    const extras = voiceKeys.filter(k => !order.includes(k) && k !== 'tutti');
+    const sortedKeys = [...known, ...extras, ...(voiceKeys.includes('tutti') ? ['tutti'] : [])];
 
     if (!sortedKeys.includes(selectedVoice)) {
       selectedVoice = sortedKeys[0];

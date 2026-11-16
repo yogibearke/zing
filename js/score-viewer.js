@@ -280,6 +280,9 @@ const ScoreViewer = (() => {
               const stepEl = n.querySelector('pitch > step');
               const octEl = n.querySelector('pitch > octave');
               const altEl = n.querySelector('pitch > alter');
+              const tieEls = Array.from(n.querySelectorAll('tie, notations > tied'));
+              const tieStart = tieEls.some(t => t.getAttribute('type') === 'start');
+              const tieStop = tieEls.some(t => t.getAttribute('type') === 'stop');
               if (stepEl && octEl) {
                 const step = stepEl.textContent.trim().toUpperCase();
                 const oct = octEl.textContent.trim();
@@ -289,7 +292,7 @@ const ScoreViewer = (() => {
                   if (altVal === '1') acc = '#';
                   else if (altVal === '-1') acc = 'b';
                 }
-                mNotes.push({ note: `${step}${acc}${oct}`, dur, measureIndex: mIndex });
+                mNotes.push({ note: `${step}${acc}${oct}`, dur, measureIndex: mIndex, tieStart, tieStop });
               }
             }
 
@@ -368,6 +371,24 @@ const ScoreViewer = (() => {
             unrolledVoiceNotes.push({ ...noteItem, measureIndex: mIdx });
           });
         });
+
+        // Bereken totale klinkende duur voor overgebonden noten (ties)
+        for (let i = 0; i < unrolledVoiceNotes.length; i++) {
+          const item = unrolledVoiceNotes[i];
+          if (item.tieStop) {
+            item.tiedContinuation = true;
+          }
+          if (item.tieStart && !item.tieStop) {
+            let totalDur = item.dur;
+            let j = i + 1;
+            while (j < unrolledVoiceNotes.length && unrolledVoiceNotes[j].tieStop && unrolledVoiceNotes[j].note === item.note) {
+              totalDur += unrolledVoiceNotes[j].dur;
+              if (!unrolledVoiceNotes[j].tieStart) break;
+              j++;
+            }
+            item.soundDur = totalDur;
+          }
+        }
 
         parsedVoices[voiceKey] = unrolledVoiceNotes;
         });
@@ -1043,6 +1064,9 @@ const ScoreViewer = (() => {
   }
 
   function renderMusicXMLWithOSMD(musicXmlUrlOrText) {
+    if (typeof AudioEngine !== 'undefined' && AudioEngine.preloadChoirSamples) {
+      AudioEngine.preloadChoirSamples();
+    }
     const osmdContainer = document.getElementById('osmd-container');
     const statusEl = document.getElementById('score-rendering-status');
 
@@ -1232,12 +1256,16 @@ const ScoreViewer = (() => {
     const currentNote = notes[currentStep];
     const stepDur = currentNote.dur; // 1.0 = kwartnoot
     const duration = stepDur * (60 / currentBpm);
+    const soundDuration = (currentNote.soundDur || stepDur) * (60 / currentBpm);
+    const playScoreNote = (typeof AudioEngine !== 'undefined' && AudioEngine.playChoirNote)
+      ? AudioEngine.playChoirNote
+      : AudioEngine.playNote;
 
     if (currentNote.notes && Array.isArray(currentNote.notes)) {
-      // Tutti Chord: play all choral voices simultaneously
+      // Tutti Chord: play all choral voices simultaneously met koorgeluid
       currentNote.notes.forEach(n => {
         if (n && n !== 'REST') {
-          AudioEngine.playNote(n, Math.min(duration * 1.15, 2.2));
+          playScoreNote(n, Math.min(soundDuration * 1.08, 8.0));
         }
       });
       // Highlight soprano (top) note on virtual piano
@@ -1246,8 +1274,10 @@ const ScoreViewer = (() => {
         AudioEngine.highlightSungKey(topNote);
       }
     } else if (currentNote.note && currentNote.note !== 'REST') {
-      // Single choral voice (S, A, T or B)
-      AudioEngine.playNote(currentNote.note, Math.min(duration * 1.15, 2.2));
+      // Single choral voice (S, A, T or B): houd overgebonden noten (ties) vloeiend aan
+      if (!(currentNote.tiedContinuation && currentStep > 0)) {
+        playScoreNote(currentNote.note, Math.min(soundDuration * 1.08, 8.0));
+      }
       AudioEngine.highlightSungKey(currentNote.note);
     } else {
       AudioEngine.highlightSungKey(null);

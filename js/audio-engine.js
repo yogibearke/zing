@@ -35,8 +35,32 @@ const AudioEngine = (() => {
     84: 'C6.mp3'
   };
 
-  const sampleBuffers = {}; // midi -> AudioBuffer
+  const sampleBuffers = {}; // midi -> AudioBuffer (Piano)
   let samplesLoadingStarted = false;
+
+  // MuseScore / General MIDI Choir Aahs (Program 53) SoundFont samples
+  const CHOIR_BASE_URLS = [
+    'https://gleitz.github.io/midi-js-soundfonts/MusyngKite/choir_aahs-mp3/',
+    'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/choir_aahs-mp3/'
+  ];
+  const CHOIR_SAMPLE_MAP = {
+    43: 'G2.mp3',
+    48: 'C3.mp3',
+    51: 'Eb3.mp3',
+    54: 'Gb3.mp3',
+    57: 'A3.mp3',
+    60: 'C4.mp3',
+    63: 'Eb4.mp3',
+    66: 'Gb4.mp3',
+    69: 'A4.mp3',
+    72: 'C5.mp3',
+    75: 'Eb5.mp3',
+    78: 'Gb5.mp3',
+    81: 'A5.mp3',
+    84: 'C6.mp3'
+  };
+  const choirSampleBuffers = {}; // midi -> AudioBuffer (Choir Aahs)
+  let choirLoadingStarted = false;
 
   function midiToFreq(midi) {
     return 440 * Math.pow(2, (midi - 69) / 12);
@@ -52,6 +76,7 @@ const AudioEngine = (() => {
       ctx = new AudioCtx();
       setupMasterChain(ctx);
       preloadPianoSamples();
+      preloadChoirSamples();
     }
     if (ctx.state === 'suspended') {
       ctx.resume();
@@ -259,6 +284,191 @@ const AudioEngine = (() => {
     playTone(freq, duration);
   }
 
+  // Laad MuseScore / General MIDI Choir Aahs (Program 53) samples op de achtergrond in
+  function preloadChoirSamples() {
+    if (choirLoadingStarted) return;
+    choirLoadingStarted = true;
+
+    const sampleMidis = Object.keys(CHOIR_SAMPLE_MAP).map(Number);
+    const priorityOrder = sampleMidis.sort((a, b) => Math.abs(a - 60) - Math.abs(b - 60));
+
+    priorityOrder.forEach(async (midi) => {
+      const file = CHOIR_SAMPLE_MAP[midi];
+      for (const baseUrl of CHOIR_BASE_URLS) {
+        try {
+          const res = await fetch(baseUrl + file);
+          if (!res.ok) continue;
+          const arrayBuf = await res.arrayBuffer();
+          const audioCtx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+          if (!ctx) {
+            ctx = audioCtx;
+            setupMasterChain(ctx);
+          }
+          const decoded = await audioCtx.decodeAudioData(arrayBuf);
+          choirSampleBuffers[midi] = decoded;
+          break;
+        } catch (err) {
+          // Volgende CDN of formant-koor-synthese fallback
+        }
+      }
+    });
+  }
+
+  function findClosestChoirSample(freq) {
+    const loadedMidis = Object.keys(choirSampleBuffers).map(Number);
+    if (loadedMidis.length === 0) return null;
+
+    const targetMidi = freqToMidi(freq);
+    let closestMidi = loadedMidis[0];
+    let minDiff = Math.abs(targetMidi - closestMidi);
+
+    for (let i = 1; i < loadedMidis.length; i++) {
+      const diff = Math.abs(targetMidi - loadedMidis[i]);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestMidi = loadedMidis[i];
+      }
+    }
+
+    if (minDiff > 7) return null;
+    return {
+      midi: closestMidi,
+      buffer: choirSampleBuffers[closestMidi],
+      baseFreq: midiToFreq(closestMidi)
+    };
+  }
+
+  // Speel een noot met MuseScore Koorgeluid (Choir Aahs GM 53 + warme vocale formant-synthese)
+  function playChoirTone(freq, duration = 1.0) {
+    const audioCtx = getContext();
+    const now = audioCtx.currentTime;
+    const dest = masterCompressor || audioCtx.destination;
+    const sustainTime = Math.max(0.22, duration);
+    const releaseTime = 0.32;
+
+    // 1. Gebruik echte SoundFont Choir Aahs sample indien geladen
+    const sampleMatch = findClosestChoirSample(freq);
+    if (sampleMatch && sampleMatch.buffer) {
+      const source = audioCtx.createBufferSource();
+      source.buffer = sampleMatch.buffer;
+      const rate = freq / sampleMatch.baseFreq;
+      source.playbackRate.setValueAtTime(rate, now);
+
+      // Voor lange aangehouden koornoten (bijv. overgebonden noten): loop het stabiele vocale middendeel
+      const bufDur = sampleMatch.buffer.duration;
+      if (sustainTime * rate > bufDur * 0.75 && bufDur > 1.2) {
+        source.loop = true;
+        source.loopStart = Math.min(0.45, bufDur * 0.25);
+        source.loopEnd = Math.max(source.loopStart + 0.4, bufDur - 0.25);
+      }
+
+      const envGain = audioCtx.createGain();
+      const attackTime = Math.min(0.06, sustainTime * 0.25);
+      envGain.gain.setValueAtTime(0.001, now);
+      envGain.gain.linearRampToValueAtTime(0.82, now + attackTime);
+      envGain.gain.setValueAtTime(0.78, now + Math.max(attackTime + 0.01, sustainTime * 0.92));
+      envGain.gain.exponentialRampToValueAtTime(0.0001, now + sustainTime + releaseTime);
+
+      source.connect(envGain);
+      envGain.connect(dest);
+      if (reverbNode) {
+        envGain.connect(reverbNode);
+      }
+
+      source.start(now);
+      source.stop(now + sustainTime + releaseTime + 0.05);
+      return;
+    }
+
+    // 2. Vocale Formant-Koor Synthese ("Aah"-koor met 3 vocale formanten & natuurlijk vibrato)
+    const noteGain = audioCtx.createGain();
+    const attackTime = Math.min(0.07, sustainTime * 0.28);
+    noteGain.gain.setValueAtTime(0.0001, now);
+    noteGain.gain.linearRampToValueAtTime(0.55, now + attackTime);
+    noteGain.gain.setValueAtTime(0.50, now + Math.max(attackTime + 0.01, sustainTime * 0.9));
+    noteGain.gain.exponentialRampToValueAtTime(0.0001, now + sustainTime + releaseTime);
+
+    const warmthFilter = audioCtx.createBiquadFilter();
+    warmthFilter.type = 'lowpass';
+    warmthFilter.frequency.setValueAtTime(Math.min(4200, freq * 7.5), now);
+    warmthFilter.Q.setValueAtTime(0.7, now);
+    warmthFilter.connect(noteGain);
+
+    noteGain.connect(dest);
+    if (reverbNode) {
+      noteGain.connect(reverbNode);
+    }
+
+    // Drie parallelle klinker-formantfilters (koor "Aah" / "Ooh" resonantie)
+    const formants = [
+      { freq: 720, q: 5.0, gain: 0.95 },
+      { freq: 1180, q: 6.0, gain: 0.60 },
+      { freq: 2550, q: 7.5, gain: 0.22 }
+    ];
+
+    const formantInput = audioCtx.createGain();
+    formantInput.gain.setValueAtTime(1.0, now);
+
+    formants.forEach(f => {
+      const bp = audioCtx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.setValueAtTime(f.freq, now);
+      bp.Q.setValueAtTime(f.q, now);
+      const fg = audioCtx.createGain();
+      fg.gain.setValueAtTime(f.gain, now);
+      formantInput.connect(bp);
+      bp.connect(fg);
+      fg.connect(warmthFilter);
+    });
+
+    // Directe grondtoon-warmte zodat ook lage bassen en hoge sopranen vol klinken
+    const directLow = audioCtx.createBiquadFilter();
+    directLow.type = 'lowpass';
+    directLow.frequency.setValueAtTime(freq * 2.2, now);
+    const directGain = audioCtx.createGain();
+    directGain.gain.setValueAtTime(0.32, now);
+    formantInput.connect(directLow);
+    directLow.connect(directGain);
+    directGain.connect(warmthFilter);
+
+    // Subtiel menselijk koor-vibrato (5.3 Hz)
+    const vibOsc = audioCtx.createOscillator();
+    const vibGain = audioCtx.createGain();
+    vibOsc.frequency.setValueAtTime(5.3, now);
+    vibGain.gain.setValueAtTime(0.0, now);
+    vibGain.gain.linearRampToValueAtTime(4.5, now + Math.min(0.35, sustainTime * 0.5));
+    vibOsc.connect(vibGain);
+
+    const voices = [
+      { type: 'sawtooth', detune: -6.5, amp: 0.36 },
+      { type: 'sawtooth', detune: 6.5, amp: 0.36 },
+      { type: 'triangle', detune: 0.0, amp: 0.45 }
+    ];
+
+    const stopTime = now + sustainTime + releaseTime + 0.05;
+    voices.forEach(v => {
+      const osc = audioCtx.createOscillator();
+      const vg = audioCtx.createGain();
+      osc.type = v.type;
+      osc.frequency.setValueAtTime(freq, now);
+      osc.detune.setValueAtTime(v.detune, now);
+      vibGain.connect(osc.detune);
+      vg.gain.setValueAtTime(v.amp, now);
+      osc.connect(vg);
+      vg.connect(formantInput);
+      osc.start(now);
+      osc.stop(stopTime);
+    });
+
+    vibOsc.start(now);
+    vibOsc.stop(stopTime);
+  }
+
+  function playChoirNote(noteStr, duration = 1.2) {
+    const freq = noteToFrequency(noteStr);
+    playChoirTone(freq, duration);
+  }
+
   // Gentle chime sound for breathing trainer
   function playChime(isStart = true) {
     const audioCtx = getContext();
@@ -412,9 +622,12 @@ const AudioEngine = (() => {
   return {
     getContext,
     preloadPianoSamples,
+    preloadChoirSamples,
     noteToFrequency,
     playTone,
     playNote,
+    playChoirTone,
+    playChoirNote,
     playChime,
     playClick,
     setupPianoKeyboard,

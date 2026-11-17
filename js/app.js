@@ -722,16 +722,91 @@ document.addEventListener('DOMContentLoaded', () => {
   async function refreshScoresCatalog() {
     const scoreSelect = document.getElementById('score-select');
     const pillarPartituren = ContentData.pillars.find(p => p.id === 'partituren');
+    const CATALOG_CACHE_KEY = 'zing_scores_catalog_meta_v1';
+    let hashOpened = false;
+
+    function syncScoresToUI(serverScores) {
+      if (pillarPartituren) {
+        const newTools = serverScores.map(s => ({
+          id: `score-${s.key}`,
+          title: s.title,
+          type: 'builtin',
+          targetScreen: 'screen-scores',
+          scoreKey: s.key,
+          badge: s.badge,
+          badgeClass: s.badgeClass,
+          desc: s.desc
+        }));
+
+        pillarPartituren.tools = newTools;
+        renderPillarTools(pillarPartituren, getPillarTools(pillarPartituren));
+      }
+
+      if (scoreSelect) {
+        const currentVal = scoreSelect.value;
+        scoreSelect.innerHTML = '';
+
+        serverScores.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.key;
+          opt.textContent = s.composer ? `${s.title} (${s.composer})` : s.title;
+          scoreSelect.appendChild(opt);
+        });
+
+        if (currentVal && Array.from(scoreSelect.options).some(o => o.value === currentVal)) {
+          scoreSelect.value = currentVal;
+        }
+      }
+
+      if (!hashOpened && window.location.hash.startsWith('#tool-score-') && pillarPartituren) {
+        const toolId = window.location.hash.substring(6);
+        const found = pillarPartituren.tools.find(t => t.id === toolId);
+        if (found) {
+          hashOpened = true;
+          openToolScreen(found, false);
+        }
+      }
+    }
+
+    // 0. Toon gecachete partituurlijst alvast direct (0 ms wachttijd) terwijl op de achtergrond gecontroleerd wordt
+    let cachedByFilename = {};
+    try {
+      const savedMeta = localStorage.getItem(CATALOG_CACHE_KEY);
+      if (savedMeta) {
+        const parsedMeta = JSON.parse(savedMeta);
+        if (Array.isArray(parsedMeta) && parsedMeta.length > 0) {
+          parsedMeta.forEach(m => {
+            if (m && m.filename) {
+              cachedByFilename[m.filename] = m;
+              if (typeof ScoreViewer !== 'undefined' && ScoreViewer.registerScore) {
+                ScoreViewer.registerScore(m.key, {
+                  filename: m.filename,
+                  title: m.title,
+                  subtitle: m.desc,
+                  bpm: m.bpm,
+                  musicXmlUrl: m.musicXmlUrl,
+                  pdfUrl: m.pdfUrl,
+                  txtUrl: m.txtUrl
+                });
+              }
+            }
+          });
+          syncScoresToUI(parsedMeta);
+        }
+      }
+    } catch (e) {}
 
     try {
-      const res = await fetch('./assets/scores/scores-index.json?_t=' + Date.now(), { cache: 'no-store' });
+      const res = await fetch('./assets/scores/scores-index.json', { cache: 'no-cache' });
       if (!res.ok) {
         console.error('Kan ./assets/scores/scores-index.json niet laden (HTTP ' + res.status + '). Zonder scores-index.json worden geen partituren geladen.');
-        if (pillarPartituren) {
-          pillarPartituren.tools = [];
-          renderPillarTools(pillarPartituren, []);
+        if (Object.keys(cachedByFilename).length === 0) {
+          if (pillarPartituren) {
+            pillarPartituren.tools = [];
+            renderPillarTools(pillarPartituren, []);
+          }
+          if (scoreSelect) scoreSelect.innerHTML = '';
         }
-        if (scoreSelect) scoreSelect.innerHTML = '';
         return;
       }
 
@@ -750,20 +825,25 @@ document.addEventListener('DOMContentLoaded', () => {
         .map(item => (typeof item === 'string') ? item : (item && item.musicXmlUrl ? item.musicXmlUrl.split('/').pop() : null))
         .filter(Boolean);
 
-      // 1. Sequentieel elke MusicXML inlezen en metadata uitsluitend uit het XML-bestand halen
-      const serverScores = [];
-      for (const fname of fileList) {
+      // Start met eventueel gecachete items in de juiste volgorde van scores-index.json
+      const scoresByIndex = fileList.map(fname => cachedByFilename[fname] || null);
+      if (scoresByIndex.some(Boolean)) {
+        syncScoresToUI(scoresByIndex.filter(Boolean));
+      }
+
+      // 1. Laad alle MusicXML-bestanden parallel in en maak elke partituur direct zichtbaar zodra hij binnenkomt
+      await Promise.allSettled(fileList.map(async (fname, idx) => {
         try {
-          let xmlRes = await fetch(`./assets/scores/${fname}?_t=` + Date.now(), { cache: 'no-store' });
+          let xmlRes = await fetch(`./assets/scores/${fname}`);
           if (!xmlRes.ok && fname.toLowerCase() !== fname) {
-            xmlRes = await fetch(`./assets/scores/${fname.toLowerCase()}?_t=` + Date.now(), { cache: 'no-store' });
+            xmlRes = await fetch(`./assets/scores/${fname.toLowerCase()}`);
           }
-          if (!xmlRes.ok) continue;
+          if (!xmlRes.ok) return;
           const xmlText = await xmlRes.text();
           const meta = parseMusicXmlMetadata(xmlText, fname);
-          if (!meta) continue;
+          if (!meta) return;
 
-          serverScores.push(meta);
+          scoresByIndex[idx] = meta;
 
           if (typeof ScoreViewer !== 'undefined' && ScoreViewer.registerScore) {
             ScoreViewer.registerScore(meta.key, {
@@ -777,50 +857,19 @@ document.addEventListener('DOMContentLoaded', () => {
               xmlText
             });
           }
+
+          // Maak deze partituur meteen zichtbaar in de lijst!
+          syncScoresToUI(scoresByIndex.filter(Boolean));
         } catch (xmlErr) {
           console.warn(`Kon ${fname} niet inlezen:`, xmlErr);
         }
-      }
+      }));
 
-      if (pillarPartituren) {
-        const newTools = serverScores.map(s => ({
-          id: `score-${s.key}`,
-          title: s.title,
-          type: 'builtin',
-          targetScreen: 'screen-scores',
-          scoreKey: s.key,
-          badge: s.badge,
-          badgeClass: s.badgeClass,
-          desc: s.desc
-        }));
-
-        pillarPartituren.tools = newTools;
-        renderPillarTools(pillarPartituren, getPillarTools(pillarPartituren));
-      }
-
-      // Werk opties bij in score-select dropdown in de viewer
-      if (scoreSelect) {
-        const currentVal = scoreSelect.value;
-        scoreSelect.innerHTML = '';
-
-        serverScores.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.key;
-          opt.textContent = s.composer ? `${s.title} (${s.composer})` : s.title;
-          scoreSelect.appendChild(opt);
-        });
-
-        if (currentVal && Array.from(scoreSelect.options).some(o => o.value === currentVal)) {
-          scoreSelect.value = currentVal;
-        }
-      }
-
-      // Als de pagina geopend werd met een directe hash naar een partituur (bv. #tool-score-...), open deze na het inladen van scores-index.json
-      if (window.location.hash.startsWith('#tool-score-') && pillarPartituren) {
-        const toolId = window.location.hash.substring(6);
-        const found = pillarPartituren.tools.find(t => t.id === toolId);
-        if (found) openToolScreen(found, false);
-      }
+      const finalScores = scoresByIndex.filter(Boolean);
+      syncScoresToUI(finalScores);
+      try {
+        localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify(finalScores));
+      } catch (e) {}
     } catch (e) {
       console.error('Fout bij inladen van scores-index.json:', e);
     }

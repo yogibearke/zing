@@ -440,7 +440,7 @@ const ScoreViewer = (() => {
       if (voiceKeys.length > 1) {
         parsedVoices.tutti = buildTutti(parsedVoices);
       }
-      return { voices: parsedVoices, voiceIndexMap, partLabels, bpm: detectedBpm, textBlocks, voiceLyrics };
+      return { voices: parsedVoices, voiceIndexMap, partLabels, bpm: detectedBpm, textBlocks, voiceLyrics, xmlText };
     } catch (err) {
       console.warn('Kon MusicXML niet dynamisch inladen vanuit:', xmlUrlOrText, err);
       return null;
@@ -482,6 +482,9 @@ const ScoreViewer = (() => {
 
     // 1-stemmig lied (zoals Calypso): verberg de hele balk!
     if (nonTuttiKeys.length <= 1) {
+      if (nonTuttiKeys.length === 1) {
+        selectedVoice = nonTuttiKeys[0];
+      }
       container.style.display = 'none';
       pillsBar.innerHTML = '';
       return;
@@ -959,7 +962,23 @@ const ScoreViewer = (() => {
   }
 
   let osmdInstance = null;
+  let osmdRenderToken = 0;
+  let osmdResizeTimer = null;
   let activeViewMode = 'musicxml'; // 'musicxml', 'pdf' of 'txt'
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', () => {
+      if (osmdResizeTimer) clearTimeout(osmdResizeTimer);
+      osmdResizeTimer = setTimeout(() => {
+        if (activeViewMode === 'musicxml' && osmdInstance && osmdInstance.sheet) {
+          const c = document.getElementById('osmd-container');
+          if (c && c.offsetWidth > 0 && c.offsetParent !== null) {
+            applyVoiceFilterToOSMD();
+          }
+        }
+      }, 200);
+    });
+  }
 
   function switchViewMode(mode) {
     activeViewMode = mode;
@@ -989,12 +1008,12 @@ const ScoreViewer = (() => {
       });
     }
 
-    if (mode === 'musicxml' && scoreData && scoreData.musicXmlUrl) {
+    if (mode === 'musicxml' && scoreData && (scoreData.xmlText || scoreData.musicXmlUrl)) {
       if (osmdContainer) osmdContainer.style.display = 'block';
       if (pdfFrame) pdfFrame.style.display = 'none';
       if (txtContainer) txtContainer.style.display = 'none';
       setToggleStyles(btnXml);
-      renderMusicXMLWithOSMD(scoreData.musicXmlUrl);
+      renderMusicXMLWithOSMD(scoreData.xmlText || scoreData.musicXmlUrl);
       renderXmlTextBoxes(scoreData.textBlocks);
     } else if (mode === 'txt') {
       if (osmdContainer) osmdContainer.style.display = 'none';
@@ -1024,10 +1043,13 @@ const ScoreViewer = (() => {
     }
   }
 
-  function applyVoiceFilterToOSMD() {
+  function applyVoiceFilterToOSMD(retryCount = 0) {
     if (!osmdInstance || !osmdInstance.sheet) return;
     const osmdContainer = document.getElementById('osmd-container');
     if (!osmdContainer || osmdContainer.offsetWidth <= 0 || osmdContainer.offsetParent === null) {
+      if (retryCount < 15) {
+        setTimeout(() => applyVoiceFilterToOSMD(retryCount + 1), 60);
+      }
       return;
     }
     const instruments = osmdInstance.sheet.Instruments;
@@ -1049,6 +1071,14 @@ const ScoreViewer = (() => {
       inst.Visible = isVisible;
       inst.visible = isVisible;
     });
+
+    // Beveiliging: zorg dat er nooit 0 balken zichtbaar zijn (voorkomt wit kader)
+    if (!instruments.some(inst => inst.Visible)) {
+      instruments.forEach(inst => {
+        inst.Visible = true;
+        inst.visible = true;
+      });
+    }
 
     try {
       const isMobile = window.innerWidth < 640;
@@ -1081,37 +1111,29 @@ const ScoreViewer = (() => {
 
     if (statusEl) statusEl.textContent = 'Partituur renderen...';
 
-    if (!osmdInstance) {
-      osmdInstance = new opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer, {
-        autoResize: true,
-        backend: 'svg',
-        drawingParameters: 'default',
-        newSystemFromXML: true,
-        drawTitle: false,
-        drawSubtitle: false,
-        drawComposer: false,
-        drawPartNames: false, // Geen witruimte links verspillen aan stemnaam
-        drawPartAbbreviations: false,
-        drawMeasureNumbers: true,
-        drawMetronomeMarks: false,
-        drawLyrics: true,
-        defaultFontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        fillEmptyMeasuresWithWholeRests: true,
-        followCursor: false
-      });
-    } else {
-      osmdInstance.setOptions({
-        drawingParameters: 'default',
-        newSystemFromXML: true,
-        drawTitle: false,
-        drawSubtitle: false,
-        drawComposer: false,
-        drawPartNames: false,
-        drawPartAbbreviations: false,
-        defaultFontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        followCursor: false
-      });
-    }
+    const myToken = ++osmdRenderToken;
+
+    // Maak altijd een schone OSMD-instantie aan met autoResize: false.
+    // Dit voorkomt dat OSMD op de achtergrond (terwijl #view-screen op display:none staat in het hoofdmenu)
+    // een resize naar breedte 0 uitvoert en bij terugkeer een leeg wit kader toont.
+    osmdContainer.innerHTML = '';
+    osmdInstance = new opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer, {
+      autoResize: false,
+      backend: 'svg',
+      drawingParameters: 'default',
+      newSystemFromXML: true,
+      drawTitle: false,
+      drawSubtitle: false,
+      drawComposer: false,
+      drawPartNames: false, // Geen witruimte links verspillen aan stemnaam
+      drawPartAbbreviations: false,
+      drawMeasureNumbers: true,
+      drawMetronomeMarks: false,
+      drawLyrics: true,
+      defaultFontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      fillEmptyMeasuresWithWholeRests: true,
+      followCursor: false
+    });
 
     // Graveerregels: noten plaatsen in functie van de tekst (Behind Bars regel voor vocale muziek)
     if (osmdInstance.EngravingRules) {
@@ -1134,15 +1156,18 @@ const ScoreViewer = (() => {
 
     xmlPromise
       .then(xmlString => {
+        if (myToken !== osmdRenderToken) return null;
         return osmdInstance.load(xmlString);
       })
       .then(() => {
+        if (myToken !== osmdRenderToken) return;
         applyVoiceFilterToOSMD();
         if (statusEl) {
           statusEl.textContent = '';
         }
       })
       .catch(err => {
+        if (myToken !== osmdRenderToken) return;
         console.error('OSMD Render fout:', err);
         if (statusEl) statusEl.textContent = 'Weergave via scan';
         switchViewMode('pdf');
@@ -1161,28 +1186,28 @@ const ScoreViewer = (() => {
     const scoreData = SCORES[key];
     if (!scoreData) return;
 
+    updateTrackLabels();
+
     if (scoreData.musicXmlUrl) {
       if (btnXml) btnXml.style.display = 'inline-flex';
-      loadMusicXML(scoreData.musicXmlUrl).then(result => {
-        if (result && result.voices) {
-          scoreData.voices = result.voices;
-          scoreData.voiceIndexMap = result.voiceIndexMap || {};
-          scoreData.partLabels = result.partLabels || {};
-          scoreData.textBlocks = result.textBlocks || [];
-          scoreData.voiceLyrics = result.voiceLyrics || {};
-          renderVoicePills(scoreData.voices);
-          scoreData.notes = scoreData.voices[selectedVoice] || Object.values(result.voices)[0];
-          if (result.bpm) {
-            setBpm(result.bpm);
-          } else if (scoreData.bpm) {
-            setBpm(scoreData.bpm);
-          }
-          updateTrackLabels();
-          if (activeViewMode === 'txt') {
-            renderTextView();
-          }
+      const result = await loadMusicXML(scoreData.xmlText || scoreData.musicXmlUrl);
+      if (activeScoreKey !== key) return;
+      if (result && result.voices) {
+        if (result.xmlText) scoreData.xmlText = result.xmlText;
+        scoreData.voices = result.voices;
+        scoreData.voiceIndexMap = result.voiceIndexMap || {};
+        scoreData.partLabels = result.partLabels || {};
+        scoreData.textBlocks = result.textBlocks || [];
+        scoreData.voiceLyrics = result.voiceLyrics || {};
+        renderVoicePills(scoreData.voices);
+        scoreData.notes = scoreData.voices[selectedVoice] || Object.values(result.voices)[0];
+        if (result.bpm) {
+          setBpm(result.bpm);
+        } else if (scoreData.bpm) {
+          setBpm(scoreData.bpm);
         }
-      });
+        updateTrackLabels();
+      }
 
       if (activeViewMode === 'txt') {
         switchViewMode('txt');
@@ -1192,15 +1217,8 @@ const ScoreViewer = (() => {
     } else {
       if (btnXml) btnXml.style.display = 'none';
       if (statusEl) statusEl.textContent = '';
-      switchViewMode('pdf');
-    }
-
-    updateTrackLabels();
-
-    if (scoreData.voices) {
-      renderVoicePills(scoreData.voices);
-    } else {
       renderVoicePills(null);
+      switchViewMode('pdf');
     }
   }
 

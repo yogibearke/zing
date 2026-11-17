@@ -773,7 +773,8 @@ document.addEventListener('DOMContentLoaded', () => {
               bpm: meta.bpm,
               musicXmlUrl: meta.musicXmlUrl,
               pdfUrl: meta.pdfUrl,
-              txtUrl: meta.txtUrl
+              txtUrl: meta.txtUrl,
+              xmlText
             });
           }
         } catch (xmlErr) {

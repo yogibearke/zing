@@ -1482,6 +1482,9 @@
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
+        <notations>
+          <slur type="stop" number="1" bezier-x="-24.777282" bezier-y="-20.813922"/>
+          </notations>
         </note>
       <note default-x="127.31" default-y="-20">
         <pitch>
@@ -1494,9 +1497,6 @@
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
-        <notations>
-          <slur type="stop" number="1" bezier-x="-24.777282" bezier-y="-20.813922"/>
-          </notations>
         <lyric number="1" default-y="-47.97" relative-y="-30">
           <syllabic>single</syllabic>
           <text>not</text>
@@ -2497,10 +2497,12 @@
         <lyric number="1" default-x="2.54" default-y="-51.33" relative-y="-30">
           <syllabic>end</syllabic>
           <text>vine;</text>
+          <extend/>
           </lyric>
         <lyric number="2" default-x="2.66" default-y="-75.52" relative-y="-30">
           <syllabic>single</syllabic>
           <text>me;</text>
+          <extend/>
           </lyric>
         </note>
       <note default-x="126.33" default-y="-167.63">
@@ -2515,14 +2517,6 @@
         <notations>
           <slur type="stop" number="1" bezier-x="-23.701645" bezier-y="-15.992544"/>
           </notations>
-        <lyric number="1" default-y="-51.33" relative-y="-30">
-          <syllabic>single</syllabic>
-          <text>But</text>
-          </lyric>
-        <lyric number="2" default-y="-75.52" relative-y="-30">
-          <syllabic>single</syllabic>
-          <text>Since</text>
-          </lyric>
         </note>
       <note default-x="216.13" default-y="-147.63">
         <rest/>
@@ -2955,9 +2949,9 @@
           <text>late</text>
           </lyric>
         </note>
-      <note default-x="421.01" default-y="-291.16">
+      <note default-x="421.01" default-y="-286.16">
         <pitch>
-          <step>F</step>
+          <step>G</step>
           <octave>3</octave>
           </pitch>
         <duration>1</duration>
@@ -3738,9 +3732,9 @@
           <step>A</step>
           <octave>3</octave>
           </pitch>
-        <duration>2</duration>
+        <duration>1</duration>
         <voice>1</voice>
-        <type>quarter</type>
+        <type>eighth</type>
         <stem>down</stem>
         <lyric number="1" default-y="-40.48" relative-y="-30">
           <syllabic>single</syllabic>
@@ -3751,14 +3745,14 @@
           <text>it</text>
           </lyric>
         </note>
-      <note default-x="286.01" default-y="-263.79">
+      <note default-x="226.15" default-y="-263.79">
         <pitch>
           <step>G</step>
           <octave>3</octave>
           </pitch>
-        <duration>1</duration>
+        <duration>2</duration>
         <voice>1</voice>
-        <type>eighth</type>
+        <type>quarter</type>
         <stem>down</stem>
         <lyric number="1" default-y="-40.48" relative-y="-30">
           <syllabic>single</syllabic>
@@ -3805,10 +3799,12 @@
         <lyric number="1" default-x="2.54" default-y="-40.48" relative-y="-30">
           <syllabic>end</syllabic>
           <text>vine;</text>
+          <extend/>
           </lyric>
         <lyric number="2" default-x="2.66" default-y="-64.67" relative-y="-30">
           <syllabic>single</syllabic>
           <text>me;</text>
+          <extend/>
           </lyric>
         </note>
       <note default-x="126.33" default-y="-283.79">
@@ -3823,14 +3819,6 @@
         <notations>
           <slur type="stop" number="1" bezier-x="-22.954912" bezier-y="-17.008996"/>
           </notations>
-        <lyric number="1" default-y="-40.48" relative-y="-30">
-          <syllabic>single</syllabic>
-          <text>But</text>
-          </lyric>
-        <lyric number="2" default-y="-64.67" relative-y="-30">
-          <syllabic>single</syllabic>
-          <text>Since</text>
-          </lyric>
         </note>
       <note default-x="216.13" default-y="-278.79">
         <rest/>
@@ -3846,14 +3834,10 @@
           <octave>3</octave>
           </pitch>
         <duration>1</duration>
-        <tie type="start"/>
         <voice>1</voice>
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
-        <notations>
-          <tied type="start"/>
-          </notations>
         <lyric number="1" default-y="-40.48" relative-x="13.43" relative-y="-30">
           <syllabic>single</syllabic>
           <text>But</text>
@@ -3869,14 +3853,10 @@
           <octave>3</octave>
           </pitch>
         <duration>1</duration>
-        <tie type="stop"/>
         <voice>1</voice>
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
-        <notations>
-          <tied type="stop"/>
-          </notations>
         <lyric number="1" default-y="-40.48" relative-x="13.43" relative-y="-30">
           <syllabic>single</syllabic>
           <text>might</text>

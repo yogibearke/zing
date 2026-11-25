@@ -722,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function refreshScoresCatalog() {
     const scoreSelect = document.getElementById('score-select');
     const pillarPartituren = ContentData.pillars.find(p => p.id === 'partituren');
-    const CATALOG_CACHE_KEY = 'zing_scores_catalog_meta_v1';
+    const CATALOG_CACHE_KEY = 'zing_scores_catalog_meta_v5';
     let hashOpened = false;
 
     function syncScoresToUI(serverScores) {
@@ -824,6 +824,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const fileList = raw
         .map(item => (typeof item === 'string') ? item : (item && item.musicXmlUrl ? item.musicXmlUrl.split('/').pop() : null))
         .filter(Boolean);
+
+      // Reset eventuele oude lokale sorteervolgorde zodra scores-index.json op de server wijzigt
+      const indexOrderSig = fileList.join('|');
+      try {
+        if (localStorage.getItem('zing_scores_index_sig') !== indexOrderSig) {
+          localStorage.removeItem('zing_order_partituren');
+          localStorage.setItem('zing_scores_index_sig', indexOrderSig);
+        }
+      } catch (e) {}
 
       // Start met eventueel gecachete items in de juiste volgorde van scores-index.json
       const scoresByIndex = fileList.map(fname => cachedByFilename[fname] || null);

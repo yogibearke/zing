@@ -154,6 +154,12 @@ Bas</part-name>
           <line>2</line>
           </clef>
         </attributes>
+      <direction placement="above">
+        <direction-type>
+          <words/>
+          </direction-type>
+        <sound tempo="88"/>
+        </direction>
       <note default-x="131.97" default-y="-40">
         <pitch>
           <step>E</step>
@@ -307,7 +313,7 @@ Bas</part-name>
         <time-modification>
           <actual-notes>3</actual-notes>
           <normal-notes>2</normal-notes>
-          <normal-type>quarter</normal-type>
+          <normal-type>eighth</normal-type>
           </time-modification>
         <stem>down</stem>
         <notations>
@@ -318,30 +324,18 @@ Bas</part-name>
           <text>dam</text>
           </lyric>
         </note>
-      <note default-x="173.18" default-y="-20">
-        <rest/>
+      <note default-x="215.41" default-y="0">
+        <pitch>
+          <step>F</step>
+          <octave>5</octave>
+          </pitch>
         <duration>8</duration>
         <voice>1</voice>
         <type>eighth</type>
         <time-modification>
           <actual-notes>3</actual-notes>
           <normal-notes>2</normal-notes>
-          <normal-type>quarter</normal-type>
-          </time-modification>
-        </note>
-      <note default-x="215.41" default-y="0">
-        <pitch>
-          <step>F</step>
-          <octave>5</octave>
-          </pitch>
-        <duration>24</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        <dot default-x="233.41" default-y="5"/>
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-          <normal-type>quarter</normal-type>
+          <normal-type>eighth</normal-type>
           </time-modification>
         <stem>down</stem>
         <notations>
@@ -364,15 +358,15 @@ Bas</part-name>
         <time-modification>
           <actual-notes>3</actual-notes>
           <normal-notes>2</normal-notes>
+          <normal-type>eighth</normal-type>
           </time-modification>
         <stem>down</stem>
-        <beam number="1">begin</beam>
         <notations>
-          <tuplet type="start" bracket="no"/>
+          <tuplet type="start" bracket="yes"/>
           </notations>
         <lyric number="1" default-y="-55.14" relative-y="-30">
           <syllabic>begin</syllabic>
-          <text>cad</text>
+          <text>rad</text>
           </lyric>
         </note>
       <note default-x="337.92" default-y="-10">
@@ -381,38 +375,22 @@ Bas</part-name>
           <alter>-1</alter>
           <octave>5</octave>
           </pitch>
-        <duration>8</duration>
+        <duration>16</duration>
         <voice>1</voice>
-        <type>eighth</type>
+        <type>quarter</type>
         <time-modification>
           <actual-notes>3</actual-notes>
           <normal-notes>2</normal-notes>
+          <normal-type>eighth</normal-type>
           </time-modification>
         <stem>down</stem>
-        <beam number="1">continue</beam>
+        <notations>
+          <tuplet type="stop"/>
+          </notations>
         <lyric number="1" default-y="-55.14" relative-y="-30">
           <syllabic>end</syllabic>
           <text>n</text>
           </lyric>
-        </note>
-      <note default-x="380.15" default-y="-20">
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>4</octave>
-          </pitch>
-        <duration>8</duration>
-        <voice>1</voice>
-        <type>eighth</type>
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-          </time-modification>
-        <stem>down</stem>
-        <beam number="1">end</beam>
-        <notations>
-          <tuplet type="stop"/>
-          </notations>
         </note>
       <note default-x="422.37" default-y="-20">
         <pitch>
@@ -1409,7 +1387,7 @@ Bas</part-name>
         <time-modification>
           <actual-notes>3</actual-notes>
           <normal-notes>2</normal-notes>
-          <normal-type>quarter</normal-type>
+          <normal-type>eighth</normal-type>
           </time-modification>
         <stem>up</stem>
         <notations>
@@ -1426,13 +1404,13 @@ Bas</part-name>
           <alter>-1</alter>
           <octave>4</octave>
           </pitch>
-        <duration>32</duration>
+        <duration>8</duration>
         <voice>1</voice>
-        <type>half</type>
+        <type>eighth</type>
         <time-modification>
           <actual-notes>3</actual-notes>
           <normal-notes>2</normal-notes>
-          <normal-type>quarter</normal-type>
+          <normal-type>eighth</normal-type>
           </time-modification>
         <stem>up</stem>
         <notations>
@@ -1841,7 +1819,7 @@ Bas</part-name>
         <time-modification>
           <actual-notes>3</actual-notes>
           <normal-notes>2</normal-notes>
-          <normal-type>quarter</normal-type>
+          <normal-type>eighth</normal-type>
           </time-modification>
         <stem>down</stem>
         <notations>
@@ -1857,13 +1835,13 @@ Bas</part-name>
           <step>C</step>
           <octave>5</octave>
           </pitch>
-        <duration>32</duration>
+        <duration>8</duration>
         <voice>1</voice>
-        <type>half</type>
+        <type>eighth</type>
         <time-modification>
           <actual-notes>3</actual-notes>
           <normal-notes>2</normal-notes>
-          <normal-type>quarter</normal-type>
+          <normal-type>eighth</normal-type>
           </time-modification>
         <stem>down</stem>
         <notations>
@@ -1956,7 +1934,7 @@ Bas</part-name>
         <time-modification>
           <actual-notes>3</actual-notes>
           <normal-notes>2</normal-notes>
-          <normal-type>quarter</normal-type>
+          <normal-type>eighth</normal-type>
           </time-modification>
         <stem>up</stem>
         <notations>
@@ -1973,13 +1951,13 @@ Bas</part-name>
           <alter>-1</alter>
           <octave>4</octave>
           </pitch>
-        <duration>32</duration>
+        <duration>8</duration>
         <voice>1</voice>
-        <type>half</type>
+        <type>eighth</type>
         <time-modification>
           <actual-notes>3</actual-notes>
           <normal-notes>2</normal-notes>
-          <normal-type>quarter</normal-type>
+          <normal-type>eighth</normal-type>
           </time-modification>
         <stem>down</stem>
         <notations>
@@ -2479,14 +2457,8 @@ Bas</part-name>
         <type>half</type>
         <stem>up</stem>
         </note>
-      <note default-x="502.67" default-y="-124.8">
-        <rest/>
-        <duration>24</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        </note>
       <backup>
-        <duration>120</duration>
+        <duration>96</duration>
         </backup>
       <note default-x="109.85" default-y="-144.8">
         <pitch>
@@ -2533,9 +2505,6 @@ Bas</part-name>
           <text>dá</text>
           </lyric>
         </note>
-      <forward>
-        <duration>24</duration>
-        </forward>
       </measure>
     <measure number="4" width="450.9">
       <note default-x="12.5" default-y="-144.8">
@@ -3300,14 +3269,8 @@ Bas</part-name>
           <text>a</text>
           </lyric>
         </note>
-      <note default-x="451.18" default-y="-127.52">
-        <rest/>
-        <duration>24</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        </note>
       <backup>
-        <duration>120</duration>
+        <duration>96</duration>
         </backup>
       <note default-x="109.85" default-y="-147.52">
         <pitch>
@@ -3363,9 +3326,6 @@ Bas</part-name>
         <type>quarter</type>
         <stem>down</stem>
         </note>
-      <forward>
-        <duration>24</duration>
-        </forward>
       </measure>
     <measure number="12" width="499.57">
       <note default-x="14.95" default-y="-132.52">
@@ -3678,14 +3638,8 @@ Bas</part-name>
           <text>ã</text>
           </lyric>
         </note>
-      <note default-x="385.12" default-y="-133.95">
-        <rest/>
-        <duration>24</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        </note>
       <backup>
-        <duration>120</duration>
+        <duration>96</duration>
         </backup>
       <note default-x="12.5" default-y="-138.95">
         <pitch>
@@ -3728,9 +3682,6 @@ Bas</part-name>
         <type>quarter</type>
         <stem>down</stem>
         </note>
-      <forward>
-        <duration>24</duration>
-        </forward>
       </measure>
     <measure number="15" width="563.12">
       <print new-system="yes">
@@ -3782,14 +3733,8 @@ Bas</part-name>
         <type>quarter</type>
         <stem>up</stem>
         </note>
-      <note default-x="450.22" default-y="-128.24">
-        <rest/>
-        <duration>24</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        </note>
       <backup>
-        <duration>120</duration>
+        <duration>96</duration>
         </backup>
       <note default-x="109.85" default-y="-143.24">
         <pitch>
@@ -3848,9 +3793,6 @@ Bas</part-name>
           <text>i</text>
           </lyric>
         </note>
-      <forward>
-        <duration>24</duration>
-        </forward>
       </measure>
     <measure number="16" width="499.3">
       <note default-x="16.04" default-y="-133.24">
@@ -3993,6 +3935,9 @@ Bas</part-name>
           <staff-distance>68.24</staff-distance>
           </staff-layout>
         </print>
+      <barline location="left">
+        <ending number="1" type="start" default-y="32.91">1.</ending>
+        </barline>
       <note default-x="109.85" default-y="-133.24">
         <pitch>
           <step>A</step>
@@ -4118,10 +4063,14 @@ Bas</part-name>
         </note>
       <barline location="right">
         <bar-style>light-heavy</bar-style>
+        <ending number="1" type="stop"/>
         <repeat direction="backward"/>
         </barline>
       </measure>
     <measure number="18" width="438.73">
+      <barline location="left">
+        <ending number="2" type="start" default-y="32.91">2.</ending>
+        </barline>
       <note default-x="12.5" default-y="-133.24">
         <pitch>
           <step>A</step>
@@ -4237,6 +4186,7 @@ Bas</part-name>
         </note>
       <barline location="right">
         <bar-style>light-heavy</bar-style>
+        <ending number="2" type="stop"/>
         </barline>
       </measure>
     </part>
@@ -4421,14 +4371,8 @@ Bas</part-name>
         <type>quarter</type>
         <stem>up</stem>
         </note>
-      <note default-x="502.67" default-y="-274.68">
-        <rest/>
-        <duration>24</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        </note>
       <backup>
-        <duration>120</duration>
+        <duration>96</duration>
         </backup>
       <note default-x="109.85" default-y="-279.68">
         <pitch>
@@ -4474,9 +4418,6 @@ Bas</part-name>
           <text>ri</text>
           </lyric>
         </note>
-      <forward>
-        <duration>24</duration>
-        </forward>
       </measure>
     <measure number="4" width="450.9">
       <note default-x="12.5" default-y="-254.68">
@@ -5258,14 +5199,8 @@ Bas</part-name>
         <type>quarter</type>
         <stem>up</stem>
         </note>
-      <note default-x="451.18" default-y="-284.9">
-        <rest/>
-        <duration>24</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        </note>
       <backup>
-        <duration>120</duration>
+        <duration>96</duration>
         </backup>
       <note default-x="109.85" default-y="-289.9">
         <pitch>
@@ -5326,9 +5261,6 @@ Bas</part-name>
           <text>a</text>
           </lyric>
         </note>
-      <forward>
-        <duration>24</duration>
-        </forward>
       </measure>
     <measure number="12" width="499.57">
       <note default-x="14.95" default-y="-244.9">
@@ -5533,14 +5465,8 @@ Bas</part-name>
         <type>quarter</type>
         <stem>up</stem>
         </note>
-      <note default-x="385.12" default-y="-317.11">
-        <rest/>
-        <duration>24</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        </note>
       <backup>
-        <duration>120</duration>
+        <duration>96</duration>
         </backup>
       <note default-x="12.5" default-y="-312.11">
         <pitch>
@@ -5594,9 +5520,6 @@ Bas</part-name>
           <text>ã</text>
           </lyric>
         </note>
-      <forward>
-        <duration>24</duration>
-        </forward>
       </measure>
     <measure number="15" width="563.12">
       <print new-system="yes">
@@ -5651,14 +5574,8 @@ Bas</part-name>
         <type>quarter</type>
         <stem>up</stem>
         </note>
-      <note default-x="450.22" default-y="-295.92">
-        <rest/>
-        <duration>24</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        </note>
       <backup>
-        <duration>120</duration>
+        <duration>96</duration>
         </backup>
       <note default-x="109.85" default-y="-285.92">
         <pitch>
@@ -5715,9 +5632,6 @@ Bas</part-name>
         <type>quarter</type>
         <stem>down</stem>
         </note>
-      <forward>
-        <duration>24</duration>
-        </forward>
       </measure>
     <measure number="16" width="499.3">
       <note default-x="16.04" default-y="-255.92">
@@ -5863,6 +5777,9 @@ Bas</part-name>
           <staff-distance>102.86</staff-distance>
           </staff-layout>
         </print>
+      <barline location="left">
+        <ending number="1" type="start" default-y="32.91">1.</ending>
+        </barline>
       <note default-x="109.85" default-y="-261.1">
         <pitch>
           <step>F</step>
@@ -5872,6 +5789,10 @@ Bas</part-name>
         <voice>1</voice>
         <type>half</type>
         <stem>up</stem>
+        <lyric number="1" default-y="20" relative-y="20" placement="above">
+          <syllabic>single</syllabic>
+          <text>rå</text>
+          </lyric>
         </note>
       <note default-x="378.86" default-y="-266.1">
         <pitch>
@@ -5883,6 +5804,10 @@ Bas</part-name>
         <voice>1</voice>
         <type>quarter</type>
         <stem>up</stem>
+        <lyric number="1" default-y="20" relative-y="20" placement="above">
+          <syllabic>single</syllabic>
+          <text>då</text>
+          </lyric>
         </note>
       <note default-x="475.7" default-y="-251.1">
         <rest/>
@@ -5904,6 +5829,10 @@ Bas</part-name>
         <type>half</type>
         <dot default-x="127.85" default-y="-286.1"/>
         <stem>down</stem>
+        <lyric number="1" default-y="-50" relative-y="-30">
+          <syllabic>single</syllabic>
+          <text>rå</text>
+          </lyric>
         </note>
       <note default-x="475.7" default-y="-291.1">
         <rest/>
@@ -5913,17 +5842,63 @@ Bas</part-name>
         </note>
       <barline location="right">
         <bar-style>light-heavy</bar-style>
+        <ending number="1" type="stop"/>
         <repeat direction="backward"/>
         </barline>
       </measure>
     <measure number="18" width="438.73">
-      <note default-x="207.37" default-y="-261.1">
-        <rest measure="yes"/>
-        <duration>96</duration>
+      <barline location="left">
+        <ending number="2" type="start" default-y="32.91">2.</ending>
+        </barline>
+      <note default-x="12.5" default-y="-261.1">
+        <pitch>
+          <step>F</step>
+          <octave>3</octave>
+          </pitch>
+        <duration>48</duration>
         <voice>1</voice>
+        <type>half</type>
+        <stem>up</stem>
+        <lyric number="1" default-y="20" relative-y="20" placement="above">
+          <syllabic>single</syllabic>
+          <text>rå</text>
+          </lyric>
+        </note>
+      <note default-x="282.47" default-y="-266.1">
+        <pitch>
+          <step>E</step>
+          <alter>-1</alter>
+          <octave>3</octave>
+          </pitch>
+        <duration>48</duration>
+        <voice>1</voice>
+        <type>half</type>
+        <stem>up</stem>
+        <lyric number="1" default-y="20" relative-y="20" placement="above">
+          <syllabic>single</syllabic>
+          <text>då</text>
+          </lyric>
+        </note>
+      <backup>
+        <duration>96</duration>
+        </backup>
+      <note default-x="12.5" default-y="-286.1">
+        <pitch>
+          <step>A</step>
+          <alter>-1</alter>
+          <octave>2</octave>
+          </pitch>
+        <duration>96</duration>
+        <voice>2</voice>
+        <type>whole</type>
+        <lyric number="1" default-y="-50" relative-y="-30">
+          <syllabic>single</syllabic>
+          <text>rå</text>
+          </lyric>
         </note>
       <barline location="right">
         <bar-style>light-heavy</bar-style>
+        <ending number="2" type="stop"/>
         </barline>
       </measure>
     </part>

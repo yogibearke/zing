@@ -23,48 +23,97 @@ const ScoreViewer = (() => {
     }
   }
 
-  // Helper to build Tutti chords from synchronized choral parts (2, 3 (SAB) or 4 (SATB) voices)
-  // Accepts either an object map { sopraan: [...], alt: [...] } or separate voice arrays
+  // Helper to build Tutti chords from synchronized choral parts (2, 3 (SAB) or 4+ voices)
+  // Aligns voices by exact musical beat timestamp rather than array index so polyphonic rhythms stay 100% in sync.
   function buildTutti(voiceMapOrSoprano, ...restVoices) {
     if (!voiceMapOrSoprano) return [];
 
-    // Formaat 1: Losse arrays als argumenten: buildTutti(sopraan, alt, tenor, bas)
+    let voiceArrays = [];
     if (Array.isArray(voiceMapOrSoprano)) {
-      const allVoices = [voiceMapOrSoprano, ...restVoices].filter(v => Array.isArray(v) && v.length > 0);
-      if (allVoices.length === 0) return [];
-      const baseVoice = allVoices[0];
-      return baseVoice.map((baseNote, idx) => {
-        const chord = allVoices
-          .map(voice => (voice[idx] ? voice[idx].note : null))
-          .filter(n => n && n !== 'REST');
-        return {
-          notes: chord.length > 0 ? chord : ['REST'],
-          dur: baseNote.dur,
-          measureIndex: baseNote.measureIndex
-        };
-      });
-    }
-
-    // Formaat 2: Object-map met partijnamen: { sopraan: [...], alt: [...] }
-    if (typeof voiceMapOrSoprano === 'object') {
+      voiceArrays = [voiceMapOrSoprano, ...restVoices].filter(v => Array.isArray(v) && v.length > 0);
+    } else if (typeof voiceMapOrSoprano === 'object') {
       const keys = Object.keys(voiceMapOrSoprano).filter(k => k !== 'tutti' && Array.isArray(voiceMapOrSoprano[k]));
       if (keys.length === 0) return [];
       if (keys.length === 1) return voiceMapOrSoprano[keys[0]] || [];
+      voiceArrays = keys.map(k => voiceMapOrSoprano[k]).filter(v => Array.isArray(v) && v.length > 0);
+    }
+    if (voiceArrays.length === 0) return [];
 
-      const baseVoice = voiceMapOrSoprano[keys[0]] || [];
-      return baseVoice.map((baseNote, idx) => {
-        const chord = keys
-          .map(k => voiceMapOrSoprano[k] && voiceMapOrSoprano[k][idx] ? voiceMapOrSoprano[k][idx].note : null)
-          .filter(n => n && n !== 'REST');
-        return {
-          notes: chord.length > 0 ? chord : ['REST'],
-          dur: baseNote.dur,
-          measureIndex: baseNote.measureIndex
-        };
+    const TICKS_PER_QUARTER = 960;
+    const boundarySet = new Set([0]);
+    const voiceTimelines = voiceArrays.map(vArr => {
+      let curTick = 0;
+      const events = [];
+      vArr.forEach(item => {
+        const durTicks = Math.max(1, Math.round((item.dur || 0) * TICKS_PER_QUARTER));
+        const startTick = curTick;
+        const endTick = curTick + durTicks;
+        events.push({ ...item, startTick, endTick });
+        boundarySet.add(startTick);
+        boundarySet.add(endTick);
+        curTick = endTick;
+      });
+      return events;
+    });
+
+    const boundaries = Array.from(boundarySet).sort((a, b) => a - b);
+    if (boundaries.length < 2) return [];
+
+    const pointers = new Array(voiceTimelines.length).fill(0);
+    const tuttiSteps = [];
+
+    for (let b = 0; b < boundaries.length - 1; b++) {
+      const sliceStart = boundaries[b];
+      const sliceEnd = boundaries[b + 1];
+      const sliceDur = (sliceEnd - sliceStart) / TICKS_PER_QUARTER;
+      if (sliceDur <= 0) continue;
+
+      const activeNotes = [];
+      const onsetEvents = [];
+      let refEvent = null;
+      let refStartTick = 0;
+
+      for (let v = 0; v < voiceTimelines.length; v++) {
+        const tl = voiceTimelines[v];
+        while (pointers[v] < tl.length && tl[pointers[v]].endTick <= sliceStart) {
+          pointers[v]++;
+        }
+        const ev = tl[pointers[v]];
+        if (ev && ev.startTick <= sliceStart && ev.endTick > sliceStart) {
+          if (!refEvent) {
+            refEvent = ev;
+            refStartTick = ev.startTick;
+          }
+          const evNotes = Array.isArray(ev.notes)
+            ? ev.notes.filter(n => n && n !== 'REST')
+            : (ev.note && ev.note !== 'REST' ? [ev.note] : []);
+          evNotes.forEach(n => activeNotes.push(n));
+
+          if (ev.startTick === sliceStart && !ev.tiedContinuation && evNotes.length > 0) {
+            const sDur = ev.soundDur || ev.dur || sliceDur;
+            evNotes.forEach(n => onsetEvents.push({ note: n, soundDur: sDur }));
+          }
+        }
+      }
+
+      let measureIndex = refEvent ? refEvent.measureIndex : 0;
+      let orderStep = refEvent ? refEvent.orderStep : undefined;
+      let beatOffset = 0;
+      if (refEvent && typeof refEvent.beatOffset === 'number') {
+        beatOffset = refEvent.beatOffset + (sliceStart - refStartTick) / TICKS_PER_QUARTER;
+      }
+
+      tuttiSteps.push({
+        notes: activeNotes.length > 0 ? activeNotes : ['REST'],
+        onsetEvents,
+        dur: sliceDur,
+        measureIndex,
+        beatOffset,
+        orderStep
       });
     }
 
-    return [];
+    return tuttiSteps;
   }
 
   // Dynamische MusicXML 3.1 Parser: laadt elk .musicxml bestand in en bouwt automatisch de stempartijen (SATB, SAB of solo)
@@ -135,6 +184,8 @@ const ScoreViewer = (() => {
           const fwdRepeat = m.querySelector('repeat[direction="forward"]');
           const bwdRepeat = m.querySelector('repeat[direction="backward"]');
           const endingEl = m.querySelector('ending');
+          const dacapoEl = m.querySelector('sound[dacapo="yes"], sound[dacapo="true"]');
+          const fineEl = m.querySelector('sound[fine="yes"], sound[fine="true"]');
           let ending = null;
           if (endingEl) {
             ending = {
@@ -142,16 +193,26 @@ const ScoreViewer = (() => {
               type: endingEl.getAttribute('type') || 'start'
             };
           }
+          let repeatTimes = 2;
+          if (bwdRepeat) {
+            const parsedTimes = parseInt(bwdRepeat.getAttribute('times') || '2', 10);
+            if (!isNaN(parsedTimes) && parsedTimes >= 2) {
+              repeatTimes = parsedTimes;
+            }
+          }
           meta.push({
             index: idx,
             forward: !!fwdRepeat,
             backward: !!bwdRepeat,
-            ending: ending
+            repeatTimes,
+            ending: ending,
+            dacapo: !!dacapoEl,
+            fine: !!fineEl
           });
         });
 
-        const hasBackward = meta.some(m => m.backward);
-        if (!hasBackward) {
+        const hasBackwardOrDaCapo = meta.some(m => m.backward || m.dacapo);
+        if (!hasBackwardOrDaCapo) {
           playbackOrder = Array.from({ length: measureCount }, (_, i) => i);
         } else {
           let currentRepeatStart = 0;
@@ -182,13 +243,37 @@ const ScoreViewer = (() => {
                   i = ending2Start - 1;
                 }
               } else {
-                for (let j = currentRepeatStart; j <= i; j++) {
-                  playbackOrder.push(j);
+                const extraPasses = Math.max(1, (m.repeatTimes || 2) - 1);
+                for (let pass = 0; pass < extraPasses; pass++) {
+                  for (let j = currentRepeatStart; j <= i; j++) {
+                    playbackOrder.push(j);
+                  }
                 }
               }
               currentRepeatStart = i + 1;
               ending1Start = -1;
               ending2Start = -1;
+            }
+
+            if (m.dacapo) {
+              // D.C. (al Fine): keer eenmalig terug naar maat 0 en sla 1e volta's over tot aan Fine (of einde)
+              const fineIdx = meta.findIndex(item => item.fine);
+              const dcLimit = fineIdx !== -1 ? fineIdx : (measureCount - 1);
+              let inEnding1 = false;
+              for (let j = 0; j <= dcLimit; j++) {
+                const dm = meta[j];
+                if (dm.ending) {
+                  const eNum = String(dm.ending.number || '');
+                  if (eNum.includes('1')) inEnding1 = true;
+                  else if (eNum.includes('2')) inEnding1 = false;
+                }
+                if (!inEnding1) {
+                  playbackOrder.push(j);
+                }
+              }
+              if (fineIdx !== -1) {
+                break;
+              }
             }
           }
         }
@@ -247,82 +332,173 @@ const ScoreViewer = (() => {
               currentDivisions = parseInt(divEl.textContent.trim(), 10) || currentDivisions;
             }
 
-            const mNotes = [];
-            const allNoteEls = Array.from(measure.querySelectorAll('note'));
-            let noteEls = allNoteEls.filter(n => {
-              const vEl = n.querySelector('voice');
-              const vId = vEl ? vEl.textContent.trim() : primaryVoiceId;
-              return vId === targetVoiceId;
+            // Loop sequentieel door alle elementen van de maat (inclusief <backup> en <forward>)
+            // zodat startposities per stem exact kloppen en voorslagnoten (<grace>) geen valse tel toevoegen.
+            let cursorDivs = 0;
+            let lastNonChordStartDivs = 0;
+            let maxMeasureDivs = 0;
+            const rawByVoice = {};
+
+            Array.from(measure.children).forEach(child => {
+              const tag = child.tagName ? child.tagName.toLowerCase() : '';
+              if (tag === 'backup') {
+                const dEl = child.querySelector('duration');
+                const d = dEl ? (parseInt(dEl.textContent.trim(), 10) || 0) : 0;
+                cursorDivs = Math.max(0, cursorDivs - d);
+                return;
+              }
+              if (tag === 'forward') {
+                const dEl = child.querySelector('duration');
+                const d = dEl ? (parseInt(dEl.textContent.trim(), 10) || 0) : 0;
+                cursorDivs += d;
+                if (cursorDivs > maxMeasureDivs) maxMeasureDivs = cursorDivs;
+                return;
+              }
+              if (tag !== 'note') return;
+
+              // Sla voorslagnoten (<grace>) over voor de maattiming (hebben duur 0)
+              if (child.querySelector('grace') !== null) return;
+
+              const vEl = child.querySelector('voice');
+              const vId = vEl && vEl.textContent.trim() ? vEl.textContent.trim() : primaryVoiceId;
+              const isChord = child.querySelector('chord') !== null;
+              const isRest = child.querySelector('rest') !== null;
+              const durEl = child.querySelector('duration');
+              const durDivs = durEl ? (parseInt(durEl.textContent.trim(), 10) || 0) : currentDivisions;
+              if (durDivs <= 0) return;
+
+              let pitchName = null;
+              let tieStart = false;
+              let tieStop = false;
+              if (!isRest) {
+                const stepEl = child.querySelector('pitch > step');
+                const octEl = child.querySelector('pitch > octave');
+                const altEl = child.querySelector('pitch > alter');
+                const tieEls = Array.from(child.querySelectorAll('tie, notations > tied'));
+                tieStart = tieEls.some(t => t.getAttribute('type') === 'start');
+                tieStop = tieEls.some(t => t.getAttribute('type') === 'stop');
+                if (stepEl && octEl) {
+                  const step = stepEl.textContent.trim().toUpperCase();
+                  const oct = octEl.textContent.trim();
+                  let acc = '';
+                  if (altEl) {
+                    const altNum = Math.round(parseFloat(altEl.textContent.trim()) || 0);
+                    if (altNum === 1) acc = '#';
+                    else if (altNum === 2) acc = '##';
+                    else if (altNum === -1) acc = 'b';
+                    else if (altNum === -2) acc = 'bb';
+                  }
+                  pitchName = `${step}${acc}${oct}`;
+                }
+              }
+
+              if (!rawByVoice[vId]) rawByVoice[vId] = [];
+
+              if (isChord) {
+                const list = rawByVoice[vId];
+                const prev = list.length > 0 ? list[list.length - 1] : null;
+                if (prev && pitchName && prev.note !== 'REST') {
+                  if (!prev.notes) prev.notes = [prev.note];
+                  if (!prev.notes.includes(pitchName)) prev.notes.push(pitchName);
+                }
+                return;
+              }
+
+              const startDivs = cursorDivs;
+              lastNonChordStartDivs = startDivs;
+              cursorDivs += durDivs;
+              if (cursorDivs > maxMeasureDivs) maxMeasureDivs = cursorDivs;
+
+              rawByVoice[vId].push({
+                note: isRest || !pitchName ? 'REST' : pitchName,
+                startDivs,
+                durDivs,
+                dur: durDivs / currentDivisions,
+                beatOffset: startDivs / currentDivisions,
+                measureIndex: mIndex,
+                tieStart,
+                tieStop,
+                noteEl: child
+              });
             });
+
+            let selectedRaw = rawByVoice[targetVoiceId] || [];
             // Unisono-maat: als stem 2 in deze maat leeg is, val terug op de primaire stem
-            if (noteEls.length === 0 && targetVoiceId !== primaryVoiceId) {
-              noteEls = allNoteEls.filter(n => {
-                const vEl = n.querySelector('voice');
-                const vId = vEl ? vEl.textContent.trim() : primaryVoiceId;
-                return vId === primaryVoiceId;
+            if (selectedRaw.length === 0 && targetVoiceId !== primaryVoiceId && rawByVoice[primaryVoiceId]) {
+              selectedRaw = rawByVoice[primaryVoiceId];
+            }
+
+            selectedRaw.sort((a, b) => a.startDivs - b.startDivs);
+
+            const mNotes = [];
+            const mLyricTokens = {};
+            let filledDivs = 0;
+
+            selectedRaw.forEach(ev => {
+              if (ev.startDivs > filledDivs) {
+                const gapDivs = ev.startDivs - filledDivs;
+                mNotes.push({
+                  note: 'REST',
+                  dur: gapDivs / currentDivisions,
+                  beatOffset: filledDivs / currentDivisions,
+                  measureIndex: mIndex
+                });
+              }
+
+              const noteObj = {
+                note: ev.note,
+                dur: ev.dur,
+                beatOffset: ev.beatOffset,
+                measureIndex: mIndex,
+                tieStart: ev.tieStart,
+                tieStop: ev.tieStop
+              };
+              if (ev.notes && ev.notes.length > 1) {
+                noteObj.notes = ev.notes;
+              }
+              mNotes.push(noteObj);
+              filledDivs = Math.max(filledDivs, ev.startDivs + ev.durDivs);
+
+              // Lyric extractie
+              if (ev.noteEl) {
+                const lyrics = ev.noteEl.querySelectorAll('lyric');
+                lyrics.forEach(lyr => {
+                  const vNum = lyr.getAttribute('number') || '1';
+                  const txtEl = lyr.querySelector('text');
+                  const sylEl = lyr.querySelector('syllabic');
+                  if (txtEl && txtEl.textContent && txtEl.textContent.trim()) {
+                    const token = {
+                      text: txtEl.textContent.trim(),
+                      syllabic: sylEl && sylEl.textContent ? sylEl.textContent.trim().toLowerCase() : 'single',
+                      measureIndex: mIndex,
+                      measureNumber: mNum
+                    };
+                    if (!partVerses[vNum]) partVerses[vNum] = [];
+                    partVerses[vNum].push(token);
+
+                    if (!mLyricTokens[vNum]) mLyricTokens[vNum] = [];
+                    mLyricTokens[vNum].push(token);
+                  }
+                });
+              }
+            });
+
+            if (maxMeasureDivs > filledDivs) {
+              const tailDivs = maxMeasureDivs - filledDivs;
+              mNotes.push({
+                note: 'REST',
+                dur: tailDivs / currentDivisions,
+                beatOffset: filledDivs / currentDivisions,
+                measureIndex: mIndex
               });
             }
-            const mLyricTokens = {};
 
-            noteEls.forEach(n => {
-              // Sla akkoordnoten op dezelfde stemlaag over
-              if (n.querySelector('chord')) return;
-
-            const isRest = n.querySelector('rest') !== null;
-            const durEl = n.querySelector('duration');
-            const durDivs = durEl ? parseInt(durEl.textContent.trim(), 10) : currentDivisions;
-            // Kwartsnoot = 1.0 (dur: 0.5 = achtste noot, dur: 1.0 = kwartnoot, dur: 2.0 = halve noot)
-            const dur = durDivs / currentDivisions;
-
-            if (isRest) {
-              mNotes.push({ note: 'REST', dur, measureIndex: mIndex });
-            } else {
-              const stepEl = n.querySelector('pitch > step');
-              const octEl = n.querySelector('pitch > octave');
-              const altEl = n.querySelector('pitch > alter');
-              const tieEls = Array.from(n.querySelectorAll('tie, notations > tied'));
-              const tieStart = tieEls.some(t => t.getAttribute('type') === 'start');
-              const tieStop = tieEls.some(t => t.getAttribute('type') === 'stop');
-              if (stepEl && octEl) {
-                const step = stepEl.textContent.trim().toUpperCase();
-                const oct = octEl.textContent.trim();
-                let acc = '';
-                if (altEl) {
-                  const altVal = altEl.textContent.trim();
-                  if (altVal === '1') acc = '#';
-                  else if (altVal === '-1') acc = 'b';
-                }
-                mNotes.push({ note: `${step}${acc}${oct}`, dur, measureIndex: mIndex, tieStart, tieStop });
-              }
-            }
-
-            // Lyric extractie
-            const lyrics = n.querySelectorAll('lyric');
-            lyrics.forEach(lyr => {
-              const vNum = lyr.getAttribute('number') || '1';
-              const txtEl = lyr.querySelector('text');
-              const sylEl = lyr.querySelector('syllabic');
-              if (txtEl && txtEl.textContent && txtEl.textContent.trim()) {
-                const token = {
-                  text: txtEl.textContent.trim(),
-                  syllabic: sylEl && sylEl.textContent ? sylEl.textContent.trim().toLowerCase() : 'single',
-                  measureIndex: mIndex,
-                  measureNumber: mNum
-                };
-                if (!partVerses[vNum]) partVerses[vNum] = [];
-                partVerses[vNum].push(token);
-
-                if (!mLyricTokens[vNum]) mLyricTokens[vNum] = [];
-                mLyricTokens[vNum].push(token);
-              }
-            });
+            measuresNotes[mIndex] = mNotes;
+            partMeasures[mIndex] = {
+              measureNumber: mNum,
+              verses: mLyricTokens
+            };
           });
-          measuresNotes[mIndex] = mNotes;
-          partMeasures[mIndex] = {
-            measureNumber: mNum,
-            verses: mLyricTokens
-          };
-        });
 
         // Vloeiende tekst per vers construeren
         const assembledVerses = {};
@@ -365,10 +541,10 @@ const ScoreViewer = (() => {
           ? playbackOrder
           : Array.from({ length: measures.length }, (_, i) => i);
 
-        effectiveOrder.forEach(mIdx => {
+        effectiveOrder.forEach((mIdx, orderStep) => {
           const notesInM = measuresNotes[mIdx] || [];
           notesInM.forEach(noteItem => {
-            unrolledVoiceNotes.push({ ...noteItem, measureIndex: mIdx });
+            unrolledVoiceNotes.push({ ...noteItem, measureIndex: mIdx, orderStep });
           });
         });
 
@@ -964,7 +1140,10 @@ const ScoreViewer = (() => {
   let osmdInstance = null;
   let osmdRenderToken = 0;
   let osmdResizeTimer = null;
+  let lastRenderedOsmdWidth = 0;
   let activeViewMode = 'musicxml'; // 'musicxml', 'pdf' of 'txt'
+  let activeLoadPromise = null;
+  let nextNoteTargetTime = 0;
 
   if (typeof window !== 'undefined') {
     window.addEventListener('resize', () => {
@@ -972,11 +1151,12 @@ const ScoreViewer = (() => {
       osmdResizeTimer = setTimeout(() => {
         if (activeViewMode === 'musicxml' && osmdInstance && osmdInstance.sheet) {
           const c = document.getElementById('osmd-container');
-          if (c && c.offsetWidth > 0 && c.offsetParent !== null) {
+          // Negeer mobiele adresbalk-hoogtewijzigingen tijdens scrollen; herrender enkel als de breedte echt verandert
+          if (c && c.offsetWidth > 0 && c.offsetParent !== null && Math.abs(c.offsetWidth - lastRenderedOsmdWidth) > 6) {
             applyVoiceFilterToOSMD();
           }
         }
-      }, 200);
+      }, 220);
     });
   }
 
@@ -1087,7 +1267,11 @@ const ScoreViewer = (() => {
       } else {
         osmdInstance.zoom = selectedVoice === 'tutti' ? 0.68 : 0.74;
       }
+      lastRenderedOsmdWidth = osmdContainer.offsetWidth;
       osmdInstance.render();
+      if (isPlayingCompanion && activeViewMode === 'musicxml') {
+        restoreCursorToActiveStep();
+      }
     } catch (e) {
       console.warn('OSMD Filter render exception:', e);
     }
@@ -1154,13 +1338,28 @@ const ScoreViewer = (() => {
           return res.text();
         });
 
+    let loadedXmlString = '';
     xmlPromise
       .then(xmlString => {
         if (myToken !== osmdRenderToken) return null;
+        loadedXmlString = xmlString || '';
         return osmdInstance.load(xmlString);
       })
       .then(() => {
         if (myToken !== osmdRenderToken) return;
+        // Synchroniseer eventuele meervoudige herhalingen (bv. repeat times="3" bij strofische liederen) met OSMD
+        if (loadedXmlString && osmdInstance && osmdInstance.sheet && Array.isArray(osmdInstance.sheet.Repetitions)) {
+          const timesMatch = loadedXmlString.match(/<repeat[^>]*direction=["']backward["'][^>]*times=["'](\d+)["']/i)
+            || loadedXmlString.match(/<repeat[^>]*times=["'](\d+)["'][^>]*direction=["']backward["']/i);
+          if (timesMatch) {
+            const repTimes = parseInt(timesMatch[1], 10);
+            if (!isNaN(repTimes) && repTimes > 2) {
+              osmdInstance.sheet.Repetitions.forEach(rep => {
+                rep.UserNumberOfRepetitions = repTimes;
+              });
+            }
+          }
+        }
         applyVoiceFilterToOSMD();
         if (statusEl) {
           statusEl.textContent = '';
@@ -1190,7 +1389,12 @@ const ScoreViewer = (() => {
 
     if (scoreData.musicXmlUrl) {
       if (btnXml) btnXml.style.display = 'inline-flex';
-      const result = await loadMusicXML(scoreData.xmlText || scoreData.musicXmlUrl);
+      const loadTask = loadMusicXML(scoreData.xmlText || scoreData.musicXmlUrl);
+      activeLoadPromise = loadTask;
+      const result = await loadTask;
+      if (activeLoadPromise === loadTask) {
+        activeLoadPromise = null;
+      }
       if (activeScoreKey !== key) return;
       if (result && result.voices) {
         if (result.xmlText) scoreData.xmlText = result.xmlText;
@@ -1205,6 +1409,8 @@ const ScoreViewer = (() => {
           setBpm(result.bpm);
         } else if (scoreData.bpm) {
           setBpm(scoreData.bpm);
+        } else {
+          setBpm(100);
         }
         updateTrackLabels();
       }
@@ -1222,22 +1428,172 @@ const ScoreViewer = (() => {
     }
   }
 
-  // Helper om de cursor exact naar een specifieke maat te sturen (bijvoorbeeld na een herhaling)
-  function jumpCursorToMeasure(targetMeasureIndex) {
+  function ensureCursorVisibleStyle() {
     if (!osmdInstance || !osmdInstance.cursor) return;
     try {
       osmdInstance.cursor.show();
+      const el = osmdInstance.cursor.cursorElement;
+      if (el) {
+        el.style.zIndex = '5';
+        el.style.pointerEvents = 'none';
+      }
+    } catch (e) {}
+  }
+
+  function getCursorBeatOffsetQuarters() {
+    if (!osmdInstance || !osmdInstance.cursor || !osmdInstance.cursor.iterator) return 0;
+    const it = osmdInstance.cursor.iterator;
+    if (it.CurrentSourceTimestamp && it.CurrentMeasure && it.CurrentMeasure.AbsoluteTimestamp) {
+      return (it.CurrentSourceTimestamp.RealValue - it.CurrentMeasure.AbsoluteTimestamp.RealValue) * 4;
+    }
+    if (it.CurrentRelativeInMeasureTimestamp) {
+      return it.CurrentRelativeInMeasureTimestamp.RealValue * 4;
+    }
+    return 0;
+  }
+
+  // Spring rechtstreeks naar een specifieke maat + tel (ook over herhalingen heen indien nodig)
+  function jumpCursorToNotePosition(targetMeasureIndex, targetBeatOffset = 0, targetOrderStep = null) {
+    if (!osmdInstance || !osmdInstance.cursor || !osmdInstance.cursor.iterator) return;
+    try {
       osmdInstance.cursor.reset();
-      while (!osmdInstance.cursor.iterator.EndReached && osmdInstance.cursor.iterator.CurrentMeasureIndex < targetMeasureIndex) {
+      ensureCursorVisibleStyle();
+      const it = osmdInstance.cursor.iterator;
+      const notes = getActiveNotes();
+
+      // Als we de exacte orderStep (inclusief herhalingspas) kennen, loop het juiste aantal maten mee met OSMD
+      if (typeof targetOrderStep === 'number' && targetOrderStep > 0 && Array.isArray(notes) && notes.length > 0) {
+        const measureSequence = [];
+        for (let i = 0; i < notes.length; i++) {
+          const os = notes[i].orderStep;
+          if (typeof os === 'number' && measureSequence[os] === undefined) {
+            measureSequence[os] = notes[i].measureIndex;
+          }
+        }
+        let curStepIdx = 0;
+        let guard = 0;
+        while (!it.EndReached && curStepIdx < targetOrderStep && guard < 2000) {
+          const expectedNextM = measureSequence[curStepIdx + 1];
+          osmdInstance.cursor.next();
+          guard++;
+          if (expectedNextM !== undefined && it.CurrentMeasureIndex === expectedNextM) {
+            curStepIdx++;
+          }
+        }
+      }
+
+      // Als maat nog niet bereikt is (bv. herhaling zonder OSMD-herhalingsdata), spoel naar targetMeasureIndex
+      if (it.EndReached || it.CurrentMeasureIndex !== targetMeasureIndex) {
+        osmdInstance.cursor.reset();
+        ensureCursorVisibleStyle();
+        let guard = 0;
+        while (!osmdInstance.cursor.iterator.EndReached && osmdInstance.cursor.iterator.CurrentMeasureIndex < targetMeasureIndex && guard < 2000) {
+          osmdInstance.cursor.next();
+          guard++;
+        }
+      }
+
+      // Spoel binnen de doelmaat door naar de juiste tel (slaat onderverdelingen van andere stemmen op dezelfde balk over)
+      let beatGuard = 0;
+      while (
+        !osmdInstance.cursor.iterator.EndReached &&
+        osmdInstance.cursor.iterator.CurrentMeasureIndex === targetMeasureIndex &&
+        getCursorBeatOffsetQuarters() < targetBeatOffset - 0.02 &&
+        beatGuard < 64
+      ) {
         osmdInstance.cursor.next();
+        beatGuard++;
       }
     } catch (e) {
-      console.warn('Fout bij springen naar maat:', targetMeasureIndex, e);
+      console.warn('Fout bij positioneren van cursor:', targetMeasureIndex, targetBeatOffset, e);
     }
   }
 
+  function syncCursorToStep(stepIndex) {
+    if (!osmdInstance || !osmdInstance.cursor || activeViewMode !== 'musicxml') return;
+    const notes = getActiveNotes();
+    if (!notes || stepIndex < 0 || stepIndex >= notes.length) return;
+
+    const currentNote = notes[stepIndex];
+    const targetMeasure = currentNote.measureIndex !== undefined ? currentNote.measureIndex : 0;
+    const targetBeat = typeof currentNote.beatOffset === 'number' ? currentNote.beatOffset : 0;
+    const targetOrderStep = currentNote.orderStep;
+
+    try {
+      ensureCursorVisibleStyle();
+      const it = osmdInstance.cursor.iterator;
+      if (!it) return;
+
+      if (stepIndex === 0) {
+        jumpCursorToNotePosition(targetMeasure, targetBeat, targetOrderStep);
+        scrollScoreContainerToCursor(true);
+        return;
+      }
+
+      const prevNote = notes[stepIndex - 1];
+      const sameMeasureOccurrence = prevNote &&
+        prevNote.orderStep !== undefined &&
+        targetOrderStep !== undefined &&
+        prevNote.orderStep === targetOrderStep;
+
+      if (sameMeasureOccurrence && it.CurrentMeasureIndex === targetMeasure) {
+        let guard = 0;
+        while (
+          !it.EndReached &&
+          it.CurrentMeasureIndex === targetMeasure &&
+          getCursorBeatOffsetQuarters() < targetBeat - 0.02 &&
+          guard < 32
+        ) {
+          osmdInstance.cursor.next();
+          guard++;
+        }
+      } else {
+        // Nieuwe maat (inclusief eventuele herhalingssprong terug of volta-sprong vooruit)
+        let guard = 0;
+        let reachedMeasure = false;
+        while (!it.EndReached && guard < 32) {
+          osmdInstance.cursor.next();
+          guard++;
+          if (it.CurrentMeasureIndex === targetMeasure) {
+            reachedMeasure = true;
+            break;
+          }
+        }
+        if (reachedMeasure) {
+          let beatGuard = 0;
+          while (
+            !it.EndReached &&
+            it.CurrentMeasureIndex === targetMeasure &&
+            getCursorBeatOffsetQuarters() < targetBeat - 0.02 &&
+            beatGuard < 32
+          ) {
+            osmdInstance.cursor.next();
+            beatGuard++;
+          }
+        } else {
+          jumpCursorToNotePosition(targetMeasure, targetBeat, targetOrderStep);
+        }
+      }
+
+      scrollScoreContainerToCursor(false);
+    } catch (e) {
+      console.warn('Cursor sync waarschuwing:', e);
+    }
+  }
+
+  function restoreCursorToActiveStep() {
+    if (!isPlayingCompanion || !osmdInstance || !osmdInstance.cursor || activeViewMode !== 'musicxml') return;
+    const notes = getActiveNotes();
+    if (!notes || notes.length === 0) return;
+    const idx = Math.max(0, Math.min(currentStep > 0 ? currentStep - 1 : 0, notes.length - 1));
+    const n = notes[idx];
+    jumpCursorToNotePosition(n.measureIndex || 0, n.beatOffset || 0, n.orderStep);
+    scrollScoreContainerToCursor(true);
+  }
+
   // Geïsoleerde scroll-helper: scrolt UITSLUITEND de partituurbak (#score-container), nooit het hele venster!
-  function scrollScoreContainerToCursor() {
+  // Scrolt enkel wanneer de cursor naar een volgend systeem gaat of buiten de comfortzone valt (geen schokken per tel).
+  function scrollScoreContainerToCursor(force = false) {
     const container = document.getElementById('score-container');
     if (!container || !osmdInstance || !osmdInstance.cursor || !osmdInstance.cursor.cursorElement) return;
     const cursorEl = osmdInstance.cursor.cursorElement;
@@ -1246,16 +1602,26 @@ const ScoreViewer = (() => {
     try {
       const containerRect = container.getBoundingClientRect();
       const cursorRect = cursorEl.getBoundingClientRect();
+      if (cursorRect.height === 0 && cursorRect.width === 0) return;
 
-      // Bereken cursor Y relatief tot de scrollbare inhoud van #score-container
-      const relativeTop = cursorRect.top - containerRect.top + container.scrollTop;
-      // Houd de actieve balk comfortabel in beeld op circa 35% vanaf de bovenrand
-      const targetScrollTop = relativeTop - (container.clientHeight * 0.35);
+      const cursorTopInViewport = cursorRect.top - containerRect.top;
+      const cursorBottomInViewport = cursorRect.bottom - containerRect.top;
+      const viewH = container.clientHeight || 480;
 
-      container.scrollTo({
-        top: Math.max(0, Math.round(targetScrollTop)),
-        behavior: 'smooth'
-      });
+      // Als de cursor al comfortabel in het zichtbare gebied staat, niet telkens smooth-scroll herstarten
+      if (!force && cursorTopInViewport >= viewH * 0.12 && cursorBottomInViewport <= viewH * 0.78) {
+        return;
+      }
+
+      const relativeTop = cursorTopInViewport + container.scrollTop;
+      const targetScrollTop = Math.max(0, Math.round(relativeTop - viewH * 0.28));
+
+      if (Math.abs(container.scrollTop - targetScrollTop) > 12) {
+        container.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth'
+        });
+      }
     } catch (e) {
       console.warn('Fout bij scrollen naar cursor:', e);
     }
@@ -1271,7 +1637,8 @@ const ScoreViewer = (() => {
       return;
     }
 
-    const currentNote = notes[currentStep];
+    const stepToPlay = currentStep;
+    const currentNote = notes[stepToPlay];
     const stepDur = currentNote.dur; // 1.0 = kwartnoot
     const duration = stepDur * (60 / currentBpm);
     const soundDuration = (currentNote.soundDur || stepDur) * (60 / currentBpm);
@@ -1279,69 +1646,70 @@ const ScoreViewer = (() => {
       ? AudioEngine.playChoirNote
       : AudioEngine.playNote;
 
-    if (currentNote.notes && Array.isArray(currentNote.notes)) {
-      // Tutti Chord: play all choral voices simultaneously met koorgeluid
-      currentNote.notes.forEach(n => {
-        if (n && n !== 'REST') {
-          playScoreNote(n, Math.min(soundDuration * 1.08, 8.0));
+    if (currentNote.onsetEvents && Array.isArray(currentNote.onsetEvents)) {
+      // Tutti met exacte stem-onsets (lange noten klinken rustig door zonder heraanslag op 16e noten)
+      currentNote.onsetEvents.forEach(ev => {
+        if (ev && ev.note && ev.note !== 'REST') {
+          const evSec = (ev.soundDur || stepDur) * (60 / currentBpm);
+          playScoreNote(ev.note, Math.min(evSec * 1.06, 10.0));
         }
       });
-      // Highlight soprano (top) note on virtual piano
+      const activeArr = Array.isArray(currentNote.notes) ? currentNote.notes.filter(n => n && n !== 'REST') : [];
+      const topNote = activeArr.length > 0 ? activeArr[0] : null;
+      AudioEngine.highlightSungKey(topNote);
+    } else if (currentNote.notes && Array.isArray(currentNote.notes)) {
+      // Divisi-akkoord binnen 1 stempartij (bv. Bas octaaf-divisi)
+      if (!(currentNote.tiedContinuation && stepToPlay > 0)) {
+        currentNote.notes.forEach(n => {
+          if (n && n !== 'REST') {
+            playScoreNote(n, Math.min(soundDuration * 1.06, 10.0));
+          }
+        });
+      }
       const topNote = currentNote.notes[currentNote.notes.length - 1];
       if (topNote && topNote !== 'REST') {
         AudioEngine.highlightSungKey(topNote);
       }
     } else if (currentNote.note && currentNote.note !== 'REST') {
-      // Single choral voice (S, A, T or B): houd overgebonden noten (ties) vloeiend aan
-      if (!(currentNote.tiedContinuation && currentStep > 0)) {
-        playScoreNote(currentNote.note, Math.min(soundDuration * 1.08, 8.0));
+      // Solo koorpartij (S, Mezzo, A, T of B): houd overgebonden noten (ties) vloeiend aan
+      if (!(currentNote.tiedContinuation && stepToPlay > 0)) {
+        playScoreNote(currentNote.note, Math.min(soundDuration * 1.06, 10.0));
       }
       AudioEngine.highlightSungKey(currentNote.note);
     } else {
       AudioEngine.highlightSungKey(null);
     }
 
-    if (osmdInstance && osmdInstance.cursor && activeViewMode === 'musicxml') {
-      try {
-        if (currentStep > 0) {
-          const prevNote = notes[currentStep - 1];
-          if (prevNote && currentNote.measureIndex !== undefined && prevNote.measureIndex !== undefined && currentNote.measureIndex < prevNote.measureIndex) {
-            // Muzikale herhaling: spring direct terug naar de herhaalde maat
-            jumpCursorToMeasure(currentNote.measureIndex);
-          } else {
-            osmdInstance.cursor.next();
-          }
-        }
-        scrollScoreContainerToCursor();
-      } catch (e) {}
-    }
+    syncCursorToStep(stepToPlay);
 
-    currentStep++;
+    currentStep = stepToPlay + 1;
+
+    const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (!nextNoteTargetTime || nextNoteTargetTime < nowMs - 250) {
+      nextNoteTargetTime = nowMs + duration * 1000;
+    } else {
+      nextNoteTargetTime += duration * 1000;
+    }
+    const waitMs = Math.max(12, nextNoteTargetTime - nowMs);
+
     if (currentStep >= notes.length) {
-      // Laatste noot klinkt uit en daarna stopt de speler automatisch
+      // Laatste noot klinkt volledig uit en daarna stopt de speler automatisch
       companionInterval = setTimeout(() => {
         stopCompanion();
-      }, duration * 1000);
+      }, waitMs);
     } else {
-      companionInterval = setTimeout(playNextCompanionNote, duration * 1000);
+      companionInterval = setTimeout(playNextCompanionNote, waitMs);
     }
   }
 
-  function startCompanion() {
+  async function startCompanion() {
+    if (companionInterval) {
+      clearTimeout(companionInterval);
+      companionInterval = null;
+    }
     isPlayingCompanion = true;
     currentStep = 0;
-
-    if (osmdInstance && osmdInstance.cursor && activeViewMode === 'musicxml') {
-      try {
-        osmdInstance.cursor.show();
-        osmdInstance.cursor.reset();
-        scrollScoreContainerToCursor();
-      } catch (e) {
-        console.warn('OSMD Cursor start issue:', e);
-      }
-    }
-
-    playNextCompanionNote();
+    nextNoteTargetTime = 0;
 
     const btn = document.getElementById('btn-play-companion');
     const icon = document.getElementById('play-btn-icon');
@@ -1352,6 +1720,33 @@ const ScoreViewer = (() => {
       btn.style.background = '#f59e0b';
       btn.style.borderColor = '#d97706';
     }
+
+    if (typeof AudioEngine !== 'undefined' && AudioEngine.ensureContextReady) {
+      await AudioEngine.ensureContextReady();
+    }
+    if (!isPlayingCompanion) return;
+
+    if (activeLoadPromise) {
+      try {
+        await activeLoadPromise;
+      } catch (e) {}
+    }
+    if (!isPlayingCompanion) return;
+
+    const scoreData = SCORES[activeScoreKey];
+    if (scoreData && !scoreData.voices && (scoreData.xmlText || scoreData.musicXmlUrl)) {
+      const result = await loadMusicXML(scoreData.xmlText || scoreData.musicXmlUrl);
+      if (!isPlayingCompanion) return;
+      if (result && result.voices) {
+        scoreData.voices = result.voices;
+        scoreData.voiceIndexMap = result.voiceIndexMap || {};
+        scoreData.partLabels = result.partLabels || {};
+        scoreData.notes = scoreData.voices[selectedVoice] || Object.values(result.voices)[0];
+      }
+    }
+
+    nextNoteTargetTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    playNextCompanionNote();
   }
 
   function stopCompanion() {
@@ -1395,6 +1790,20 @@ const ScoreViewer = (() => {
   }
 
   function setVoicePart(voicePart) {
+    // Bewaar huidige muzikale positie als de speler bezig is, zodat wisselen van stem naadloos doorloopt
+    let prevPos = null;
+    if (isPlayingCompanion) {
+      const oldNotes = getActiveNotes();
+      const activeIdx = Math.max(0, Math.min(currentStep > 0 ? currentStep - 1 : 0, (oldNotes ? oldNotes.length : 1) - 1));
+      if (oldNotes && oldNotes[activeIdx]) {
+        prevPos = {
+          orderStep: oldNotes[activeIdx].orderStep,
+          measureIndex: oldNotes[activeIdx].measureIndex,
+          beatOffset: oldNotes[activeIdx].beatOffset || 0
+        };
+      }
+    }
+
     selectedVoice = voicePart;
 
     // Update active pill styling
@@ -1412,13 +1821,35 @@ const ScoreViewer = (() => {
     if (scoreData && scoreData.voices) {
       scoreData.notes = scoreData.voices[selectedVoice] || scoreData.voices.sopraan || Object.values(scoreData.voices)[0];
     }
+
+    if (isPlayingCompanion && prevPos) {
+      const newNotes = getActiveNotes();
+      if (newNotes && newNotes.length > 0) {
+        let matchedIdx = newNotes.findIndex(n =>
+          n.orderStep === prevPos.orderStep &&
+          (n.beatOffset || 0) + (n.dur || 0) > prevPos.beatOffset + 0.01
+        );
+        if (matchedIdx === -1) {
+          matchedIdx = newNotes.findIndex(n => n.measureIndex === prevPos.measureIndex);
+        }
+        currentStep = matchedIdx !== -1 ? matchedIdx : 0;
+      } else {
+        currentStep = 0;
+      }
+      if (companionInterval) {
+        clearTimeout(companionInterval);
+        companionInterval = null;
+      }
+      nextNoteTargetTime = 0;
+    }
+
     updateTrackLabels();
     applyVoiceFilterToOSMD();
 
     const statusEl = document.getElementById('score-rendering-status');
     if (statusEl && activeViewMode === 'musicxml') {
       statusEl.textContent = selectedVoice === 'tutti'
-        ? '✅ Tutti (Alle 4 stemmen)'
+        ? '✅ Tutti (Alle stemmen)'
         : `✅ Solo: ${getVoiceLabel(selectedVoice)} (1 balk op GSM)`;
     }
 
@@ -1427,7 +1858,7 @@ const ScoreViewer = (() => {
     }
 
     if (isPlayingCompanion) {
-      currentStep = 0;
+      playNextCompanionNote();
     }
   }
 

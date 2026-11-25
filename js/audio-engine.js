@@ -59,8 +59,65 @@ const AudioEngine = (() => {
     81: 'A5.mp3',
     84: 'C6.mp3'
   };
-  const choirSampleBuffers = {}; // midi -> AudioBuffer (Choir Aahs)
+  const choirSampleBuffers = {}; // midi -> { buffer, sustainStart, sustainEnd, activeEnd }
   let choirLoadingStarted = false;
+  let decodeOfflineCtx = null;
+
+  function getDecodeContext() {
+    if (ctx) return ctx;
+    if (!decodeOfflineCtx) {
+      const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      if (OfflineCtx) {
+        decodeOfflineCtx = new OfflineCtx(1, 1, 44100);
+      }
+    }
+    return decodeOfflineCtx;
+  }
+
+  // Meet waar de koor-sample daadwerkelijk klinkt (vóór eventuele stille uitloop in het MP3-bestand)
+  function analyzeChoirSampleLoop(audioBuffer) {
+    const dur = audioBuffer.duration || 0;
+    if (dur <= 0.4) {
+      return { sustainStart: 0.08, sustainEnd: Math.max(0.2, dur * 0.8), activeEnd: dur };
+    }
+    try {
+      const data = audioBuffer.getChannelData(0);
+      const sr = audioBuffer.sampleRate || 44100;
+      const winSize = Math.max(256, Math.floor(sr * 0.04)); // 40ms vensters
+      const rmsList = [];
+      let peakRms = 0;
+
+      for (let pos = 0; pos + winSize <= data.length; pos += winSize) {
+        let sumSq = 0;
+        for (let i = 0; i < winSize; i++) {
+          const v = data[pos + i];
+          sumSq += v * v;
+        }
+        const rms = Math.sqrt(sumSq / winSize);
+        rmsList.push({ time: pos / sr, rms });
+        if (rms > peakRms) peakRms = rms;
+      }
+
+      if (peakRms <= 0.0001 || rmsList.length < 4) {
+        return { sustainStart: 0.2, sustainEnd: Math.max(0.45, dur * 0.75), activeEnd: dur };
+      }
+
+      // Zoek het laatste venster waar het volume nog vol klinkt (>= 38% van de piek)
+      let activeEnd = dur * 0.8;
+      for (let i = rmsList.length - 1; i >= 0; i--) {
+        if (rmsList[i].rms >= peakRms * 0.38) {
+          activeEnd = rmsList[i].time;
+          break;
+        }
+      }
+
+      const sustainStart = Math.min(0.32, Math.max(0.12, activeEnd * 0.25));
+      const sustainEnd = Math.max(sustainStart + 0.22, Math.min(dur - 0.05, activeEnd - 0.06));
+      return { sustainStart, sustainEnd, activeEnd: Math.max(sustainEnd, activeEnd) };
+    } catch (e) {
+      return { sustainStart: 0.22, sustainEnd: Math.max(0.5, dur * 0.7), activeEnd: dur * 0.85 };
+    }
+  }
 
   function midiToFreq(midi) {
     return 440 * Math.pow(2, (midi - 69) / 12);
@@ -79,9 +136,19 @@ const AudioEngine = (() => {
       preloadChoirSamples();
     }
     if (ctx.state === 'suspended') {
-      ctx.resume();
+      ctx.resume().catch(() => {});
     }
     return ctx;
+  }
+
+  async function ensureContextReady() {
+    const audioCtx = getContext();
+    if (audioCtx && audioCtx.state === 'suspended') {
+      try {
+        await audioCtx.resume();
+      } catch (e) {}
+    }
+    return audioCtx;
   }
 
   // Subtiele akoestische ruimte-resonantie (zanglokalen-akoestiek) en compressor
@@ -135,12 +202,9 @@ const AudioEngine = (() => {
         const res = await fetch(SALAMANDER_BASE_URL + file);
         if (!res.ok) return;
         const arrayBuf = await res.arrayBuffer();
-        const audioCtx = ctx || new (window.AudioContext || window.webkitAudioContext)();
-        if (!ctx) {
-          ctx = audioCtx;
-          setupMasterChain(ctx);
-        }
-        const decoded = await audioCtx.decodeAudioData(arrayBuf);
+        const decodeCtx = getDecodeContext();
+        if (!decodeCtx) return;
+        const decoded = await decodeCtx.decodeAudioData(arrayBuf);
         sampleBuffers[midi] = decoded;
       } catch (err) {
         // Offline of geen toegang tot CDN: de warme akoestische piano-synthese neemt automatisch over
@@ -174,16 +238,21 @@ const AudioEngine = (() => {
     };
   }
 
-  // Convert note name (e.g. "A3", "C#4", "Bb4") to frequency
+  // Convert note name (e.g. "A3", "C#4", "Bb4", "Cb4", "F##4") to frequency
   function noteToFrequency(noteStr) {
-    const flatMap = { 'DB': 'C#', 'EB': 'D#', 'GB': 'F#', 'AB': 'G#', 'BB': 'A#' };
-    const match = noteStr.match(/^([A-G][#b]?)(-?\d+)$/i);
+    if (!noteStr || typeof noteStr !== 'string') return 440;
+    const match = noteStr.trim().match(/^([A-Ga-g])(#{1,2}|b{1,2})?(-?\d+)$/);
     if (!match) return 440;
-    let note = match[1].toUpperCase();
-    if (flatMap[note]) note = flatMap[note];
-    const octave = parseInt(match[2], 10);
-    const semitone = NOTE_NAMES.indexOf(note);
-    if (semitone === -1) return 440;
+    const baseOffsets = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+    const step = match[1].toUpperCase();
+    const acc = match[2] || '';
+    const octave = parseInt(match[3], 10);
+    let semitone = baseOffsets[step];
+    if (semitone === undefined) return 440;
+    if (acc === '#') semitone += 1;
+    else if (acc === '##') semitone += 2;
+    else if (acc === 'b') semitone -= 1;
+    else if (acc === 'bb') semitone -= 2;
     const midi = (octave + 1) * 12 + semitone;
     return midiToFreq(midi);
   }
@@ -299,13 +368,16 @@ const AudioEngine = (() => {
           const res = await fetch(baseUrl + file);
           if (!res.ok) continue;
           const arrayBuf = await res.arrayBuffer();
-          const audioCtx = ctx || new (window.AudioContext || window.webkitAudioContext)();
-          if (!ctx) {
-            ctx = audioCtx;
-            setupMasterChain(ctx);
-          }
-          const decoded = await audioCtx.decodeAudioData(arrayBuf);
-          choirSampleBuffers[midi] = decoded;
+          const decodeCtx = getDecodeContext();
+          if (!decodeCtx) break;
+          const decoded = await decodeCtx.decodeAudioData(arrayBuf);
+          const loopMeta = analyzeChoirSampleLoop(decoded);
+          choirSampleBuffers[midi] = {
+            buffer: decoded,
+            sustainStart: loopMeta.sustainStart,
+            sustainEnd: loopMeta.sustainEnd,
+            activeEnd: loopMeta.activeEnd
+          };
           break;
         } catch (err) {
           // Volgende CDN of formant-koor-synthese fallback
@@ -331,9 +403,14 @@ const AudioEngine = (() => {
     }
 
     if (minDiff > 7) return null;
+    const entry = choirSampleBuffers[closestMidi];
+    if (!entry || !entry.buffer) return null;
     return {
       midi: closestMidi,
-      buffer: choirSampleBuffers[closestMidi],
+      buffer: entry.buffer,
+      sustainStart: entry.sustainStart,
+      sustainEnd: entry.sustainEnd,
+      activeEnd: entry.activeEnd,
       baseFreq: midiToFreq(closestMidi)
     };
   }
@@ -344,7 +421,7 @@ const AudioEngine = (() => {
     const now = audioCtx.currentTime;
     const dest = masterCompressor || audioCtx.destination;
     const sustainTime = Math.max(0.22, duration);
-    const releaseTime = 0.32;
+    const releaseTime = 0.28;
 
     // 1. Gebruik echte SoundFont Choir Aahs sample indien geladen
     const sampleMatch = findClosestChoirSample(freq);
@@ -354,19 +431,20 @@ const AudioEngine = (() => {
       const rate = freq / sampleMatch.baseFreq;
       source.playbackRate.setValueAtTime(rate, now);
 
-      // Voor lange aangehouden koornoten (bijv. overgebonden noten): loop het stabiele vocale middendeel
-      const bufDur = sampleMatch.buffer.duration;
-      if (sustainTime * rate > bufDur * 0.75 && bufDur > 1.2) {
+      // Loop het actief klinkende middendeel zodra de gewenste nootduur langer is dan de actieve samplekern
+      // (voorkomt dat een MP3 met stille uitloop halverwege een halve/hele noot wegvalt!)
+      const activeEnd = sampleMatch.activeEnd || (sampleMatch.buffer.duration * 0.7);
+      if ((sustainTime + releaseTime) * rate > activeEnd * 0.82 && sampleMatch.sustainEnd > sampleMatch.sustainStart + 0.15) {
         source.loop = true;
-        source.loopStart = Math.min(0.45, bufDur * 0.25);
-        source.loopEnd = Math.max(source.loopStart + 0.4, bufDur - 0.25);
+        source.loopStart = sampleMatch.sustainStart;
+        source.loopEnd = sampleMatch.sustainEnd;
       }
 
       const envGain = audioCtx.createGain();
-      const attackTime = Math.min(0.06, sustainTime * 0.25);
+      const attackTime = Math.min(0.045, sustainTime * 0.22);
       envGain.gain.setValueAtTime(0.001, now);
-      envGain.gain.linearRampToValueAtTime(0.82, now + attackTime);
-      envGain.gain.setValueAtTime(0.78, now + Math.max(attackTime + 0.01, sustainTime * 0.92));
+      envGain.gain.linearRampToValueAtTime(0.84, now + attackTime);
+      envGain.gain.setValueAtTime(0.80, now + Math.max(attackTime + 0.01, sustainTime * 0.94));
       envGain.gain.exponentialRampToValueAtTime(0.0001, now + sustainTime + releaseTime);
 
       source.connect(envGain);
@@ -621,6 +699,7 @@ const AudioEngine = (() => {
 
   return {
     getContext,
+    ensureContextReady,
     preloadPianoSamples,
     preloadChoirSamples,
     noteToFrequency,

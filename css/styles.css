@@ -1788,8 +1788,16 @@ a.tool-item-card:focus {
   font-weight: 700;
 }
 
+.voice-pill[data-voice="solo"].active {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+}
+
 .voice-pill[data-voice="sopraan"].active {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.voice-pill[data-voice="mezzo"].active {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
 }
 
 .voice-pill[data-voice="alt"].active {

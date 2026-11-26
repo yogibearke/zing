@@ -1618,6 +1618,7 @@
         <lyric number="1" default-y="-54.83" relative-y="-30">
           <syllabic>begin</syllabic>
           <text>fin</text>
+          <extend type="start"/>
           </lyric>
         </note>
       <note default-x="72.94" default-y="-216.42">
@@ -1635,8 +1636,7 @@
           <slur type="stop" number="1" bezier-x="-15.44483" bezier-y="-9.574764"/>
           </notations>
         <lyric number="1" default-x="2.66" default-y="-54.83" relative-y="-30">
-          <syllabic>end</syllabic>
-          <text>den,</text>
+          <extend type="stop"/>
           </lyric>
         </note>
       <note default-x="127.13" default-y="-211.42">
@@ -1652,8 +1652,8 @@
           <fermata type="upright" default-y="6.5" relative-y="5"/>
           </notations>
         <lyric number="1" default-y="-54.83" relative-y="-30">
-          <syllabic>single</syllabic>
-          <text>da</text>
+          <syllabic>end</syllabic>
+          <text>den,</text>
           </lyric>
         </note>
       <note default-x="181.31" default-y="-231.42">
@@ -1666,6 +1666,10 @@
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
+        <lyric number="1" default-y="-54.83" relative-y="-30">
+          <syllabic>single</syllabic>
+          <text>da</text>
+          </lyric>
         </note>
       <note default-x="217.43" default-y="-236.42">
         <pitch>
@@ -2554,6 +2558,7 @@
         <lyric number="1" default-y="-41.46" relative-y="-30">
           <syllabic>begin</syllabic>
           <text>fin</text>
+          <extend type="start"/>
           </lyric>
         </note>
       <note default-x="72.94" default-y="-377.84">
@@ -2569,8 +2574,7 @@
           <slur type="stop" number="1" bezier-x="-12.57706" bezier-y="12.970221"/>
           </notations>
         <lyric number="1" default-x="2.66" default-y="-41.46" relative-y="-30">
-          <syllabic>end</syllabic>
-          <text>den,</text>
+          <extend type="stop"/>
           </lyric>
         </note>
       <note default-x="127.13" default-y="-377.84">
@@ -2586,8 +2590,8 @@
           <fermata type="upright" relative-y="5"/>
           </notations>
         <lyric number="1" default-y="-41.46" relative-y="-30">
-          <syllabic>single</syllabic>
-          <text>da</text>
+          <syllabic>end</syllabic>
+          <text>den,</text>
           </lyric>
         </note>
       <note default-x="181.31" default-y="-397.84">
@@ -2599,6 +2603,10 @@
         <voice>1</voice>
         <type>quarter</type>
         <stem>up</stem>
+        <lyric number="1" default-y="-41.46" relative-y="-30">
+          <syllabic>single</syllabic>
+          <text>da</text>
+          </lyric>
         </note>
       </measure>
     <measure number="12" width="285.22">
@@ -3419,6 +3427,7 @@
         <lyric number="1" default-y="-45" relative-y="-30">
           <syllabic>begin</syllabic>
           <text>fin</text>
+          <extend type="start"/>
           </lyric>
         </note>
       <note default-x="72.94" default-y="-574.26">
@@ -3434,8 +3443,7 @@
           <slur type="stop" number="1" bezier-x="-14.025733" bezier-y="11.303352"/>
           </notations>
         <lyric number="1" default-x="2.66" default-y="-45" relative-y="-30">
-          <syllabic>end</syllabic>
-          <text>den,</text>
+          <extend type="stop"/>
           </lyric>
         </note>
       <note default-x="127.13" default-y="-594.26">
@@ -3451,8 +3459,8 @@
           <fermata type="upright" relative-y="5"/>
           </notations>
         <lyric number="1" default-y="-45" relative-y="-30">
-          <syllabic>single</syllabic>
-          <text>da</text>
+          <syllabic>end</syllabic>
+          <text>den,</text>
           </lyric>
         </note>
       <note default-x="181.31" default-y="-579.26">
@@ -3465,6 +3473,10 @@
         <type>quarter</type>
         <accidental>natural</accidental>
         <stem>down</stem>
+        <lyric number="1" default-y="-45" relative-y="-30">
+          <syllabic>single</syllabic>
+          <text>da</text>
+          </lyric>
         </note>
       </measure>
     <measure number="12" width="285.22">
